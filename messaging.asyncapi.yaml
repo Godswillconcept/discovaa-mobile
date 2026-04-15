@@ -1,0 +1,321 @@
+asyncapi: 2.6.0
+info:
+  title: Discovaa Messaging WebSocket API
+  version: 1.0.0
+  description: |
+    AsyncAPI specification for the chat WebSocket used by the Messaging domain.
+
+    Authentication: the server authenticates WebSocket connections using a headless JWT access token.
+    Recommended is passing `access_token` as a query parameter.
+    Some non-browser clients may pass the token via `Sec-WebSocket-Protocol` as: `access_token, <token>`.
+
+    Swagger/OpenAPI does not natively describe WebSockets; AsyncAPI is the recommended
+    machine-readable alternative.
+
+servers:
+  production:
+    url: wss://{host}/ws/chat/?access_token={access_token}
+    protocol: wss
+    description: Primary WebSocket endpoint. One connection receives events for all eligible threads.
+    variables:
+      host:
+        description: API host
+        default: example.com
+      access_token:
+        description: Headless JWT access token.
+        default: "<access_token>"
+  legacyRoom:
+    url: wss://{host}/ws/chat/{room_id}/?access_token={access_token}
+    protocol: wss
+    description: Legacy WebSocket endpoint that joins a single thread room.
+    variables:
+      host:
+        description: API host
+        default: example.com
+      room_id:
+        description: Thread id to join
+        default: "<thread_id>"
+      access_token:
+        description: Headless JWT access token.
+        default: "<access_token>"
+
+channels:
+  /ws/chat/:
+    description: |
+      Primary chat connection.
+
+      On connect, the server subscribes the socket to:
+      - user inbox group `user_<user_id>`
+      - all eligible thread groups `chat_<thread_id>`
+
+      After subscribing, the server pushes any missed incoming messages
+      without a read receipt for the current user.
+
+      Client-to-server messages must include a thread id.
+    publish:
+      summary: Client sends a message to a thread.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ClientSendMessage'
+          - $ref: '#/components/messages/ClientUpdateMessageStatus'
+    subscribe:
+      summary: Server pushes events (message broadcasts and thread_created notifications).
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ServerMessageCreated'
+          - $ref: '#/components/messages/ServerThreadCreated'
+          - $ref: '#/components/messages/ServerMessageStatusUpdated'
+          - $ref: '#/components/messages/ServerError'
+
+  /ws/chat/{room_id}/:
+    description: |
+      Legacy single-thread connection.
+
+      The server authorizes that the authenticated user is allowed to access the thread,
+      then subscribes the socket to `chat_<room_id>`.
+
+      Client-to-server messages may omit thread because the room is known from the URL,
+      but including it is still acceptable.
+    publish:
+      summary: Client sends a message (thread inferred from room_id if not provided).
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ClientSendMessage'
+          - $ref: '#/components/messages/ClientUpdateMessageStatus'
+    subscribe:
+      summary: Server pushes events for this thread.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ServerMessageCreated'
+          - $ref: '#/components/messages/ServerThreadCreated'
+          - $ref: '#/components/messages/ServerMessageStatusUpdated'
+          - $ref: '#/components/messages/ServerError'
+
+components:
+  messages:
+    ClientSendMessage:
+      name: ClientSendMessage
+      title: Client -> Server send message
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ClientSendMessagePayload'
+
+    ClientUpdateMessageStatus:
+      name: ClientUpdateMessageStatus
+      title: Client -> Server update message status
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ClientUpdateMessageStatusPayload'
+
+    ServerMessageCreated:
+      name: ServerMessageCreated
+      title: Server -> Client message created/broadcast
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServerMessageCreatedPayload'
+
+    ServerThreadCreated:
+      name: ServerThreadCreated
+      title: Server -> Client thread created event
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServerThreadCreatedPayload'
+
+    ServerMessageStatusUpdated:
+      name: ServerMessageStatusUpdated
+      title: Server -> Client message status update
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServerMessageStatusUpdatedPayload'
+
+    ServerError:
+      name: ServerError
+      title: Server -> Client error
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/ServerErrorPayload'
+
+  schemas:
+    ClientSendMessagePayload:
+      type: object
+      additionalProperties: true
+      description: |
+        Client message payload accepted by the WebSocket consumer.
+
+        Notes:
+        - When connected to /ws/chat/ the thread id is required.
+        - When connected to /ws/chat/{room_id}/ the thread may be omitted.
+      properties:
+        provider:
+          type: string
+          description: Provider id (inquiry send). If thread is omitted, server resolves/creates inquiry thread.
+        thread:
+          type: string
+          description: Thread id.
+        thread_id:
+          type: string
+          description: Alias for thread.
+        text:
+          type: string
+          description: Message text.
+        message:
+          type: string
+          description: Alias for text.
+      anyOf:
+        - required: [provider, text]
+        - required: [thread, text]
+        - required: [thread, message]
+        - required: [thread_id, text]
+        - required: [thread_id, message]
+
+    ClientUpdateMessageStatusPayload:
+      type: object
+      additionalProperties: true
+      description: |
+        Client updates per-message status (delivered/read).
+        The server persists receipts and broadcasts message_status_updated.
+      example:
+        type: update_message_status
+        status: read
+        thread: "0f6a2a9b-2c20-4d3a-9dc1-5d6b6a5c84d5"
+        message_ids:
+          - "d57c1c2d-9c11-4a6b-bb39-7c6a2d16a3a7"
+      properties:
+        type:
+          type: string
+          enum: [update_message_status]
+        status:
+          type: string
+          enum: [delivered, read]
+        thread:
+          type: string
+        thread_id:
+          type: string
+          description: Alias for thread.
+        messages:
+          type: array
+          items:
+            type: string
+          description: Alias for message_ids.
+        message_ids:
+          type: array
+          items:
+            type: string
+      required:
+        - type
+        - status
+        - message_ids
+      anyOf:
+        - required: [thread, message_ids]
+        - required: [thread_id, message_ids]
+
+    ServerMessageCreatedPayload:
+      type: object
+      additionalProperties: false
+      description: Persisted message representation broadcast to a thread group.
+      properties:
+        id:
+          type: string
+        thread:
+          type: string
+        sender:
+          type: integer
+        kind:
+          type: string
+          description: Message kind. WebSocket sends are persisted as TEXT.
+          example: TEXT
+        content:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Echo of the original client payload.
+        created_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          description: Convenience UI status value.
+          example: sent
+      required:
+        - id
+        - thread
+        - sender
+        - kind
+        - content
+        - metadata
+        - created_at
+
+    ServerMessageStatusUpdatedPayload:
+      type: object
+      additionalProperties: false
+      description: Message status update broadcast to a thread group.
+      example:
+        type: message_status_updated
+        thread: "0f6a2a9b-2c20-4d3a-9dc1-5d6b6a5c84d5"
+        user: "42"
+        status: read
+        status_at: "2026-03-05T09:34:12Z"
+        message_ids:
+          - "d57c1c2d-9c11-4a6b-bb39-7c6a2d16a3a7"
+      properties:
+        type:
+          type: string
+          enum: [message_status_updated]
+        thread:
+          type: string
+        user:
+          type: string
+          description: User who updated status.
+        status:
+          type: string
+          enum: [delivered, read]
+        status_at:
+          type: string
+          format: date-time
+        message_ids:
+          type: array
+          items:
+            type: string
+      required:
+        - type
+        - thread
+        - user
+        - status
+        - status_at
+        - message_ids
+
+    ServerThreadCreatedPayload:
+      type: object
+      additionalProperties: false
+      description: Notification that a new thread exists and is now eligible for subscription.
+      properties:
+        type:
+          type: string
+          enum: [thread_created]
+        thread:
+          type: string
+        booking:
+          type: string
+          nullable: true
+        provider:
+          type: string
+          nullable: true
+      required:
+        - type
+        - thread
+        - booking
+        - provider
+
+    ServerErrorPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        error:
+          type: boolean
+          enum: [true]
+        detail:
+          type: string
+      required:
+        - error
+        - detail

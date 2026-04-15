@@ -1,0 +1,17 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:discovaa/app/dependency_injection/service_locator.dart';
+import 'package:discovaa/app/app.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize dependencies
+  await configureDependencies();
+  
+  runApp(
+    const ProviderScope(
+      child: DiscovaaApp(),
+    ),
+  );
+}

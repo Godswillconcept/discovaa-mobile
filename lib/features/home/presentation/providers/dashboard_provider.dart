@@ -1,0 +1,224 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:discovaa/app/dependency_injection/service_locator.dart';
+import 'package:discovaa/core/network/dio_client.dart';
+import 'package:discovaa/core/network/network_info.dart';
+import 'package:discovaa/core/storage/hive_service.dart';
+import '../../data/datasources/dashboard_remote_datasource.dart';
+import '../../data/repositories/dashboard_repository_impl.dart';
+import '../../domain/entities/dashboard_entity.dart';
+import '../../domain/repositories/dashboard_repository.dart';
+
+// Repository Provider
+final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
+  final dioClient = sl<DioClient>();
+  final remoteDataSource = DashboardRemoteDataSourceImpl(dioClient: dioClient);
+  return DashboardRepositoryImpl(
+    remoteDataSource: remoteDataSource,
+    hiveService: sl<HiveService>(),
+    networkInfo: sl<NetworkInfo>(),
+  );
+});
+
+// Dashboard State
+class DashboardState {
+  final bool isLoading;
+  final DashboardEntity? data;
+  final String? error;
+  final bool isRefreshing;
+
+  const DashboardState({
+    this.isLoading = false,
+    this.data,
+    this.error,
+    this.isRefreshing = false,
+  });
+
+  DashboardState copyWith({
+    bool? isLoading,
+    DashboardEntity? data,
+    String? error,
+    bool? isRefreshing,
+  }) {
+    return DashboardState(
+      isLoading: isLoading ?? this.isLoading,
+      data: data ?? this.data,
+      error: error,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
+    );
+  }
+
+  bool get hasData => data != null && !data!.isEmpty;
+  bool get hasError => error != null;
+  bool get isEmpty => data?.isEmpty ?? true;
+}
+
+// Dashboard Notifier
+class DashboardNotifier extends StateNotifier<DashboardState> {
+  final DashboardRepository _repository;
+
+  DashboardNotifier(this._repository) : super(const DashboardState());
+
+  /// Load dashboard data based on user role
+  Future<void> loadDashboard(
+    String role, {
+    DashboardFilterEntity? filter,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      DashboardEntity data;
+      if (role == 'provider') {
+        data = await _repository.getProviderDashboard(filter: filter);
+      } else {
+        data = await _repository.getClientDashboard(filter: filter);
+      }
+      state = state.copyWith(isLoading: false, data: data);
+    } catch (e) {
+      String errorMessage;
+      if (e.toString().contains('401') ||
+          e.toString().contains('Unauthorized')) {
+        errorMessage = 'Authentication failed. Please log in again.';
+      } else {
+        errorMessage = 'Failed to load dashboard. Please try again.';
+      }
+      state = state.copyWith(isLoading: false, error: errorMessage);
+    }
+  }
+
+  /// Refresh dashboard data
+  Future<void> refresh(String role, {DashboardFilterEntity? filter}) async {
+    if (state.isRefreshing) return;
+
+    state = state.copyWith(isRefreshing: true);
+
+    try {
+      final data = await _repository.refreshDashboard(role, filter: filter);
+      state = state.copyWith(isRefreshing: false, data: data);
+    } catch (e) {
+      state = state.copyWith(
+        isRefreshing: false,
+        error: 'Failed to refresh dashboard: $e',
+      );
+    }
+  }
+
+  /// Clear dashboard data
+  void clear() {
+    state = const DashboardState();
+  }
+}
+
+// Main Dashboard Provider
+final dashboardProvider =
+    StateNotifierProvider<DashboardNotifier, DashboardState>((ref) {
+      final repository = ref.watch(dashboardRepositoryProvider);
+      return DashboardNotifier(repository);
+    });
+
+// Dashboard Filter Provider
+final dashboardFilterProvider = StateProvider<DashboardFilterEntity>((ref) {
+  return const DashboardFilterEntity(range: '30d');
+});
+
+// Unread Messages Count Provider
+final unreadMessagesProvider = FutureProvider<int>((ref) async {
+  final repository = ref.watch(dashboardRepositoryProvider);
+  return repository.getUnreadMessageCount();
+});
+
+// Pending Messages Count Provider
+final pendingMessagesProvider = FutureProvider<int>((ref) async {
+  final repository = ref.watch(dashboardRepositoryProvider);
+  return repository.getPendingMessageCount();
+});
+
+// Dashboard Data Selectors
+
+/// Spending trend data selector
+final spendingTrendProvider = Provider<SpendingTrendEntity?>((ref) {
+  final dashboardState = ref.watch(dashboardProvider);
+  return dashboardState.data?.spendingTrend;
+});
+
+/// Booking mix data selector
+final bookingMixProvider = Provider<BookingMixEntity?>((ref) {
+  final dashboardState = ref.watch(dashboardProvider);
+  return dashboardState.data?.bookingMix;
+});
+
+/// KPI data selector
+final dashboardKpiProvider = Provider<DashboardKpiEntity?>((ref) {
+  final dashboardState = ref.watch(dashboardProvider);
+  return dashboardState.data?.kpis;
+});
+
+/// Insights list selector
+final insightsProvider = Provider<List<InsightEntity>>((ref) {
+  final dashboardState = ref.watch(dashboardProvider);
+  return dashboardState.data?.insights ?? [];
+});
+
+/// Recent bookings selector
+final recentBookingsProvider = Provider<List<RecentBookingEntity>>((ref) {
+  final dashboardState = ref.watch(dashboardProvider);
+  return dashboardState.data?.recentBookings ?? [];
+});
+
+/// Upcoming appointments selector
+final upcomingAppointmentsProvider = Provider<List<AppointmentEntity>>((ref) {
+  final dashboardState = ref.watch(dashboardProvider);
+  return dashboardState.data?.upcomingAppointments ?? [];
+});
+
+/// Upcoming bookings count selector
+final upcomingCountProvider = Provider<int>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return kpis?.upcomingCount ?? 0;
+});
+
+/// Active requests count selector (for providers)
+final activeRequestsProvider = Provider<int>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return kpis?.activeRequests ?? 0;
+});
+
+/// Total spend selector (for clients)
+final totalSpendProvider = Provider<DashboardKpiEntity?>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return kpis;
+});
+
+/// Total revenue selector (for providers)
+final totalRevenueProvider = Provider<DashboardKpiEntity?>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return kpis;
+});
+
+/// Completed bookings count selector
+final completedBookingsProvider = Provider<int>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return kpis?.completedBookings ?? 0;
+});
+
+/// Cancelled bookings count selector
+final cancelledBookingsProvider = Provider<int>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return kpis?.cancelledBookings ?? 0;
+});
+
+/// Average rating selector
+final avgRatingProvider = Provider<double>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return kpis?.avgRating ?? 0.0;
+});
+
+/// Performance metrics provider (for providers)
+final performanceMetricsProvider = Provider<Map<String, dynamic>>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return {
+    'completed': kpis?.completedBookings ?? 0,
+    'cancelled': kpis?.cancelledBookings ?? 0,
+    'rating': kpis?.avgRating ?? 0.0,
+    'reviewCount': kpis?.reviewCount ?? 0,
+  };
+});
