@@ -1,3 +1,4 @@
+import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 
 /// Days of the week used for weekly schedule
@@ -285,6 +286,8 @@ class ServiceModel {
     final rawMedia = json['media'] as List<dynamic>? ?? [];
     final mediaList = rawMedia.map((m) => m.toString()).toList();
 
+    final seed = json['id']?.toString() ?? 'service';
+
     // Handle pricing model (API uses snake_case)
     final pricingModelStr =
         json['pricing_model'] as String? ??
@@ -328,7 +331,11 @@ class ServiceModel {
           json['duration_minutes'] as int? ?? json['durationMinutes'] as int?,
       providerId: json['provider'] as String? ?? '',
       media: mediaList,
-      imagePath: json['imagePath'] as String?,
+      imagePath: _resolveImagePath(
+        json['imagePath']?.toString() ?? json['image_path']?.toString(),
+        mediaList,
+        seed,
+      ),
       weeklySchedule: weeklySchedule,
       isActive: json['is_active'] as bool? ?? json['isActive'] as bool? ?? true,
       createdAt:
@@ -340,6 +347,33 @@ class ServiceModel {
           DateTime.tryParse(json['updatedAt'] as String? ?? '') ??
           DateTime.now(),
     );
+  }
+
+  static String? _resolveImagePath(
+    String? rawImagePath,
+    List<String> media,
+    String seed,
+  ) {
+    if (_isRenderableImagePath(rawImagePath)) {
+      return rawImagePath;
+    }
+
+    for (final item in media) {
+      if (_isRenderableImagePath(item)) {
+        return item;
+      }
+    }
+
+    return AppAssets.servicePlaceholder(seed);
+  }
+
+  static bool _isRenderableImagePath(String? value) {
+    if (value == null || value.isEmpty) {
+      return false;
+    }
+    return value.startsWith('http://') ||
+        value.startsWith('https://') ||
+        value.startsWith('assets/');
   }
 
   @override

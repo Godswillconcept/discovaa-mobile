@@ -726,7 +726,7 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
 
                               final success = await ref
                                   .read(userProfileProvider.notifier)
-                                  .updatePassword(newPassword);
+                                  .updatePassword(currentPassword, newPassword);
 
                               if (context.mounted) {
                                 Navigator.pop(context);
@@ -740,12 +740,16 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
                                     ),
                                   );
                                 } else {
+                                  final error = ref
+                                      .read(userProfileProvider)
+                                      .errorMessage;
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
-                                        'Failed to update password. Please check your current password.',
+                                        error ??
+                                            'Failed to update password. Please check your current password.',
                                       ),
-                                      backgroundColor: Color(0xFFEF4444),
+                                      backgroundColor: const Color(0xFFEF4444),
                                     ),
                                   );
                                 }

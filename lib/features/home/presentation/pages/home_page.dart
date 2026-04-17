@@ -1,4 +1,5 @@
 import 'package:discovaa/core/constants/app_constants.dart';
+import 'package:discovaa/features/authentication/presentation/widgets/identity_verification_reminder_widget.dart';
 import 'package:discovaa/features/home/presentation/widgets/artisan_card.dart';
 import 'package:discovaa/features/home/presentation/widgets/category_item.dart';
 import 'package:discovaa/features/home/presentation/widgets/pagination_button.dart';
@@ -25,6 +26,8 @@ class HomePage extends ConsumerWidget {
         body: Column(
           children: [
             const MainHeader(),
+            // Identity verification reminder banner (shows if verification pending)
+            const IdentityVerificationReminderWidget(),
             const Expanded(
               child: SingleChildScrollView(
                 child: Column(

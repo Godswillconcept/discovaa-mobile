@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pinput/pinput.dart';
 import '../../../../core/utils/form_validation.dart';
 import '../providers/signup_provider.dart';
@@ -71,7 +72,10 @@ class OtpInputField extends StatelessWidget {
       validator: (value) => FormValidationRules.validateOtp(value),
       onChanged: onChanged,
       onCompleted: onCompleted,
-      keyboardType: TextInputType.number,
+      keyboardType: TextInputType.text,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'[0-9A-Za-z]')),
+      ],
       animationDuration: const Duration(milliseconds: 300),
       animationCurve: Curves.easeInOut,
     );

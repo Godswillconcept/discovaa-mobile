@@ -8,16 +8,14 @@ class HeaderClipper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    return Container(
-      height: size.height * 0.23,
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(80)),
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(65)),
+      child: Container(
+        height: size.height * 0.2,
+        width: double.infinity,
+        decoration: const BoxDecoration(color: Colors.black),
+        child: SafeArea(child: child),
       ),
-      child: Stack(children: [child]),
     );
   }
 }

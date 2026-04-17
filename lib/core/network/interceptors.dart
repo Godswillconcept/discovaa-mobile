@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
-import 'package:discovaa/core/storage/hive_service.dart';
+import 'package:discovaa/core/storage/secure_token_storage.dart';
 import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
 import 'package:discovaa/core/errors/exceptions.dart';
@@ -8,10 +8,25 @@ import 'package:flutter/foundation.dart';
 
 /// Logging interceptor for debugging API calls
 class LoggingInterceptor extends Interceptor {
+  String _endpointGroup(String path) {
+    if (path.contains('/api/identity/')) return 'auth';
+    if (path.contains('/api/message-threads/') ||
+        path.contains('/api/messages/')) {
+      return 'messaging';
+    }
+    if (path.contains('/api/payments/')) return 'payouts';
+    if (path.contains('/api/providers/me/dashboard/') ||
+        path.contains('/api/bookings/')) {
+      return 'dashboard';
+    }
+    return 'api';
+  }
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (AppConstants.isDebugMode) {
       debugPrint('=== API Request ===');
+      debugPrint('Group: ${_endpointGroup(options.path)}');
       debugPrint('Method: ${options.method}');
       debugPrint('URL: ${options.uri}');
       debugPrint('Headers: ${options.headers}');
@@ -30,6 +45,7 @@ class LoggingInterceptor extends Interceptor {
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (AppConstants.isDebugMode) {
       debugPrint('=== API Response ===');
+      debugPrint('Group: ${_endpointGroup(response.requestOptions.path)}');
       debugPrint('Status Code: ${response.statusCode}');
       debugPrint('Data: ${response.data}');
       debugPrint('Headers: ${response.headers}');
@@ -42,6 +58,7 @@ class LoggingInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (AppConstants.isDebugMode) {
       debugPrint('=== API Error ===');
+      debugPrint('Group: ${_endpointGroup(err.requestOptions.path)}');
       debugPrint('Type: ${err.type}');
       debugPrint('Message: ${err.message}');
       debugPrint('Response: ${err.response}');
@@ -53,16 +70,40 @@ class LoggingInterceptor extends Interceptor {
 
 /// Authentication interceptor for adding auth tokens
 class AuthInterceptor extends Interceptor {
-  final HiveService _hiveService;
+  final SecureTokenStorage _tokenStorage;
+  static const String _retryAfterRefreshHeader = 'X-Retry-After-Refresh';
 
-  AuthInterceptor({required HiveService hiveService})
-    : _hiveService = hiveService;
+  AuthInterceptor({required SecureTokenStorage tokenStorage})
+    : _tokenStorage = tokenStorage;
+
+  /// Check if the endpoint is an auth endpoint that doesn't require a token
+  bool _isAuthEndpoint(String path) {
+    // List of auth endpoints that don't require authentication (truly public endpoints)
+    // Note: email/verify and resend require session_token, so they are NOT included here
+    final authEndpoints = [
+      '/api/identity/app/v1/auth/login',
+      '/api/identity/app/v1/auth/signup',
+      '/api/identity/app/v1/auth/password/request',
+      '/api/identity/app/v1/auth/password/reset',
+      '/api/identity/app/v1/tokens/refresh',
+    ];
+    return authEndpoints.any((endpoint) => path.contains(endpoint));
+  }
 
   @override
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // Skip auth header for authentication endpoints that don't require token
+    if (_isAuthEndpoint(options.path)) {
+      // Add device info only, no auth token
+      options.headers['X-App-Version'] = AppConstants.appVersion;
+      options.headers['X-Platform'] = AppConstants.platform;
+      super.onRequest(options, handler);
+      return;
+    }
+
     // Respect opt-out: when 'X-Skip-Auth' is present, do not attach Authorization
     final skipAuthHeader = options.headers['X-Skip-Auth'];
     final skipAuth =
@@ -71,11 +112,11 @@ class AuthInterceptor extends Interceptor {
         skipAuthHeader == 'true';
     if (!skipAuth) {
       // Add auth token if available (OpenAPI uses access_token)
-      var token = _hiveService.getString('access_token');
+      var token = _tokenStorage.getAccessToken();
       var tokenType = 'access_token';
       // Fallback to session_token if access_token is not available
       if (token == null || token.isEmpty) {
-        token = _hiveService.getString('session_token');
+        token = _tokenStorage.getSessionToken();
         tokenType = 'session_token';
       }
       debugPrint(
@@ -103,13 +144,20 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    // Handle token refresh on 401
+    // Handle token refresh on 401 - but not for auth endpoints
     if (err.response?.statusCode == 401) {
       final originalRequest = err.requestOptions;
+
+      // Skip token refresh for auth endpoints - they don't require authentication
+      if (_isAuthEndpoint(originalRequest.path)) {
+        super.onError(err, handler);
+        return;
+      }
+
       final isRefreshRequest =
           originalRequest.path == ApiEndpoints.tokensRefresh;
       final alreadyRetried =
-          originalRequest.headers['X-Retry-After-Refresh'] == true;
+          originalRequest.headers[_retryAfterRefreshHeader] == true;
 
       if (isRefreshRequest || alreadyRetried) {
         debugPrint(
@@ -122,43 +170,113 @@ class AuthInterceptor extends Interceptor {
 
       debugPrint('[AuthInterceptor] Got 401, attempting token refresh...');
       try {
-        // Attempt to refresh token using OpenAPI endpoint
-        final newToken = await _refreshToken();
-        if (newToken != null && newToken.isNotEmpty) {
+        final refreshResult = await _refreshToken();
+        if (refreshResult.status == _TokenRefreshStatus.success &&
+            refreshResult.accessToken != null &&
+            refreshResult.accessToken!.isNotEmpty) {
           debugPrint(
             '[AuthInterceptor] Token refreshed successfully, retrying request...',
           );
-          // Retry the original request with new token
-          originalRequest.headers['Authorization'] = 'Bearer $newToken';
-          originalRequest.headers['X-Retry-After-Refresh'] = true;
+          originalRequest.headers['Authorization'] =
+              'Bearer ${refreshResult.accessToken}';
+          originalRequest.headers[_retryAfterRefreshHeader] = true;
 
-          final response = await Dio().fetch(originalRequest);
+          final response = await _retryRequest(originalRequest);
           handler.resolve(response);
           return;
-        } else {
-          debugPrint('[AuthInterceptor] Token refresh returned null');
+        }
+
+        if (refreshResult.status == _TokenRefreshStatus.unauthorized) {
+          // Only clear auth state if refresh token was present but rejected by server
+          // This indicates the refresh token itself is invalid/expired
           await _clearAuthState();
+        } else if (refreshResult.status == _TokenRefreshStatus.failed) {
+          // For other failures (network, server error, etc.), preserve auth state
+          // to allow retry when connectivity is restored
+          debugPrint(
+            '[AuthInterceptor] Token refresh failed but preserving auth state for retry.',
+          );
+        } else if (refreshResult.status ==
+            _TokenRefreshStatus.missingRefreshToken) {
+          // Refresh token was never stored - this is a login flow bug, not a refresh failure
+          // Don't clear auth state as it would be destructive
+          debugPrint(
+            '[AuthInterceptor] Refresh token missing from storage. '
+            'This indicates the refresh token was not saved during login. '
+            'Auth state preserved to avoid destructive clearing.',
+          );
         }
       } catch (e) {
         debugPrint('[AuthInterceptor] Token refresh failed: $e');
-        // Token refresh failed, clear tokens and auth state
-        await _clearAuthState();
+        debugPrint(
+          '[AuthInterceptor][auth] Preserving auth state because refresh failure may be transient.',
+        );
       }
     }
 
     super.onError(err, handler);
   }
 
-  Future<String?> _refreshToken() async {
+  Future<Response<dynamic>> _retryRequest(
+    RequestOptions originalRequest,
+  ) async {
+    final retryDio = Dio(
+      BaseOptions(
+        baseUrl: originalRequest.baseUrl,
+        connectTimeout: originalRequest.connectTimeout,
+        receiveTimeout: originalRequest.receiveTimeout,
+        sendTimeout: originalRequest.sendTimeout,
+        headers: Map<String, dynamic>.from(originalRequest.headers),
+        responseType: originalRequest.responseType,
+        contentType: originalRequest.contentType,
+        validateStatus: originalRequest.validateStatus,
+        receiveDataWhenStatusError: originalRequest.receiveDataWhenStatusError,
+        followRedirects: originalRequest.followRedirects,
+      ),
+    );
+    retryDio.interceptors.add(LoggingInterceptor());
+    retryDio.interceptors.add(ErrorInterceptor());
+    retryDio.interceptors.add(RetryInterceptor(dio: retryDio));
+    return retryDio.fetch<dynamic>(originalRequest);
+  }
+
+  Future<_TokenRefreshResult> _refreshToken() async {
     try {
-      final accessToken = _hiveService.getString('access_token');
-      if (accessToken == null || accessToken.isEmpty) {
-        return null;
+      final refreshToken = _tokenStorage.getRefreshToken();
+      final hasRefreshToken = refreshToken != null && refreshToken.isNotEmpty;
+      debugPrint(
+        '[AuthInterceptor][auth] Refresh token present for refresh: $hasRefreshToken',
+      );
+      if (!hasRefreshToken) {
+        debugPrint(
+          '[AuthInterceptor] AUTH DIAGNOSTIC: Refresh token missing from storage. '
+          'Cannot attempt token refresh. Original 401 will be surfaced to caller.',
+        );
+        return const _TokenRefreshResult(
+          status: _TokenRefreshStatus.missingRefreshToken,
+        );
       }
 
-      final response = await Dio().post(
+      debugPrint(
+        '[AuthInterceptor][auth] Attempting token refresh with payload key refresh_token',
+      );
+
+      // Create a dedicated Dio instance with proper configuration
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
+
+      final response = await dio.post(
         '${ApiEndpoints.baseUrl}${ApiEndpoints.tokensRefresh}',
-        data: {'token': accessToken},
+        data: {'refresh_token': refreshToken},
+      );
+
+      debugPrint(
+        '[AuthInterceptor] Token refresh response status: ${response.statusCode}',
       );
 
       if (response.statusCode == 200) {
@@ -167,30 +285,103 @@ class AuthInterceptor extends Interceptor {
         final success = responseData?['success'] == true;
 
         if (!success) {
-          return null;
+          debugPrint(
+            '[AuthInterceptor] Token refresh failed: success=false in response',
+          );
+          return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
         }
 
         final data = responseData?['data'] as Map<String, dynamic>?;
         final newToken = data?['access_token'] as String?;
+        final newRefreshToken = data?['refresh_token'] as String?;
 
         if (newToken != null && newToken.isNotEmpty) {
-          await _hiveService.setString('access_token', newToken);
-          return newToken;
+          await _tokenStorage.saveTokens(
+            accessToken: newToken,
+            refreshToken: newRefreshToken ?? refreshToken,
+          );
+          debugPrint(
+            '[AuthInterceptor] Token refreshed successfully: ${newToken.substring(0, newToken.length > 20 ? 20 : newToken.length)}...',
+          );
+          return _TokenRefreshResult(
+            status: _TokenRefreshStatus.success,
+            accessToken: newToken,
+          );
+        } else {
+          debugPrint(
+            '[AuthInterceptor] Token refresh failed: no access_token in response data',
+          );
+          return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
         }
+      } else {
+        debugPrint(
+          '[AuthInterceptor] Token refresh failed with status: ${response.statusCode}',
+        );
+        return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
+      }
+    } on DioException catch (e) {
+      debugPrint('[AuthInterceptor] Token refresh DioException: ${e.type}');
+      debugPrint(
+        '[AuthInterceptor] Response status: ${e.response?.statusCode}',
+      );
+      debugPrint('[AuthInterceptor] Response data: ${e.response?.data}');
+      debugPrint('[AuthInterceptor] Error message: ${e.message}');
+      final statusCode = e.response?.statusCode;
+      final responseText = '${e.response?.data}';
+      if (statusCode == 400 && responseText.contains('refresh_token')) {
+        return const _TokenRefreshResult(
+          status: _TokenRefreshStatus.invalidRequest,
+        );
+      }
+      if (statusCode == 401 || statusCode == 403) {
+        return const _TokenRefreshResult(
+          status: _TokenRefreshStatus.unauthorized,
+        );
+      }
+      if (statusCode != null && statusCode >= 500) {
+        return const _TokenRefreshResult(
+          status: _TokenRefreshStatus.transientFailure,
+        );
+      }
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        return const _TokenRefreshResult(
+          status: _TokenRefreshStatus.transientFailure,
+        );
       }
     } catch (e) {
-      // Handle refresh token error - let caller deal with it
+      debugPrint('[AuthInterceptor] Token refresh unexpected error: $e');
+      return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
     }
-    return null;
+    return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
   }
 
   /// Clear all authentication state when token refresh fails
   Future<void> _clearAuthState() async {
-    await _hiveService.remove('access_token');
-    await _hiveService.remove('session_token');
-    await _hiveService.remove('user_data');
+    await _tokenStorage.clearAllAuthData();
+    debugPrint(
+      '[AuthInterceptor] Auth state cleared due to token refresh failure',
+    );
     // Auth state change will be detected by AuthInitializer on next app check
   }
+}
+
+enum _TokenRefreshStatus {
+  success,
+  missingRefreshToken,
+  invalidRequest,
+  unauthorized,
+  transientFailure,
+  failed,
+}
+
+class _TokenRefreshResult {
+  final _TokenRefreshStatus status;
+  final String? accessToken;
+
+  const _TokenRefreshResult({required this.status, this.accessToken});
 }
 
 /// Error interceptor for handling common errors

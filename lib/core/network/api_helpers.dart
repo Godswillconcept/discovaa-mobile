@@ -4,6 +4,10 @@ import 'package:discovaa/core/network/api_models.dart';
 
 Map<String, dynamic> asMap(dynamic data) {
   if (data is Map<String, dynamic>) return data;
+  // Handle Map<dynamic, dynamic> from Hive/Dio by converting keys to String
+  if (data is Map) {
+    return Map<String, dynamic>.from(data);
+  }
   throw ParseException(
     message: 'Invalid API payload: expected an object',
     code: 'INVALID_API_PAYLOAD',

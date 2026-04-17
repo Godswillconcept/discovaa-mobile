@@ -5,13 +5,18 @@ import 'package:discovaa/core/network/interceptors.dart';
 import 'package:discovaa/core/network/api_models.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/errors/exceptions.dart';
-import 'package:discovaa/core/storage/hive_service.dart';
+import 'package:discovaa/core/storage/secure_token_storage.dart';
 
 class DioClient {
   late final Dio _dio;
   final NetworkInfo _networkInfo;
+  final SecureTokenStorage _tokenStorage;
 
-  DioClient({required NetworkInfo networkInfo}) : _networkInfo = networkInfo {
+  DioClient({
+    required NetworkInfo networkInfo,
+    required SecureTokenStorage tokenStorage,
+  }) : _networkInfo = networkInfo,
+       _tokenStorage = tokenStorage {
     _dio = Dio(_createBaseOptions());
     _dio.interceptors.addAll(_createInterceptors());
   }
@@ -34,7 +39,7 @@ class DioClient {
   List<Interceptor> _createInterceptors() {
     return [
       LoggingInterceptor(),
-      AuthInterceptor(hiveService: HiveService.instance),
+      AuthInterceptor(tokenStorage: _tokenStorage),
       ErrorInterceptor(),
       RetryInterceptor(dio: _dio),
     ];

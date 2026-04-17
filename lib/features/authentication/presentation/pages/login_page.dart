@@ -3,6 +3,7 @@ import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/core/utils/form_validation.dart';
 import 'package:discovaa/features/authentication/presentation/providers/auth_initializer_provider.dart';
 import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:discovaa/features/authentication/presentation/providers/identity_verification_reminder_provider.dart';
 import 'package:discovaa/features/authentication/presentation/providers/session_provider.dart';
 import 'package:discovaa/features/authentication/presentation/providers/signup_provider.dart';
 import 'package:flutter/material.dart';
@@ -101,6 +102,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         if (success) {
           final user = ref.read(authProvider).user;
           if (user != null) {
+            // Check if profile is incomplete - redirect to complete profile
+            if (!user.isProfileComplete) {
+              // Navigate to complete profile with fromLogin flag
+              if (mounted) {
+                context.push(
+                  RouteNames.completeProfile,
+                  extra: {'fromLogin': true, 'email': user.email},
+                );
+              }
+              return;
+            }
+
+            // Profile is complete - proceed with normal flow
             // Map user role to UserRole enum
             UserRole userRole;
             switch (user.role) {
@@ -119,6 +133,21 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             final storage = ref.read(secureTokenStorageProvider);
             final accessToken = storage.getAccessToken();
             final sessionToken = storage.getSessionToken();
+            final refreshToken = storage.getRefreshToken();
+
+            // Log token summary for observability
+            debugPrint(
+              '[LoginPage] Tokens from storage: access=${accessToken != null}, '
+              'session=${sessionToken != null}, refresh=${refreshToken != null}',
+            );
+
+            // Log warning if refresh token is missing
+            if (refreshToken == null || refreshToken.isEmpty) {
+              debugPrint(
+                '[LoginPage] WARNING: Login succeeded but no refresh_token found in storage. '
+                'Subsequent 401s will not be recoverable via token refresh.',
+              );
+            }
 
             // Persist auth state and user data for next app launch
             await ref
@@ -126,9 +155,19 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 .setAuthenticated(
                   accessToken: accessToken ?? '',
                   sessionToken: sessionToken,
+                  refreshToken: refreshToken,
                   role: user.role,
                   user: user,
                 );
+
+            // Register device token after successful login
+            await _registerDeviceToken();
+
+            // Check identity verification status after login
+            // This will trigger the reminder banner if verification is pending
+            await ref
+                .read(identityVerificationReminderProvider.notifier)
+                .checkVerificationStatus();
           }
 
           if (mounted) {
@@ -151,6 +190,29 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  /// Register device token for push notifications
+  /// This is a best-effort operation - failures don't block login
+  Future<void> _registerDeviceToken() async {
+    try {
+      // Get FCM token - for now use a placeholder
+      // In production, this should come from FirebaseMessaging.instance.getToken()
+      const String? fcmToken = null; // TODO: Integrate with Firebase Messaging
+
+      if (fcmToken == null || fcmToken.isEmpty) {
+        // No FCM token available, skip registration
+        return;
+      }
+
+      // Register device token via provider
+      await ref
+          .read(authProvider.notifier)
+          .registerDeviceToken(token: fcmToken);
+    } catch (e) {
+      // Device registration is best-effort, don't block login
+      debugPrint('[_LoginPageState] Device token registration failed: $e');
     }
   }
 

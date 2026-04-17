@@ -140,7 +140,11 @@ class AppRouter {
       ),
       GoRoute(
         path: RouteNames.completeProfile,
-        builder: (context, state) => const CompleteProfilePage(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final fromLogin = extra?['fromLogin'] as bool? ?? false;
+          return CompleteProfilePage(fromLogin: fromLogin);
+        },
       ),
       GoRoute(
         path: RouteNames.forgotPassword,
@@ -164,70 +168,82 @@ class AppRouter {
         builder: (context, state) => const IdentificationPage(),
       ),
 
-      // Main App
-      ShellRoute(
-        builder: (context, state, child) => MainNavigationPage(child: child),
-        routes: [
-          // Home/Discover
-          GoRoute(
-            path: RouteNames.home,
-            builder: (context, state) => const HomePage(),
-          ),
-
-          // Notifications
-          GoRoute(
-            path: RouteNames.notifications,
-            builder: (context, state) => const NotificationsPage(),
-          ),
-
-          // Messages
-          GoRoute(
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            MainNavigationPage(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
             routes: [
               GoRoute(
-                path: 'chat',
-                builder: (context, state) {
-                  final conversation = state.extra as Conversation;
-                  return ChatPage(conversation: conversation);
-                },
+                path: RouteNames.home,
+                builder: (context, state) => const HomePage(),
               ),
             ],
-            path: RouteNames.messages,
-            builder: (context, state) => const MessagesListPage(),
           ),
-
-          // Favorites
-          GoRoute(
-            path: RouteNames.favorites,
-            builder: (context, state) => const FavoritesPage(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.dashboard,
+                builder: (context, state) => const DashboardPage(),
+              ),
+            ],
           ),
-          // User Profile
-          GoRoute(
-            path: RouteNames.userProfile,
-            builder: (context, state) => const UserProfilePage(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.bookings,
+                builder: (context, state) => const BookingsPage(),
+              ),
+            ],
           ),
-          // Artisan Profile
-          GoRoute(
-            path: RouteNames.artisanProfile,
-            builder: (context, state) => const ArtisanProfilePage(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.messages,
+                builder: (context, state) => const MessagesListPage(),
+                routes: [
+                  GoRoute(
+                    path: 'chat',
+                    builder: (context, state) {
+                      final conversation = state.extra as Conversation;
+                      return ChatPage(conversation: conversation);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
-          // Dashboard
-          GoRoute(
-            path: RouteNames.dashboard,
-            builder: (context, state) => const DashboardPage(),
-          ),
-
-          // Bookings - VISIBLE
-          GoRoute(
-            path: RouteNames.bookings,
-            builder: (context, state) => const BookingsPage(),
-          ),
-
-          // Services - VISIBLE
-          GoRoute(
-            path: RouteNames.services,
-            builder: (context, state) => const ServicesPage(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: RouteNames.services,
+                builder: (context, state) => const ServicesPage(),
+              ),
+            ],
           ),
         ],
+      ),
+
+      // Notifications
+      GoRoute(
+        path: RouteNames.notifications,
+        builder: (context, state) => const NotificationsPage(),
+      ),
+
+      // Favorites
+      GoRoute(
+        path: RouteNames.favorites,
+        builder: (context, state) => const FavoritesPage(),
+      ),
+      // User Profile
+      GoRoute(
+        path: RouteNames.userProfile,
+        builder: (context, state) => const UserProfilePage(),
+      ),
+      // Artisan Profile
+      GoRoute(
+        path: RouteNames.artisanProfile,
+        builder: (context, state) => const ArtisanProfilePage(),
       ),
     ],
     errorBuilder: (context, state) => ErrorPage(error: state.error),

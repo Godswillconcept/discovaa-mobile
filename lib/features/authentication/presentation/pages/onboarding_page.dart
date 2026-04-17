@@ -1,10 +1,10 @@
+import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/core/widgets/custom_buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/utils/clippers.dart';
 import '../providers/onboarding_provider.dart';
 
@@ -74,10 +74,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             // 1. Curved Black Header
             HeaderClipper(
               child: Container(
-                height: size.height * 0.25,
-                width: double.infinity,
-                alignment: Alignment.center,
-                // color: Colors.black,
+                padding: const EdgeInsets.only(bottom: 20),
+                alignment: Alignment.bottomCenter,
                 child: Image.asset(AppAssets.logo, width: 160),
               ),
             ),

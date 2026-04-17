@@ -10,6 +10,18 @@ import '../../../app/router/route_names.dart';
 class MainHeader extends ConsumerWidget {
   const MainHeader({super.key});
 
+  void _openFavorites(BuildContext context) {
+    context.go(RouteNames.favorites);
+  }
+
+  void _openNotifications(BuildContext context) {
+    NotificationBottomSheet.show(context);
+  }
+
+  void _openUserProfile(BuildContext context) {
+    context.go(RouteNames.userProfile);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
@@ -74,21 +86,16 @@ class MainHeader extends ConsumerWidget {
                   return Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.favorite_outline,
-                          color: Colors.white,
-                          size: 26,
+                      InkWell(
+                        onTap: () => _openFavorites(context),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Icon(
+                            Icons.favorite_outline,
+                            color: Colors.white,
+                            size: 26,
+                          ),
                         ),
-                        onPressed: () {
-                          final currentLocation = GoRouterState.of(
-                            context,
-                          ).matchedLocation;
-                          // Prevent navigation if already on favorites page
-                          if (currentLocation != RouteNames.favorites) {
-                            context.push(RouteNames.favorites);
-                          }
-                        },
                       ),
                       if (hasSavedItems)
                         Positioned(
@@ -128,30 +135,10 @@ class MainHeader extends ConsumerWidget {
                   );
                 },
               ),
-              const SizedBox(width: 8),
-              NotificationBadge(
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.notifications_outlined,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                  onPressed: () {
-                    NotificationBottomSheet.show(context);
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () {
-                  final currentLocation = GoRouterState.of(
-                    context,
-                  ).matchedLocation;
-                  // Prevent navigation if already on user profile
-                  if (currentLocation != RouteNames.userProfile) {
-                    context.push(RouteNames.userProfile);
-                  }
-                },
+              NotificationBellBadge(onTap: () => _openNotifications(context)),
+              InkWell(
+                onTap: () => _openUserProfile(context),
+                borderRadius: BorderRadius.circular(20),
                 child: const CircleAvatar(
                   radius: 20,
                   backgroundColor: Colors.white24,

@@ -1,6 +1,7 @@
 class ApiEndpoints {
   // Base URL
-  static const String baseUrl = 'https://p01--discovaa-app--492q2z77g54x.code.run';
+  static const String baseUrl =
+      'https://p01--discovaa-app--492q2z77g54x.code.run';
 
   // ============================================================================
   // OPENAPI AUTHENTICATION ENDPOINTS
@@ -195,4 +196,7 @@ class ApiEndpoints {
   static const String updateSettings = '/settings';
   static const String privacySettings = '/settings/privacy';
   static const String notificationSettingsEndpoint = '/settings/notifications';
+
+  // Device Tokens
+  static const String deviceTokensRegister = '/api/device-tokens/register/';
 }

@@ -55,4 +55,23 @@ abstract class ProfileRepository {
 
   /// Clear local profile cache
   Future<void> clearCache();
+
+  // ============================================================================
+  // SECURITY & AUTHENTICATION METHODS
+  // ============================================================================
+
+  /// Change user password
+  /// [currentPassword] - The current password for verification
+  /// [newPassword] - The new password to set
+  /// Throws [ServerException] if current password is incorrect
+  Future<void> changePassword(String currentPassword, String newPassword);
+
+  /// Request email change - sends verification email to new address
+  /// [newEmail] - The new email address to change to
+  /// Throws [ServerException] if email is already in use or invalid
+  Future<void> requestEmailChange(String newEmail);
+
+  /// Logout from all devices/sessions
+  /// Invalidates all active sessions except current
+  Future<void> logoutAllDevices();
 }

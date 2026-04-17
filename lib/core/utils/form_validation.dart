@@ -5,8 +5,8 @@ class FormValidationRules {
       return 'Email is required';
     }
 
-    // Basic email regex pattern
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$');
+    // Basic email regex pattern (accepts plus addressing like user+tag@example.com)
+    final emailRegex = RegExp(r'^[\w-\.+]+@([\w-]+\.)+[\w-]{2,}$');
     if (!emailRegex.hasMatch(value)) {
       return 'Please enter a valid email address';
     }
@@ -121,16 +121,16 @@ class FormValidationRules {
   // OTP validation
   static String? validateOtp(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'OTP is required';
+      return 'Verification code is required';
     }
 
     if (value.length != 6) {
-      return 'OTP must be exactly 6 digits';
+      return 'Verification code must be exactly 6 characters';
     }
 
-    // Check if all characters are digits
-    if (!RegExp(r'^[0-9]{6}$').hasMatch(value)) {
-      return 'OTP must contain only digits';
+    // Check if all characters are alphanumeric (letters and digits)
+    if (!RegExp(r'^[0-9A-Za-z]{6}$').hasMatch(value)) {
+      return 'Verification code must contain only letters and digits';
     }
 
     return null;

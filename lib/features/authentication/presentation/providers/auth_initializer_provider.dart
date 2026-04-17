@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/core/storage/secure_token_storage.dart';
@@ -173,15 +174,17 @@ class AuthInitializerNotifier extends StateNotifier<AuthInitializerState> {
   Future<void> setAuthenticated({
     required String accessToken,
     String? sessionToken,
+    String? refreshToken,
     required String role,
     required UserEntity user,
   }) async {
     final storage = _ref.read(secureTokenStorageProvider);
 
-    // Save tokens
+    // Save tokens - all three if available
     await storage.saveTokens(
       accessToken: accessToken,
       sessionToken: sessionToken,
+      refreshToken: refreshToken,
     );
 
     // Save user data
@@ -192,6 +195,14 @@ class AuthInitializerNotifier extends StateNotifier<AuthInitializerState> {
 
     // Update session
     _restoreSessionState(role);
+
+    // Log token summary for observability
+    final hasAccess = accessToken.isNotEmpty;
+    final hasSession = sessionToken != null && sessionToken.isNotEmpty;
+    final hasRefresh = refreshToken != null && refreshToken.isNotEmpty;
+    debugPrint(
+      '[AuthInitializer] Tokens saved: access=$hasAccess, session=$hasSession, refresh=$hasRefresh',
+    );
 
     // Update state
     state = state.copyWith(status: AuthStatus.authenticated, isLoading: false);

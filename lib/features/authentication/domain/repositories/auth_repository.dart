@@ -57,4 +57,17 @@ abstract class AuthRepository {
 
   /// Resend OTP code
   Future<Result<void>> resendOtp(String email);
+
+  /// Register device token for push notifications
+  Future<Result<void>> registerDeviceToken({required String token});
+
+  /// Update user profile (for resumed registration flow)
+  Future<Result<UserEntity>> updateProfile({
+    required String displayName,
+    required String phone,
+    required String address,
+    required String? country,
+    String? businessName,
+    String? businessDescription,
+  });
 }

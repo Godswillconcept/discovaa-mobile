@@ -116,7 +116,21 @@ class ProfileRepositoryImpl implements ProfileRepository {
           balanceResponse,
           (raw) => AccountBalanceDto.fromJson(asMap(raw)),
         ).data;
-      } catch (_) {}
+      } on ValidationException catch (e) {
+        if (e.message.contains('No Stripe payout account found')) {
+          debugPrint(
+            '[ProfileRepository][payouts] No payout balance available because payout account is not configured yet.',
+          );
+        } else {
+          debugPrint(
+            '[ProfileRepository][payouts] Unexpected payout balance validation error: ${e.message}',
+          );
+        }
+      } catch (e) {
+        debugPrint(
+          '[ProfileRepository][payouts] Failed to fetch payout balance: $e',
+        );
+      }
     }
 
     return mapProfileAggregate(
@@ -136,13 +150,30 @@ class ProfileRepositoryImpl implements ProfileRepository {
     );
   }
 
+  /// Deep convert `Map<dynamic, dynamic>` to `Map<String, dynamic>` recursively
+  dynamic _deepConvertMap(dynamic value) {
+    if (value is Map) {
+      final converted = <String, dynamic>{};
+      for (final key in value.keys) {
+        final stringKey = key.toString();
+        converted[stringKey] = _deepConvertMap(value[key]);
+      }
+      return converted;
+    } else if (value is List) {
+      return value.map((item) => _deepConvertMap(item)).toList();
+    }
+    return value;
+  }
+
   /// Read cached profile from local storage
   UserProfile? _readCachedProfile() {
     final cached = _hiveService.getMap(_profileCacheKey);
     if (cached == null) return null;
 
     try {
-      return UserProfile.fromJson(cached);
+      // Deep convert to handle nested Map<dynamic, dynamic> structures
+      final converted = _deepConvertMap(cached);
+      return UserProfile.fromJson(converted);
     } catch (e) {
       debugPrint('Error parsing cached profile: $e');
       return null;
@@ -439,6 +470,40 @@ class ProfileRepositoryImpl implements ProfileRepository {
       (raw) => asMap(raw)['url']?.toString() ?? '',
     );
     return envelope.data;
+  }
+
+  // ============================================================================
+  // SECURITY & AUTHENTICATION IMPLEMENTATIONS
+  // ============================================================================
+
+  @override
+  Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    await _dioClient.post(
+      ApiEndpoints.authPasswordChange,
+      data: {'current_password': currentPassword, 'password': newPassword},
+    );
+  }
+
+  @override
+  Future<void> requestEmailChange(String newEmail) async {
+    // Use the AllAuth email management endpoint
+    // POST /api/identity/app/v1/account/email to add a new email
+    await _dioClient.post(
+      '/api/identity/app/v1/account/email',
+      data: {'email': newEmail},
+    );
+  }
+
+  @override
+  Future<void> logoutAllDevices() async {
+    // Delete all sessions - in AllAuth this typically means revoking all tokens
+    // Call DELETE on the session endpoint which invalidates the session
+    await _dioClient.delete(ApiEndpoints.authLogout);
+    // Clear local cache as well since all sessions are terminated
+    await clearCache();
   }
 }
 

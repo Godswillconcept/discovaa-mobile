@@ -1,8 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/network/dio_client.dart';
-import '../../../../core/storage/hive_service.dart';
+import '../../../../core/storage/secure_token_storage.dart';
 import '../models/auth_models.dart';
 import '../models/user_model.dart';
 import '../models/registration_model.dart';
@@ -43,38 +44,74 @@ abstract class AuthRemoteDataSource {
 /// Implementation using OpenAPI endpoints
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final DioClient _dioClient;
-  final HiveService _hiveService;
+  final SecureTokenStorage _tokenStorage;
 
   AuthRemoteDataSourceImpl({
     required DioClient dioClient,
-    required HiveService hiveService,
+    required SecureTokenStorage tokenStorage,
   }) : _dioClient = dioClient,
-       _hiveService = hiveService;
+       _tokenStorage = tokenStorage;
 
   /// Store auth tokens from OpenAPI response
-  Future<void> _storeTokens(AuthMeta meta) async {
-    if (meta.accessToken != null && meta.accessToken!.isNotEmpty) {
-      await _hiveService.setString('access_token', meta.accessToken!);
-    }
-    if (meta.sessionToken != null && meta.sessionToken!.isNotEmpty) {
-      await _hiveService.setString('session_token', meta.sessionToken!);
-    }
-  }
+  ///
+  /// Extracts tokens from AuthMeta, supporting both meta and data envelope formats.
+  /// [meta] - The AuthMeta parsed from response meta field
+  /// [dataJson] - Optional data object for fallback refresh_token parsing
+  Future<void> _storeTokens(
+    AuthMeta meta, [
+    Map<String, dynamic>? dataJson,
+  ]) async {
+    // Try to get refresh_token from meta, fall back to data if needed
+    String? refreshTokenValue = meta.refreshToken;
 
-  /// Clear stored tokens on logout
-  Future<void> _clearTokens() async {
-    await _hiveService.remove('access_token');
-    await _hiveService.remove('session_token');
+    // Diagnostic logging to trace refresh token extraction
+    debugPrint(
+      '[AuthRemoteDataSource] meta.refreshToken: ${refreshTokenValue != null ? "present" : "MISSING"}',
+    );
+    if (dataJson != null) {
+      debugPrint(
+        '[AuthRemoteDataSource] data.refresh_token: ${dataJson['refresh_token'] != null ? "present" : "MISSING"}',
+      );
+    }
+
+    if ((refreshTokenValue == null || refreshTokenValue.isEmpty) &&
+        dataJson != null) {
+      refreshTokenValue = dataJson['refresh_token']?.toString();
+      debugPrint(
+        '[AuthRemoteDataSource] Using refresh_token from data: ${refreshTokenValue != null ? "SUCCESS" : "STILL MISSING"}',
+      );
+    }
+
+    // Use SecureTokenStorage for consistent token management
+    await _tokenStorage.saveTokens(
+      accessToken: meta.accessToken,
+      sessionToken: meta.sessionToken,
+      refreshToken: refreshTokenValue,
+    );
+
+    // Observability: Log which tokens were found and saved (without logging values)
+    final hasAccess = meta.accessToken != null && meta.accessToken!.isNotEmpty;
+    final hasSession =
+        meta.sessionToken != null && meta.sessionToken!.isNotEmpty;
+    final hasRefresh =
+        refreshTokenValue != null && refreshTokenValue.isNotEmpty;
+    debugPrint(
+      '[AuthRemoteDataSource] Tokens saved: access=$hasAccess, session=$hasSession, refresh=$hasRefresh',
+    );
+
+    // Warning if refresh token is missing after login/session
+    if (!hasRefresh) {
+      debugPrint(
+        '[AuthRemoteDataSource] WARNING: No refresh_token found in auth response. '
+        'This may indicate a backend contract mismatch or parser issue.',
+      );
+    }
   }
 
   /// Clear all authentication-related data on logout
   Future<void> _clearAllAuthData() async {
-    // Clear tokens
-    await _clearTokens();
-    // Clear user data
-    await _hiveService.remove('user_data');
-    // Clear authenticated flag
-    await _hiveService.remove('is_authenticated');
+    // Clear all auth data using SecureTokenStorage
+    await _tokenStorage.clearAllAuthData();
   }
 
   /// Map User to UserModel
@@ -89,7 +126,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       photoUrl: null,
       role: 'user',
       isEmailVerified: true, // OpenAPI handles this separately
-      isProfileComplete: true,
+      isProfileComplete: user.isProfileComplete,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -122,7 +159,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         password: registration.password,
       );
 
-      final response = await _dioClient.post(
+      // Use direct Dio call to allow 401 status code (pending verification)
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: ApiEndpoints.baseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          validateStatus: (status) =>
+              status == 200 || status == 401 || status == 409,
+        ),
+      );
+
+      final response = await dio.post(
         ApiEndpoints.authSignup,
         data: request.toJson(),
       );
@@ -131,33 +184,104 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       debugPrint('Register response status: ${response.statusCode}');
       debugPrint('Register response data: ${response.data}');
 
-      if (response.statusCode == 200) {
+      // Handle 200 (success), 401 (pending verification), and 409 (already exists)
+      if (response.statusCode == 200 ||
+          response.statusCode == 401 ||
+          response.statusCode == 409) {
         final responseData = response.data;
 
         // Check if response has the expected envelope format
         if (responseData is Map<String, dynamic>) {
+          // Normalize to Map<String, dynamic> to avoid type cast issues
+          final normalizedData = Map<String, dynamic>.from(responseData);
+
           // Check if it's the envelope format: {status, data, meta}
-          if (responseData.containsKey('data') &&
-              responseData.containsKey('meta')) {
-            final authResponse = AuthenticatedResponse.fromJson(responseData);
-            // Store tokens
-            await _storeTokens(authResponse.meta);
-            return _mapAuthUserToUserModel(authResponse.user);
+          if (normalizedData.containsKey('data') &&
+              normalizedData.containsKey('meta')) {
+            final meta = AuthMeta.fromJson(
+              normalizedData['meta'] as Map<String, dynamic>? ?? {},
+            );
+            final dataJson = normalizedData['data'] as Map<String, dynamic>?;
+
+            // Store all tokens using _storeTokens for consistency
+            await _storeTokens(meta, dataJson);
+
+            // Check for pending verification flow on 401
+            final data = responseData['data'] as Map<String, dynamic>?;
+            final flows = data?['flows'] as List<dynamic>?;
+            final hasPendingVerification =
+                flows?.any(
+                  (flow) =>
+                      flow is Map<String, dynamic> &&
+                      flow['id'] == 'verify_email' &&
+                      flow['is_pending'] == true,
+                ) ??
+                false;
+
+            // For 401 with pending verification, treat as success
+            if (response.statusCode == 401 && hasPendingVerification) {
+              debugPrint(
+                '[AuthRemoteDataSource] Registration successful, pending email verification',
+              );
+              // Create minimal user model for the registration flow
+              final userModel = UserModel(
+                id: '',
+                email: registration.email,
+                displayName: registration.email.split('@').first,
+                phone: null,
+                address: null,
+                country: null,
+                photoUrl: null,
+                role: registration.role,
+                isEmailVerified: false,
+                isProfileComplete: false,
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              );
+              return userModel;
+            }
+
+            // Normal 200 success path - store all tokens and return user
+            if (response.statusCode == 200) {
+              await _storeTokens(meta, normalizedData);
+              final authResponse = AuthenticatedResponse.fromJson(
+                normalizedData,
+              );
+              return _mapAuthUserToUserModel(authResponse.user);
+            }
           }
           // Check if it's a direct user object (no envelope)
-          else if (responseData.containsKey('id') &&
-              responseData.containsKey('email')) {
+          else if (normalizedData.containsKey('id') &&
+              normalizedData.containsKey('email')) {
             // Direct user response - create UserModel from it
-            final user = UserModel.fromJson(responseData);
+            final user = UserModel.fromJson(normalizedData);
             // Try to get tokens from meta if available
-            if (responseData.containsKey('meta')) {
-              final meta = AuthMeta.fromJson(
-                responseData['meta'] as Map<String, dynamic>? ?? {},
+            if (normalizedData.containsKey('meta')) {
+              final metaJson = normalizedData['meta'] is Map
+                  ? Map<String, dynamic>.from(normalizedData['meta'] as Map)
+                  : <String, dynamic>{};
+              // Use fromJsonWithFallback to parse refresh_token from both meta and root
+              final meta = AuthMeta.fromJsonWithFallback(
+                metaJson,
+                normalizedData,
               );
-              await _storeTokens(meta);
+              await _storeTokens(meta, normalizedData);
             }
             return user;
           }
+        }
+
+        // Handle 409 - email already registered
+        if (response.statusCode == 409) {
+          final responseData = response.data;
+          String message = 'Email already registered';
+          if (responseData is Map<String, dynamic>) {
+            message =
+                responseData['message']?.toString() ??
+                responseData['detail']?.toString() ??
+                'An account with this email already exists';
+          }
+          throw ConflictException(message: message, code: 'EMAIL_EXISTS');
         }
 
         throw ServerException(
@@ -188,13 +312,48 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final request = EmailVerifyRequest(email: email, code: code);
 
-      final response = await _dioClient.post(
+      // Use direct Dio call to allow 409 status code (already verified)
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: ApiEndpoints.baseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          validateStatus: (status) => status == 200 || status == 409,
+        ),
+      );
+
+      final response = await dio.post(
         ApiEndpoints.authEmailVerify,
         data: request.toJson(),
       );
 
+      debugPrint('VerifyEmail response status: ${response.statusCode}');
+      debugPrint('VerifyEmail response data: ${response.data}');
+
+      // 200 = verified successfully
       if (response.statusCode == 200) {
         return true;
+      }
+
+      // 409 = email already verified or code expired/invalid
+      if (response.statusCode == 409) {
+        final responseData = response.data;
+        String message = 'Verification failed';
+        if (responseData is Map<String, dynamic>) {
+          message =
+              responseData['message']?.toString() ??
+              responseData['detail']?.toString() ??
+              'This email may already be verified or the code is invalid';
+        }
+        throw ConflictException(
+          message: message,
+          code: 'VERIFICATION_CONFLICT',
+        );
       }
 
       throw _handleError(response.data, 'Email verification failed');
@@ -243,25 +402,34 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
         // Check if response has the expected envelope format
         if (responseData is Map<String, dynamic>) {
+          // Normalize to Map<String, dynamic> to avoid type cast issues
+          final normalizedData = Map<String, dynamic>.from(responseData);
+
           // Check if it's the envelope format: {status, data, meta}
-          if (responseData.containsKey('data') &&
-              responseData.containsKey('meta')) {
-            final authResponse = AuthenticatedResponse.fromJson(responseData);
-            // Store tokens
-            await _storeTokens(authResponse.meta);
+          if (normalizedData.containsKey('data') &&
+              normalizedData.containsKey('meta')) {
+            final authResponse = AuthenticatedResponse.fromJson(normalizedData);
+            final dataJson = normalizedData['data'] as Map<String, dynamic>?;
+            // Store tokens with fallback from data
+            await _storeTokens(authResponse.meta, dataJson);
             return _mapAuthUserToUserModel(authResponse.user);
           }
           // Check if it's a direct user object (no envelope)
-          else if (responseData.containsKey('id') &&
-              responseData.containsKey('email')) {
+          else if (normalizedData.containsKey('id') &&
+              normalizedData.containsKey('email')) {
             // Direct user response - create UserModel from it
-            final user = UserModel.fromJson(responseData);
+            final user = UserModel.fromJson(normalizedData);
             // Try to get tokens from meta if available
-            if (responseData.containsKey('meta')) {
-              final meta = AuthMeta.fromJson(
-                responseData['meta'] as Map<String, dynamic>? ?? {},
+            if (normalizedData.containsKey('meta')) {
+              final metaJson = normalizedData['meta'] is Map
+                  ? Map<String, dynamic>.from(normalizedData['meta'] as Map)
+                  : <String, dynamic>{};
+              // Use fromJsonWithFallback to parse refresh_token from both meta and root
+              final meta = AuthMeta.fromJsonWithFallback(
+                metaJson,
+                normalizedData,
               );
-              await _storeTokens(meta);
+              await _storeTokens(meta, normalizedData);
             }
             return user;
           }
@@ -439,12 +607,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<String?> refreshToken() async {
     try {
-      final accessToken = _hiveService.getString('access_token');
-      if (accessToken == null || accessToken.isEmpty) {
+      final refreshToken = _tokenStorage.getRefreshToken();
+      if (refreshToken == null || refreshToken.isEmpty) {
         return null;
       }
 
-      final request = TokenRefreshRequest(accessToken: accessToken);
+      final request = TokenRefreshRequest(refreshToken: refreshToken);
 
       final response = await _dioClient.post(
         ApiEndpoints.tokensRefresh,
@@ -467,10 +635,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
         final refreshResponse = TokenRefreshResponse.fromJson(data);
 
-        // Store new token
-        await _hiveService.setString(
-          'access_token',
-          refreshResponse.accessToken,
+        // Store new token using SecureTokenStorage
+        await _tokenStorage.saveTokens(
+          accessToken: refreshResponse.accessToken,
+          refreshToken: refreshResponse.refreshToken,
         );
 
         return refreshResponse.accessToken;

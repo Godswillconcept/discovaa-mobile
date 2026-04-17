@@ -38,7 +38,9 @@ class NotificationBadge extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFF4CAF50), // Success green
                 shape: unreadCount > 99 ? BoxShape.rectangle : BoxShape.circle,
-                borderRadius: unreadCount > 99 ? BorderRadius.circular(badgeSize / 2) : null,
+                borderRadius: unreadCount > 99
+                    ? BorderRadius.circular(badgeSize / 2)
+                    : null,
                 border: Border.all(color: Colors.black, width: 1.5),
               ),
               child: Center(
@@ -74,9 +76,16 @@ class NotificationBellBadge extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return NotificationBadge(
-      child: IconButton(
-        icon: Icon(Icons.notifications_outlined, color: iconColor, size: iconSize),
-        onPressed: onTap,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Icon(
+            Icons.notifications_outlined,
+            color: iconColor,
+            size: iconSize,
+          ),
+        ),
       ),
     );
   }

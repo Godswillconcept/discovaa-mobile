@@ -28,6 +28,7 @@ class ServiceCategoryDto {
 
 class ServiceDto {
   final String id;
+  final String? providerId;
   final String? categoryId;
   final String title;
   final String description;
@@ -40,10 +41,12 @@ class ServiceDto {
   final int? durationMinutes;
   final bool isActive;
   final List<String> media;
+  final String? imagePath;
   final DateTime createdAt;
 
   const ServiceDto({
     required this.id,
+    this.providerId,
     this.categoryId,
     required this.title,
     required this.description,
@@ -56,12 +59,14 @@ class ServiceDto {
     this.durationMinutes,
     required this.isActive,
     required this.media,
+    this.imagePath,
     required this.createdAt,
   });
 
   factory ServiceDto.fromJson(Map<String, dynamic> json) {
     return ServiceDto(
       id: json['id']?.toString() ?? '',
+      providerId: json['provider']?.toString(),
       categoryId: json['category']?.toString(),
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
@@ -76,11 +81,38 @@ class ServiceDto {
       media: (json['media'] as List<dynamic>? ?? const [])
           .map((item) => item.toString())
           .toList(growable: false),
+      imagePath: _extractImagePath(json),
       createdAt:
           DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
     );
   }
+}
+
+String? _extractImagePath(Map<String, dynamic> json) {
+  final candidates = <String?>[
+    json['imagePath']?.toString(),
+    json['image_path']?.toString(),
+    json['image_url']?.toString(),
+    json['cover_image']?.toString(),
+    json['cover_image_url']?.toString(),
+  ];
+
+  for (final candidate in candidates) {
+    if (_isRenderableImagePath(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+bool _isRenderableImagePath(String? value) {
+  if (value == null || value.isEmpty) {
+    return false;
+  }
+  return value.startsWith('http://') ||
+      value.startsWith('https://') ||
+      value.startsWith('assets/');
 }
 
 class ServiceWriteDto {
@@ -136,6 +168,7 @@ ServiceModel mapServiceDto(
     title: dto.title,
     category:
         categoriesById[dto.categoryId]?.name ?? dto.categoryId ?? 'General',
+    categoryId: dto.categoryId,
     description: dto.description,
     pricingModel: _pricingModel(dto.pricingModel),
     priceType: _priceType(dto.priceType),
@@ -144,9 +177,8 @@ ServiceModel mapServiceDto(
     priceMinAmount: double.tryParse(dto.priceMinAmount ?? ''),
     priceMaxAmount: double.tryParse(dto.priceMaxAmount ?? ''),
     durationMinutes: dto.durationMinutes,
-    imagePath: dto.media.isNotEmpty
-        ? dto.media.first
-        : AppAssets.servicePlaceholder(dto.id),
+    providerId: dto.providerId ?? '',
+    imagePath: dto.imagePath ?? AppAssets.servicePlaceholder(dto.id),
     media: dto.media,
     isActive: dto.isActive,
     createdAt: dto.createdAt,

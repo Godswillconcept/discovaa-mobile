@@ -73,7 +73,14 @@ class HiveService {
 
   /// Get a map value
   Map<String, dynamic>? getMap(String key) {
-    return _box.get(key);
+    final value = _box.get(key);
+    if (value == null) return null;
+
+    // Hive stores maps as Map<dynamic, dynamic>, so we need to cast it
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return null;
   }
 
   /// Remove a value by key

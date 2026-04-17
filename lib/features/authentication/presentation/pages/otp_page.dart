@@ -265,7 +265,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                         AppAlertMessage(
                           type: AlertType.error,
                           message:
-                              'Invalid OTP. Please check your email and try again.',
+                              'Invalid verification code. Please check your email and enter the 6-character code (letters and numbers).',
                           onDismiss: () {
                             ref
                                 .read(signupProvider.notifier)

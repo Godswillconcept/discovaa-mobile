@@ -504,11 +504,14 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
             child: OutlinedButton(
               onPressed: isLoading
                   ? null
-                  : () {
-                      ref
+                  : () async {
+                      // Permanently skip verification (persist to storage)
+                      await ref
                           .read(identificationProvider.notifier)
-                          .skipVerification();
-                      context.go(RouteNames.home);
+                          .permanentlySkipVerification();
+                      if (context.mounted) {
+                        context.go(RouteNames.home);
+                      }
                     },
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),

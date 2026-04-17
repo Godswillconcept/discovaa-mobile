@@ -217,8 +217,11 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
     }
   }
 
-  /// Update password
-  Future<bool> updatePassword(String newPassword) async {
+  /// Update password - requires current password for verification
+  Future<bool> updatePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     // Check connectivity
     final connectivityNotifier = _ref.read(
       profileConnectivityProvider.notifier,
@@ -232,9 +235,16 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
       return false;
     }
 
+    if (state.profile == null) return false;
+
+    state = state.copyWith(
+      updateState: ProfileOperationState.loading,
+      errorMessage: null,
+    );
+
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(milliseconds: 1000));
+      // Call actual API to change password
+      await _repository.changePassword(currentPassword, newPassword);
 
       final updatedProfile = state.profile!.copyWith(
         passwordLastChanged: DateTime.now(),
@@ -244,6 +254,7 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
       state = state.copyWith(
         profile: updatedProfile,
         updateState: ProfileOperationState.success,
+        errorMessage: null,
       );
 
       Future.delayed(const Duration(seconds: 2), () {
@@ -255,7 +266,9 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
       return true;
     } catch (e) {
       state = state.copyWith(
-        errorMessage: 'Failed to update password. Please try again.',
+        updateState: ProfileOperationState.error,
+        errorMessage:
+            'Failed to update password. Please check your current password.',
       );
       return false;
     }
@@ -448,6 +461,8 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
       return false;
     }
 
+    if (state.profile == null) return false;
+
     try {
       final updatedProfile = await _repository.deactivateAccount(
         state.profile!,
@@ -458,6 +473,78 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         errorMessage: 'Failed to deactivate account. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Request email change - sends verification to new email
+  Future<bool> requestEmailChange(String newEmail) async {
+    // Check connectivity
+    final connectivityNotifier = _ref.read(
+      profileConnectivityProvider.notifier,
+    );
+    final isConnected = await connectivityNotifier.checkConnection();
+
+    if (!isConnected) {
+      state = state.copyWith(
+        errorMessage:
+            'No connection. Cannot request email change while offline.',
+      );
+      return false;
+    }
+
+    state = state.copyWith(
+      updateState: ProfileOperationState.loading,
+      errorMessage: null,
+    );
+
+    try {
+      await _repository.requestEmailChange(newEmail);
+
+      state = state.copyWith(
+        updateState: ProfileOperationState.success,
+        errorMessage: null,
+      );
+
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          state = state.copyWith(updateState: ProfileOperationState.idle);
+        }
+      });
+
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        updateState: ProfileOperationState.error,
+        errorMessage: 'Failed to request email change. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  /// Logout from all devices
+  Future<bool> logoutAllDevices() async {
+    // Check connectivity
+    final connectivityNotifier = _ref.read(
+      profileConnectivityProvider.notifier,
+    );
+    final isConnected = await connectivityNotifier.checkConnection();
+
+    if (!isConnected) {
+      state = state.copyWith(
+        errorMessage:
+            'No connection. Cannot logout from all devices while offline.',
+      );
+      return false;
+    }
+
+    try {
+      await _repository.logoutAllDevices();
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to logout from all devices. Please try again.',
       );
       return false;
     }

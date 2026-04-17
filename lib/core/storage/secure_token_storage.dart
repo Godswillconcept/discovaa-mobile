@@ -5,13 +5,13 @@ import 'package:discovaa/features/authentication/data/models/user_model.dart';
 import 'package:discovaa/features/authentication/domain/entities/user_entity.dart';
 
 /// Service for securely storing and retrieving authentication-related data.
-/// 
+///
 /// This service provides a centralized interface for managing:
 /// - Access tokens
 /// - Session tokens
 /// - User data
 /// - Authentication status
-/// 
+///
 /// All data is stored using Hive for persistence across app restarts.
 class SecureTokenStorage {
   final HiveService _hiveService;
@@ -19,21 +19,25 @@ class SecureTokenStorage {
   // Storage keys
   static const String _accessTokenKey = 'access_token';
   static const String _sessionTokenKey = 'session_token';
+  static const String _refreshTokenKey = 'refresh_token';
   static const String _userDataKey = 'user_data';
   static const String _isAuthenticatedKey = 'is_authenticated';
   static const String _hasCompletedOnboardingKey = 'has_completed_onboarding';
 
-  SecureTokenStorage({required HiveService hiveService}) : _hiveService = hiveService;
+  SecureTokenStorage({required HiveService hiveService})
+    : _hiveService = hiveService;
 
   // ==================== TOKEN MANAGEMENT ====================
 
   /// Save authentication tokens to secure storage.
-  /// 
+  ///
   /// [accessToken] - The JWT access token for API authentication
   /// [sessionToken] - The session token for maintaining user session
+  /// [refreshToken] - The refresh token for obtaining new access tokens
   Future<void> saveTokens({
     String? accessToken,
     String? sessionToken,
+    String? refreshToken,
   }) async {
     if (accessToken != null && accessToken.isNotEmpty) {
       await _hiveService.setString(_accessTokenKey, accessToken);
@@ -41,24 +45,34 @@ class SecureTokenStorage {
     if (sessionToken != null && sessionToken.isNotEmpty) {
       await _hiveService.setString(_sessionTokenKey, sessionToken);
     }
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await _hiveService.setString(_refreshTokenKey, refreshToken);
+    }
   }
 
   /// Retrieve the stored access token.
-  /// 
+  ///
   /// Returns null if no token is stored.
   String? getAccessToken() {
     return _hiveService.getString(_accessTokenKey);
   }
 
   /// Retrieve the stored session token.
-  /// 
+  ///
   /// Returns null if no token is stored.
   String? getSessionToken() {
     return _hiveService.getString(_sessionTokenKey);
   }
 
+  /// Retrieve the stored refresh token.
+  ///
+  /// Returns null if no token is stored.
+  String? getRefreshToken() {
+    return _hiveService.getString(_refreshTokenKey);
+  }
+
   /// Check if valid tokens exist in storage.
-  /// 
+  ///
   /// Returns true if access token exists and is not empty.
   bool hasValidTokens() {
     final accessToken = getAccessToken();
@@ -69,12 +83,13 @@ class SecureTokenStorage {
   Future<void> clearTokens() async {
     await _hiveService.remove(_accessTokenKey);
     await _hiveService.remove(_sessionTokenKey);
+    await _hiveService.remove(_refreshTokenKey);
   }
 
   // ==================== USER DATA MANAGEMENT ====================
 
   /// Save user data to persistent storage.
-  /// 
+  ///
   /// [user] - The user entity to store
   Future<void> saveUserData(UserEntity user) async {
     final userModel = UserModel.fromEntity(user);
@@ -83,7 +98,7 @@ class SecureTokenStorage {
   }
 
   /// Retrieve stored user data.
-  /// 
+  ///
   /// Returns null if no user data is stored or if parsing fails.
   UserEntity? getUserData() {
     try {
@@ -108,14 +123,14 @@ class SecureTokenStorage {
   // ==================== AUTHENTICATION STATUS ====================
 
   /// Set the authentication status.
-  /// 
+  ///
   /// [isAuthenticated] - true if user is authenticated, false otherwise
   Future<void> setAuthenticated(bool isAuthenticated) async {
     await _hiveService.setBool(_isAuthenticatedKey, isAuthenticated);
   }
 
   /// Check if user is marked as authenticated.
-  /// 
+  ///
   /// Returns false if no value is stored.
   bool isAuthenticated() {
     return _hiveService.getBool(_isAuthenticatedKey) ?? false;
@@ -124,7 +139,7 @@ class SecureTokenStorage {
   // ==================== ONBOARDING STATUS ====================
 
   /// Mark onboarding as completed.
-  /// 
+  ///
   /// This flag can be used to skip onboarding for returning users
   /// who haven't completed registration but have seen onboarding.
   Future<void> setOnboardingCompleted(bool completed) async {
@@ -132,7 +147,7 @@ class SecureTokenStorage {
   }
 
   /// Check if user has completed onboarding.
-  /// 
+  ///
   /// Returns false if no value is stored.
   bool hasCompletedOnboarding() {
     return _hiveService.getBool(_hasCompletedOnboardingKey) ?? false;
@@ -141,7 +156,7 @@ class SecureTokenStorage {
   // ==================== COMPLETE CLEAR ====================
 
   /// Clear all authentication-related data.
-  /// 
+  ///
   /// This should be called on logout to ensure no sensitive
   /// data remains in storage.
   Future<void> clearAllAuthData() async {
@@ -152,7 +167,7 @@ class SecureTokenStorage {
   }
 
   /// Clear all data including onboarding status.
-  /// 
+  ///
   /// Use this for a complete reset, like on account deletion.
   Future<void> clearAllData() async {
     await clearAllAuthData();

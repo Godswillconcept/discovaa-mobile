@@ -81,12 +81,12 @@ class PasswordResetRequest {
 
 /// Token refresh request
 class TokenRefreshRequest {
-  final String accessToken;
+  final String refreshToken;
 
-  const TokenRefreshRequest({required this.accessToken});
+  const TokenRefreshRequest({required this.refreshToken});
 
   Map<String, dynamic> toJson() {
-    return {'token': accessToken};
+    return {'refresh_token': refreshToken};
   }
 }
 
@@ -101,6 +101,7 @@ class AuthUser {
   final String email;
   final String username;
   final bool hasUsablePassword;
+  final bool isProfileComplete;
 
   const AuthUser({
     required this.id,
@@ -108,15 +109,36 @@ class AuthUser {
     required this.email,
     required this.username,
     required this.hasUsablePassword,
+    this.isProfileComplete = true,
   });
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
+    final String display = json['display']?.toString() ?? '';
+    final String username = json['username']?.toString() ?? '';
+    final String email = json['email']?.toString() ?? '';
+
+    // Detect incomplete profile:
+    // 1. Backend explicitly sends is_profile_complete: false
+    // 2. OR display equals username (auto-generated display name from registration)
+    final bool? explicitProfileComplete =
+        json['is_profile_complete'] as bool? ??
+        json['profile_complete'] as bool?;
+
+    final bool isProfileComplete =
+        explicitProfileComplete ??
+        // If backend explicitly sends is_profile_complete, use it
+        // Otherwise, consider profile complete if display is set and doesn't look auto-generated
+        (display.isNotEmpty &&
+            !display.contains('@') &&
+            display.toLowerCase() != email.toLowerCase());
+
     return AuthUser(
       id: json['id']?.toString() ?? '',
-      display: json['display']?.toString() ?? '',
+      display: display,
       email: json['email']?.toString() ?? '',
-      username: json['username']?.toString() ?? '',
+      username: username,
       hasUsablePassword: json['has_usable_password'] == true,
+      isProfileComplete: isProfileComplete,
     );
   }
 
@@ -127,6 +149,7 @@ class AuthUser {
       'email': email,
       'username': username,
       'has_usable_password': hasUsablePassword,
+      'is_profile_complete': isProfileComplete,
     };
   }
 }
@@ -204,22 +227,51 @@ class AuthenticatedData {
 }
 
 /// Meta information in auth response
+///
+/// Parses refresh_token from multiple locations:
+/// 1. meta.refresh_token (preferred)
+/// 2. data.refresh_token (fallback for some endpoints)
 class AuthMeta {
   final bool isAuthenticated;
   final String? sessionToken;
   final String? accessToken;
+  final String? refreshToken;
 
   const AuthMeta({
     required this.isAuthenticated,
     this.sessionToken,
     this.accessToken,
+    this.refreshToken,
   });
+
+  /// Factory that parses tokens from meta and optionally from data envelope.
+  ///
+  /// [metaJson] - The meta object from response envelope
+  /// [dataJson] - Optional data object for fallback refresh_token parsing
+  factory AuthMeta.fromJsonWithFallback(
+    Map<String, dynamic> metaJson, [
+    Map<String, dynamic>? dataJson,
+  ]) {
+    // Primary parse from meta
+    final refreshFromMeta = metaJson['refresh_token']?.toString();
+
+    // Fallback: check data.refresh_token if not in meta
+    final refreshFromData = dataJson?['refresh_token']?.toString();
+
+    return AuthMeta(
+      isAuthenticated: metaJson['is_authenticated'] == true,
+      sessionToken: metaJson['session_token']?.toString(),
+      accessToken: metaJson['access_token']?.toString(),
+      refreshToken: refreshFromMeta ?? refreshFromData,
+    );
+  }
 
   factory AuthMeta.fromJson(Map<String, dynamic> json) {
     return AuthMeta(
       isAuthenticated: json['is_authenticated'] == true,
       sessionToken: json['session_token']?.toString(),
       accessToken: json['access_token']?.toString(),
+      refreshToken: json['refresh_token']?.toString(),
     );
   }
 }
@@ -237,12 +289,19 @@ class AuthenticatedResponse {
   });
 
   factory AuthenticatedResponse.fromJson(Map<String, dynamic> json) {
+    // Normalize data to handle potential dynamic Map casting issues
+    final dataJson = json['data'] is Map
+        ? Map<String, dynamic>.from(json['data'] as Map)
+        : <String, dynamic>{};
+    final metaJson = json['meta'] is Map
+        ? Map<String, dynamic>.from(json['meta'] as Map)
+        : <String, dynamic>{};
+
     return AuthenticatedResponse(
       status: json['status'] as int? ?? 200,
-      data: AuthenticatedData.fromJson(
-        json['data'] as Map<String, dynamic>? ?? {},
-      ),
-      meta: AuthMeta.fromJson(json['meta'] as Map<String, dynamic>? ?? {}),
+      data: AuthenticatedData.fromJson(dataJson),
+      // Use fromJsonWithFallback to parse refresh_token from both meta and data
+      meta: AuthMeta.fromJsonWithFallback(metaJson, dataJson),
     );
   }
 
@@ -308,11 +367,19 @@ class SessionResponse {
   const SessionResponse({required this.status, this.data, required this.meta});
 
   factory SessionResponse.fromJson(Map<String, dynamic> json) {
-    final dataJson = json['data'] as Map<String, dynamic>?;
+    // Normalize data to handle potential dynamic Map casting issues
+    final dataJson = json['data'] is Map
+        ? Map<String, dynamic>.from(json['data'] as Map)
+        : null;
+    final metaJson = json['meta'] is Map
+        ? Map<String, dynamic>.from(json['meta'] as Map)
+        : <String, dynamic>{};
+
     return SessionResponse(
       status: json['status'] as int? ?? 200,
       data: dataJson != null ? AuthenticatedData.fromJson(dataJson) : null,
-      meta: AuthMeta.fromJson(json['meta'] as Map<String, dynamic>? ?? {}),
+      // Use fromJsonWithFallback to parse refresh_token from both meta and data
+      meta: AuthMeta.fromJsonWithFallback(metaJson, dataJson),
     );
   }
 

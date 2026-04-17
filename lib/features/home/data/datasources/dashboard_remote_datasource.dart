@@ -35,6 +35,8 @@ abstract class DashboardRemoteDataSource {
 /// Implementation of dashboard remote data source
 class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
   final DioClient _dioClient;
+  Future<int>? _unreadMessageCountInFlight;
+  Future<int>? _pendingMessageCountInFlight;
 
   DashboardRemoteDataSourceImpl({required DioClient dioClient})
     : _dioClient = dioClient;
@@ -209,7 +211,15 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
 
   @override
   Future<int> getUnreadMessageCount() async {
-    try {
+    final inFlight = _unreadMessageCountInFlight;
+    if (inFlight != null) {
+      debugPrint(
+        '[DashboardRemoteDataSource][dashboard] Reusing in-flight unread message count request',
+      );
+      return inFlight;
+    }
+
+    final request = () async {
       final response = await _dioClient.get(
         ApiEndpoints.messageThreads,
         queryParameters: {'unread': true},
@@ -218,14 +228,31 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       final envelope = decodeListEnvelope(response, (item) => item);
 
       return envelope.data.length;
+    }();
+
+    _unreadMessageCountInFlight = request;
+    try {
+      return await request;
     } catch (e) {
       return 0;
+    } finally {
+      if (identical(_unreadMessageCountInFlight, request)) {
+        _unreadMessageCountInFlight = null;
+      }
     }
   }
 
   @override
   Future<int> getPendingMessageCount() async {
-    try {
+    final inFlight = _pendingMessageCountInFlight;
+    if (inFlight != null) {
+      debugPrint(
+        '[DashboardRemoteDataSource][dashboard] Reusing in-flight pending message count request',
+      );
+      return inFlight;
+    }
+
+    final request = () async {
       final response = await _dioClient.get(
         ApiEndpoints.messageThreads,
         queryParameters: {'has_history': true},
@@ -249,8 +276,17 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       }
 
       return pendingCount;
+    }();
+
+    _pendingMessageCountInFlight = request;
+    try {
+      return await request;
     } catch (e) {
       return 0;
+    } finally {
+      if (identical(_pendingMessageCountInFlight, request)) {
+        _pendingMessageCountInFlight = null;
+      }
     }
   }
 

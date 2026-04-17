@@ -2,34 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/shared/presentation/widgets/bottom_nav_bar.dart';
 
 class MainNavigationPage extends ConsumerStatefulWidget {
-  final Widget child;
-  const MainNavigationPage({super.key, required this.child});
+  final StatefulNavigationShell navigationShell;
+  const MainNavigationPage({super.key, required this.navigationShell});
 
   @override
   ConsumerState<MainNavigationPage> createState() => _MainNavigationPageState();
 }
 
 class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
-  late int _selectedIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedIndex = 0;
-  }
-
-  List<String> get _paths => [
-    RouteNames.home,
-    RouteNames.dashboard,
-    RouteNames.bookings,
-    RouteNames.messages,
-    RouteNames.services,
-  ];
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -39,24 +22,15 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
-    final paths = _paths;
-
-    final location = GoRouterState.of(context).matchedLocation;
-    final newIndex = paths.indexWhere((path) => location.startsWith(path));
-    if (newIndex != -1 && newIndex != _selectedIndex) {
-      // Defer state update to avoid build cycle warning
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _selectedIndex = newIndex);
-      });
-    }
-
     return Scaffold(
-      body: widget.child,
+      body: widget.navigationShell,
       bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
+        selectedIndex: widget.navigationShell.currentIndex,
         onTap: (index) {
-          setState(() => _selectedIndex = index);
-          context.go(paths[index]);
+          widget.navigationShell.goBranch(
+            index,
+            initialLocation: index == widget.navigationShell.currentIndex,
+          );
         },
       ),
     );

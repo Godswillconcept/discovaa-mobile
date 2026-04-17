@@ -32,16 +32,17 @@ class SignupSelectionPage extends ConsumerWidget {
               HeaderClipper(
                 child: Stack(
                   children: [
-                    Align(
-                      alignment: Alignment.center,
+                    Container(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      alignment: Alignment.bottomCenter,
                       child: Image.asset(
                         'assets/images/logos/logo.png',
                         width: 160,
                       ),
                     ),
                     Positioned(
-                      top: 40,
-                      left: 16,
+                      top: 10,
+                      left: 10,
                       child: InkWell(
                         onTap: () {
                           if (isInitialLevel) {

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:discovaa/app/dependency_injection/service_locator.dart';
+import 'package:discovaa/core/errors/exceptions.dart';
 import 'package:discovaa/features/authentication/domain/repositories/auth_repository.dart';
 import 'package:discovaa/features/authentication/domain/entities/user_entity.dart';
 import 'package:discovaa/features/authentication/domain/entities/registration_entity.dart';
@@ -49,16 +50,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier(this._repository) : super(const AuthState());
 
   /// Login with email and password
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
-    state = state.copyWith(state: AuthOperationState.loading, errorMessage: null);
-
-    final result = await _repository.login(
-      email: email,
-      password: password,
+  Future<bool> login({required String email, required String password}) async {
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
     );
+
+    final result = await _repository.login(email: email, password: password);
 
     if (result.isSuccess && result.data != null) {
       state = state.copyWith(
@@ -82,7 +80,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String password,
     required UserRole role,
   }) async {
-    state = state.copyWith(state: AuthOperationState.loading, errorMessage: null);
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
 
     final registration = RegistrationEntity(
       email: email,
@@ -112,12 +113,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String otpCode,
   }) async {
-    state = state.copyWith(state: AuthOperationState.loading, errorMessage: null);
-
-    final result = await _repository.verifyOtp(
-      email: email,
-      otpCode: otpCode,
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
     );
+
+    final result = await _repository.verifyOtp(email: email, otpCode: otpCode);
 
     if (result.isSuccess && result.data == true) {
       state = state.copyWith(state: AuthOperationState.success);
@@ -133,7 +134,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Resend OTP code
   Future<bool> resendOtp(String email) async {
-    state = state.copyWith(state: AuthOperationState.loading, errorMessage: null);
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
 
     final result = await _repository.resendOtp(email);
 
@@ -151,7 +155,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Logout current user
   Future<bool> logout() async {
-    state = state.copyWith(state: AuthOperationState.loading, errorMessage: null);
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
 
     final result = await _repository.logout();
 
@@ -169,7 +176,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Get current user
   Future<void> getCurrentUser() async {
-    state = state.copyWith(state: AuthOperationState.loading, errorMessage: null);
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
 
     final result = await _repository.getCurrentUser();
 
@@ -189,7 +199,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Send password reset email
   Future<bool> sendPasswordResetEmail(String email) async {
-    state = state.copyWith(state: AuthOperationState.loading, errorMessage: null);
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
 
     final result = await _repository.sendPasswordResetEmail(email);
 
@@ -210,7 +223,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String token,
     required String newPassword,
   }) async {
-    state = state.copyWith(state: AuthOperationState.loading, errorMessage: null);
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
 
     final result = await _repository.resetPassword(
       token: token,
@@ -224,6 +240,81 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(
         state: AuthOperationState.error,
         errorMessage: result.failure?.message ?? 'Failed to reset password',
+      );
+      return false;
+    }
+  }
+
+  /// Register device token for push notifications
+  /// This is a best-effort operation - failures don't affect auth state
+  Future<bool> registerDeviceToken({required String token}) async {
+    try {
+      final result = await _repository.registerDeviceToken(token: token);
+
+      if (result.isSuccess) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      // Device registration is best-effort, don't affect auth state
+      return false;
+    }
+  }
+
+  /// Update user profile after resumed registration
+  /// Returns true if profile update was successful
+  Future<bool> updateProfile({
+    required String displayName,
+    required String phone,
+    required String address,
+    required String? country,
+    String? businessName,
+    String? businessDescription,
+  }) async {
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
+
+    try {
+      final result = await _repository.updateProfile(
+        displayName: displayName,
+        phone: phone,
+        address: address,
+        country: country,
+        businessName: businessName,
+        businessDescription: businessDescription,
+      );
+
+      if (result.isSuccess && result.data != null) {
+        state = state.copyWith(
+          state: AuthOperationState.success,
+          user: result.data,
+        );
+        return true;
+      } else {
+        state = state.copyWith(
+          state: AuthOperationState.error,
+          errorMessage: result.failure?.message ?? 'Failed to update profile',
+        );
+        return false;
+      }
+    } on NetworkException catch (e) {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: e.message,
+      );
+      return false;
+    } on ServerException catch (e) {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: e.message,
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: 'Unexpected error during profile update',
       );
       return false;
     }

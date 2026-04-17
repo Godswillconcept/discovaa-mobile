@@ -25,12 +25,14 @@ class DashboardState {
   final DashboardEntity? data;
   final String? error;
   final bool isRefreshing;
+  final String? loadedCacheKey;
 
   const DashboardState({
     this.isLoading = false,
     this.data,
     this.error,
     this.isRefreshing = false,
+    this.loadedCacheKey,
   });
 
   DashboardState copyWith({
@@ -38,12 +40,14 @@ class DashboardState {
     DashboardEntity? data,
     String? error,
     bool? isRefreshing,
+    String? loadedCacheKey,
   }) {
     return DashboardState(
       isLoading: isLoading ?? this.isLoading,
       data: data ?? this.data,
       error: error,
       isRefreshing: isRefreshing ?? this.isRefreshing,
+      loadedCacheKey: loadedCacheKey ?? this.loadedCacheKey,
     );
   }
 
@@ -58,11 +62,27 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
 
   DashboardNotifier(this._repository) : super(const DashboardState());
 
+  String _cacheKey(String role, DashboardFilterEntity? filter) {
+    final resolvedFilter = filter ?? const DashboardFilterEntity();
+    return [
+      role,
+      resolvedFilter.range ?? '',
+      resolvedFilter.from?.toIso8601String() ?? '',
+      resolvedFilter.to?.toIso8601String() ?? '',
+      resolvedFilter.role ?? '',
+    ].join('|');
+  }
+
   /// Load dashboard data based on user role
   Future<void> loadDashboard(
     String role, {
     DashboardFilterEntity? filter,
   }) async {
+    final key = _cacheKey(role, filter);
+    if (state.loadedCacheKey == key && state.data != null) {
+      return;
+    }
+
     state = state.copyWith(isLoading: true, error: null);
 
     try {
@@ -72,7 +92,7 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       } else {
         data = await _repository.getClientDashboard(filter: filter);
       }
-      state = state.copyWith(isLoading: false, data: data);
+      state = state.copyWith(isLoading: false, data: data, loadedCacheKey: key);
     } catch (e) {
       String errorMessage;
       if (e.toString().contains('401') ||
@@ -90,10 +110,15 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     if (state.isRefreshing) return;
 
     state = state.copyWith(isRefreshing: true);
+    final key = _cacheKey(role, filter);
 
     try {
       final data = await _repository.refreshDashboard(role, filter: filter);
-      state = state.copyWith(isRefreshing: false, data: data);
+      state = state.copyWith(
+        isRefreshing: false,
+        data: data,
+        loadedCacheKey: key,
+      );
     } catch (e) {
       state = state.copyWith(
         isRefreshing: false,
@@ -120,18 +145,6 @@ final dashboardFilterProvider = StateProvider<DashboardFilterEntity>((ref) {
   return const DashboardFilterEntity(range: '30d');
 });
 
-// Unread Messages Count Provider
-final unreadMessagesProvider = FutureProvider<int>((ref) async {
-  final repository = ref.watch(dashboardRepositoryProvider);
-  return repository.getUnreadMessageCount();
-});
-
-// Pending Messages Count Provider
-final pendingMessagesProvider = FutureProvider<int>((ref) async {
-  final repository = ref.watch(dashboardRepositoryProvider);
-  return repository.getPendingMessageCount();
-});
-
 // Dashboard Data Selectors
 
 /// Spending trend data selector
@@ -150,6 +163,18 @@ final bookingMixProvider = Provider<BookingMixEntity?>((ref) {
 final dashboardKpiProvider = Provider<DashboardKpiEntity?>((ref) {
   final dashboardState = ref.watch(dashboardProvider);
   return dashboardState.data?.kpis;
+});
+
+/// Unread Messages Count Provider
+final unreadMessagesProvider = Provider<int>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return kpis?.unreadMessages ?? 0;
+});
+
+/// Pending Messages Count Provider
+final pendingMessagesProvider = Provider<int>((ref) {
+  final kpis = ref.watch(dashboardKpiProvider);
+  return kpis?.pendingMessages ?? 0;
 });
 
 /// Insights list selector

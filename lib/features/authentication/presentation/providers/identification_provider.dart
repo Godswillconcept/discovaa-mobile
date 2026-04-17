@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:discovaa/core/network/network_info.dart';
+import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/features/authentication/domain/entities/identification_entity.dart';
 
 /// Form validation state for ID number input
@@ -52,6 +54,7 @@ class IdNumberValidationResult {
 class IdentificationPageState {
   final IdentificationEntity identification;
   final String? idNumberInput;
+  final String? idTypeInput; // e.g., 'NIN', 'Passport', 'Driver License'
   final bool isLoading;
   final String? errorMessage;
   final ConnectivityState connectivityState;
@@ -60,6 +63,7 @@ class IdentificationPageState {
   const IdentificationPageState({
     this.identification = const IdentificationEntity(),
     this.idNumberInput,
+    this.idTypeInput,
     this.isLoading = false,
     this.errorMessage,
     this.connectivityState = ConnectivityState.unknown,
@@ -69,6 +73,7 @@ class IdentificationPageState {
   IdentificationPageState copyWith({
     IdentificationEntity? identification,
     String? idNumberInput,
+    String? idTypeInput,
     bool? isLoading,
     String? errorMessage,
     ConnectivityState? connectivityState,
@@ -77,6 +82,7 @@ class IdentificationPageState {
     return IdentificationPageState(
       identification: identification ?? this.identification,
       idNumberInput: idNumberInput ?? this.idNumberInput,
+      idTypeInput: idTypeInput ?? this.idTypeInput,
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
       connectivityState: connectivityState ?? this.connectivityState,
@@ -180,6 +186,11 @@ class IdentificationNotifier extends StateNotifier<IdentificationPageState> {
     state = state.copyWith(idNumberInput: value);
   }
 
+  /// Update ID type input (NIN, Passport, etc.)
+  void updateIdType(String value) {
+    state = state.copyWith(idTypeInput: value);
+  }
+
   /// Update front image path
   void updateFrontImage(String path) {
     final updatedIdentification = state.identification.copyWith(
@@ -200,8 +211,53 @@ class IdentificationNotifier extends StateNotifier<IdentificationPageState> {
   void markIdVerified() {
     final updatedIdentification = state.identification.copyWith(
       isIdVerified: true,
+      isIdentityVerified: true,
+      idType: state.idTypeInput,
+      idNumber: state.idNumberInput,
     );
     state = state.copyWith(identification: updatedIdentification);
+    // Persist the verified status
+    _persistVerificationStatus();
+  }
+
+  /// Persist verification status to local storage
+  Future<void> _persistVerificationStatus() async {
+    try {
+      final hiveService = HiveService.instance;
+      await hiveService.setMap('identity_verification', {
+        'isIdentityVerified': state.identification.isIdentityVerified,
+        'skippedVerification': state.identification.skippedVerification,
+        'skippedAt': state.identification.skippedAt?.toIso8601String(),
+        'idType': state.identification.idType,
+        'updatedAt': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      // Silently fail - local storage is best effort
+      debugPrint('Failed to persist verification status: $e');
+    }
+  }
+
+  /// Load persisted verification status
+  Future<void> loadPersistedVerificationStatus() async {
+    try {
+      final hiveService = HiveService.instance;
+      final data = hiveService.getMap('identity_verification');
+      if (data != null) {
+        final skippedAt = data['skippedAt'] != null
+            ? DateTime.tryParse(data['skippedAt'] as String)
+            : null;
+        final updatedIdentification = state.identification.copyWith(
+          isIdentityVerified: data['isIdentityVerified'] as bool? ?? false,
+          skippedVerification: data['skippedVerification'] as bool? ?? false,
+          skippedAt: skippedAt,
+          idType: data['idType'] as String?,
+        );
+        state = state.copyWith(identification: updatedIdentification);
+      }
+    } catch (e) {
+      // Silently fail
+      debugPrint('Failed to load verification status: $e');
+    }
   }
 
   /// Mark business verification as complete (for providers)
@@ -279,9 +335,36 @@ class IdentificationNotifier extends StateNotifier<IdentificationPageState> {
     }
   }
 
-  /// Skip verification for now
+  /// Skip verification for now (temporarily)
   void skipVerification() {
     state = state.copyWith(isFormSubmitted: false, errorMessage: null);
+  }
+
+  /// Permanently skip verification (user chose to skip)
+  Future<void> permanentlySkipVerification() async {
+    final updatedIdentification = state.identification.copyWith(
+      skippedVerification: true,
+      skippedAt: DateTime.now(),
+    );
+    state = state.copyWith(
+      identification: updatedIdentification,
+      isFormSubmitted: false,
+      errorMessage: null,
+    );
+    await _persistVerificationStatus();
+  }
+
+  /// Check if user should be reminded about pending verification
+  bool shouldRemindVerification() {
+    // Don't remind if:
+    // 1. Already verified
+    if (state.identification.isIdentityVerified) return false;
+
+    // 2. User chose to permanently skip
+    if (state.identification.skippedVerification) return false;
+
+    // 3. User temporarily skipped (show reminder)
+    return true;
   }
 
   /// Reset state to initial

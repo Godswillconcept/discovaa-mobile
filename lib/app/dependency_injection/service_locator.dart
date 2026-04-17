@@ -4,7 +4,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:discovaa/core/network/dio_client.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
+import 'package:discovaa/core/storage/secure_token_storage.dart';
 import 'package:discovaa/features/authentication/data/datasources/auth_remote_datasource.dart';
+import 'package:discovaa/features/authentication/data/datasources/device_token_remote_datasource.dart';
 import 'package:discovaa/features/authentication/data/repositories/auth_repository_impl.dart';
 import 'package:discovaa/features/authentication/domain/repositories/auth_repository.dart';
 import 'package:discovaa/features/profile/data/repositories/profile_repository_impl.dart';
@@ -28,6 +30,10 @@ Future<void> _initHive() async {
   final hiveService = HiveService.instance;
   await hiveService.init();
   sl.registerSingleton<HiveService>(hiveService);
+  // Register SecureTokenStorage which depends on HiveService
+  sl.registerSingleton<SecureTokenStorage>(
+    SecureTokenStorage(hiveService: hiveService),
+  );
 }
 
 Future<void> _initNetworkInfo() async {
@@ -38,7 +44,10 @@ Future<void> _initNetworkInfo() async {
 }
 
 Future<void> _initDioClient() async {
-  final dioClient = DioClient(networkInfo: sl<NetworkInfo>());
+  final dioClient = DioClient(
+    networkInfo: sl<NetworkInfo>(),
+    tokenStorage: sl<SecureTokenStorage>(),
+  );
   sl.registerSingleton<DioClient>(dioClient);
 }
 
@@ -52,13 +61,21 @@ Future<void> _initAuth() async {
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(
       dioClient: sl<DioClient>(),
-      hiveService: sl<HiveService>(),
+      tokenStorage: sl<SecureTokenStorage>(),
     ),
+  );
+
+  // Register DeviceTokenRemoteDataSource
+  sl.registerLazySingleton<DeviceTokenRemoteDataSource>(
+    () => DeviceTokenRemoteDataSourceImpl(dioClient: sl<DioClient>()),
   );
 
   // Register AuthRepository
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(remoteDataSource: sl<AuthRemoteDataSource>()),
+    () => AuthRepositoryImpl(
+      remoteDataSource: sl<AuthRemoteDataSource>(),
+      deviceTokenDataSource: sl<DeviceTokenRemoteDataSource>(),
+    ),
   );
 }
 

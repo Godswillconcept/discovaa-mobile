@@ -53,7 +53,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final isProvider = signupState.selectedRole.isProvider;
     final isISV = signupState.selectedRole == UserRole.individualProvider;
     final dashboardState = ref.watch(dashboardProvider);
-    final unreadCountAsync = ref.watch(unreadMessagesProvider);
+    final unreadCount = ref.watch(unreadMessagesProvider);
     final displayName =
         profileState.profile?.displayName?.trim().isNotEmpty == true
         ? profileState.profile!.displayName!.trim()
@@ -90,11 +90,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         name: displayName,
                         onViewBookings: () => context.go(RouteNames.bookings),
                         onMessages: () => context.go(RouteNames.messages),
-                        unreadCount: unreadCountAsync.when(
-                          data: (count) => count,
-                          loading: () => 0,
-                          error: (error, stack) => 0,
-                        ),
+                        unreadCount: unreadCount,
                       ),
                       const SizedBox(height: 20),
 
@@ -1122,27 +1118,15 @@ class _MessagesCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unreadAsync = ref.watch(unreadMessagesProvider);
+    final count = ref.watch(unreadMessagesProvider);
 
-    return unreadAsync.when(
-      data: (count) => _SmallDashboardCard(
-        title: "Messages",
-        subtitle: count > 0
-            ? "$count unread conversations"
-            : "No unread conversations",
-        icon: Icons.chat_bubble_outline,
-        value: count > 0 ? count.toString() : null,
-      ),
-      loading: () => const _SmallDashboardCard(
-        title: "Messages",
-        subtitle: "Loading...",
-        icon: Icons.chat_bubble_outline,
-      ),
-      error: (error, stack) => const _SmallDashboardCard(
-        title: "Messages",
-        subtitle: "Unable to load messages",
-        icon: Icons.chat_bubble_outline,
-      ),
+    return _SmallDashboardCard(
+      title: "Messages",
+      subtitle: count > 0
+          ? "$count unread conversations"
+          : "No unread conversations",
+      icon: Icons.chat_bubble_outline,
+      value: count > 0 ? count.toString() : null,
     );
   }
 }
@@ -1447,24 +1431,12 @@ class _InboxPulseCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pendingAsync = ref.watch(pendingMessagesProvider);
+    final count = ref.watch(pendingMessagesProvider);
 
-    return pendingAsync.when(
-      data: (count) => _DashboardCard(
-        title: "Inbox pulse",
-        subtitle: "Messages that need your attention.\n$count pending messages",
-        actionText: "Read now",
-      ),
-      loading: () => const _DashboardCard(
-        title: "Inbox pulse",
-        subtitle: "Loading...",
-        actionText: "Read now",
-      ),
-      error: (error, stack) => const _DashboardCard(
-        title: "Inbox pulse",
-        subtitle: "Unable to load messages",
-        actionText: "Read now",
-      ),
+    return _DashboardCard(
+      title: "Inbox pulse",
+      subtitle: "Messages that need your attention.\n$count pending messages",
+      actionText: "Read now",
     );
   }
 }
