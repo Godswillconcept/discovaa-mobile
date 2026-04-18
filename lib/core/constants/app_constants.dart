@@ -11,8 +11,9 @@ class AppConstants {
   // API Configuration
   static const String apiBaseUrl =
       'https://p01--discovaa-app--492q2z77g54x.code.run';
-  static const int apiTimeout = 30000; // 30 seconds
-  static const int apiConnectTimeout = 15000; // 15 seconds
+  static const int apiTimeout =
+      60000; // 60 seconds - increased for slow endpoints
+  static const int apiConnectTimeout = 20000; // 20 seconds
 
   // Storage Keys
   static const String userTokenKey = 'user_token';

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:discovaa/app/dependency_injection/service_locator.dart';
 import 'package:discovaa/core/network/dio_client.dart';
@@ -83,7 +84,12 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       return;
     }
 
-    state = state.copyWith(isLoading: true, error: null);
+    final cached = _repository.getCachedDashboard(role, filter: filter);
+    if (cached != null) {
+      state = state.copyWith(isLoading: false, data: cached, loadedCacheKey: key);
+    } else {
+      state = state.copyWith(isLoading: true, error: null);
+    }
 
     try {
       DashboardEntity data;
@@ -92,12 +98,23 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
       } else {
         data = await _repository.getClientDashboard(filter: filter);
       }
-      state = state.copyWith(isLoading: false, data: data, loadedCacheKey: key);
-    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(isLoading: false, data: data, loadedCacheKey: key);
+      }
+    } catch (e, stack) {
+      if (!mounted) return;
+      debugPrint('[DashboardNotifier] Error loading dashboard for role $role: $e');
+      debugPrint('[DashboardNotifier] StackTrace: $stack');
+      
+      final hasCachedData = state.data != null;
       String errorMessage;
+      
       if (e.toString().contains('401') ||
           e.toString().contains('Unauthorized')) {
         errorMessage = 'Authentication failed. Please log in again.';
+      } else if (hasCachedData) {
+        state = state.copyWith(isLoading: false);
+        return;
       } else {
         errorMessage = 'Failed to load dashboard. Please try again.';
       }
@@ -118,11 +135,14 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
         isRefreshing: false,
         data: data,
         loadedCacheKey: key,
+        error: null, // Clear any previous errors on successful refresh
       );
     } catch (e) {
+      // On refresh failure, keep showing existing data instead of showing error
+      // This ensures smoother UX during network issues
       state = state.copyWith(
         isRefreshing: false,
-        error: 'Failed to refresh dashboard: $e',
+        error: null, // Don't show error - we still have existing data
       );
     }
   }
@@ -130,6 +150,11 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
   /// Clear dashboard data
   void clear() {
     state = const DashboardState();
+  }
+
+  /// Clear error state only, keeping the current data
+  void clearError() {
+    state = state.copyWith(error: null);
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/core/storage/secure_token_storage.dart';
 import 'package:discovaa/features/authentication/domain/entities/user_entity.dart';
@@ -23,7 +24,12 @@ enum AuthStatus {
 /// This provider lazily initializes the storage service using the
 /// singleton HiveService instance.
 final secureTokenStorageProvider = Provider<SecureTokenStorage>((ref) {
-  return SecureTokenStorage(hiveService: HiveService.instance);
+  return SecureTokenStorage(
+    hiveService: HiveService.instance,
+    secureStorage: const FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    ),
+  );
 });
 
 /// State class for auth initializer.
@@ -68,7 +74,7 @@ class AuthInitializerNotifier extends StateNotifier<AuthInitializerState> {
       final storage = _ref.read(secureTokenStorageProvider);
 
       // Check if user has valid tokens
-      final hasTokens = storage.hasValidTokens();
+      final hasTokens = await storage.hasValidTokens();
       final isAuthenticated = storage.isAuthenticated();
 
       if (!hasTokens || !isAuthenticated) {
@@ -136,7 +142,7 @@ class AuthInitializerNotifier extends StateNotifier<AuthInitializerState> {
     try {
       final storage = _ref.read(secureTokenStorageProvider);
 
-      final hasTokens = storage.hasValidTokens();
+      final hasTokens = await storage.hasValidTokens();
       final isAuthenticated = storage.isAuthenticated();
 
       if (!hasTokens || !isAuthenticated) {

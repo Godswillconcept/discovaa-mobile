@@ -22,7 +22,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    Future.microtask(() {
       ref.read(bookingsProvider.notifier).loadBookings();
     });
   }
@@ -53,7 +53,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                         children: [
                           const Expanded(
                             child: Text(
-                              'My Bookings',
+                              'Booking History',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -102,9 +102,12 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                     TabBar(
                       isScrollable: true,
                       tabAlignment: TabAlignment.start,
-                      indicatorColor: AppColors.primary,
+                      indicatorColor: AppColors.primaryRed,
                       labelColor: Colors.black,
                       unselectedLabelColor: Colors.grey,
+                      dividerColor: Colors.transparent,
+                      indicatorSize: TabBarIndicatorSize.label,
+                      indicatorWeight: 3,
                       labelStyle: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -114,21 +117,22 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                         fontSize: 13,
                       ),
                       tabs: const [
-                        Tab(text: 'Pending'),
-                        Tab(text: 'Upcoming'),
-                        Tab(text: 'Ongoing'),
+                        Tab(text: 'Requested'),
+                        Tab(text: 'Confirmed'),
+                        Tab(text: 'Cancelled'),
                         Tab(text: 'Completed'),
                       ],
                     ),
+                    const SizedBox(height: 10),
                   ],
                 ),
               ),
               Expanded(
                 child: TabBarView(
                   children: [
-                    _BookingsTab(status: BookingStatus.pending),
-                    _BookingsTab(status: BookingStatus.upcoming),
-                    _BookingsTab(status: BookingStatus.ongoing),
+                    _BookingsTab(status: BookingStatus.requested),
+                    _BookingsTab(status: BookingStatus.confirmed),
+                    _BookingsTab(status: BookingStatus.cancelled),
                     _BookingsTab(status: BookingStatus.completed),
                   ],
                 ),
@@ -153,16 +157,17 @@ class _SearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FBFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: TextField(
         onChanged: onChanged,
+        style: const TextStyle(color: Colors.white, fontSize: 13),
         decoration: InputDecoration(
-          hintText: 'Search bookings…',
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-          prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+          hintText: 'Search your bookings…',
+          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+          prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey.shade500),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
@@ -221,11 +226,14 @@ class _BookingsTab extends ConsumerWidget {
       return _EmptyState(status: status);
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(20),
-      itemCount: bookings.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 14),
-      itemBuilder: (context, i) => _BookingCard(booking: bookings[i]),
+    return RefreshIndicator(
+      onRefresh: () => ref.read(bookingsProvider.notifier).refreshBookings(),
+      child: ListView.separated(
+        padding: const EdgeInsets.all(20),
+        itemCount: bookings.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 14),
+        itemBuilder: (context, i) => _BookingCard(booking: bookings[i]),
+      ),
     );
   }
 }
@@ -245,7 +253,7 @@ class _BookingsListSkeleton extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,9 +343,9 @@ class _BookingCard extends ConsumerWidget {
                         Text(
                           booking.service.category,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                            color: Colors.white70,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -346,6 +354,7 @@ class _BookingCard extends ConsumerWidget {
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -385,7 +394,7 @@ class _BookingCard extends ConsumerWidget {
               ),
             ),
 
-            Divider(height: 1, color: Colors.grey.shade100),
+            Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
 
             // ── Schedule row ──────────────────────────────────────────
             Padding(
@@ -419,7 +428,7 @@ class _BookingCard extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 12,
-                    backgroundColor: const Color(0xFFE5E7EB),
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
                     backgroundImage: booking.clientAvatarPath != null
                         ? AssetImage(booking.clientAvatarPath!)
                         : null,
@@ -439,7 +448,7 @@ class _BookingCard extends ConsumerWidget {
                   const SizedBox(width: 6),
                   Text(
                     booking.clientName,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
                   ),
                   if (booking.rating != null) ...[
                     const Spacer(),
@@ -454,6 +463,7 @@ class _BookingCard extends ConsumerWidget {
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                   ],
@@ -463,7 +473,7 @@ class _BookingCard extends ConsumerWidget {
 
             // ── Actions ───────────────────────────────────────────────
             if (status.isActive) ...[
-              Divider(height: 1, color: Colors.grey.shade100),
+              Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(
@@ -474,7 +484,9 @@ class _BookingCard extends ConsumerWidget {
                             .read(bookingsProvider.notifier)
                             .cancelBooking(booking.id),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.shade300),
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -483,7 +495,7 @@ class _BookingCard extends ConsumerWidget {
                         child: Text(
                           'Cancel',
                           style: TextStyle(
-                            color: Colors.grey.shade600,
+                            color: Colors.grey.shade400,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -521,7 +533,7 @@ class _BookingCard extends ConsumerWidget {
                 ),
               ),
             ] else if (status == BookingStatus.completed) ...[
-              Divider(height: 1, color: Colors.grey.shade100),
+              Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(
@@ -534,7 +546,7 @@ class _BookingCard extends ConsumerWidget {
                           ),
                         ),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.primary),
+                          side: const BorderSide(color: AppColors.primaryRed),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -543,7 +555,7 @@ class _BookingCard extends ConsumerWidget {
                         child: const Text(
                           'View details',
                           style: TextStyle(
-                            color: AppColors.primary,
+                            color: AppColors.primaryRed,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -630,8 +642,8 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final icons = {
-      BookingStatus.pending: Icons.hourglass_empty_rounded,
-      BookingStatus.upcoming: Icons.calendar_today_outlined,
+      BookingStatus.requested: Icons.hourglass_empty_rounded,
+      BookingStatus.confirmed: Icons.calendar_today_outlined,
       BookingStatus.ongoing: Icons.handyman_outlined,
       BookingStatus.completed: Icons.check_circle_outline_rounded,
       BookingStatus.cancelled: Icons.cancel_outlined,
@@ -654,14 +666,14 @@ class _EmptyState extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
-                color: Colors.black54,
+                color: Colors.white70,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Your ${status.displayName.toLowerCase()} bookings will appear here.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -704,7 +716,7 @@ class _MetaIcon extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
         ),
       ],
     );

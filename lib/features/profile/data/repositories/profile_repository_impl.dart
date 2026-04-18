@@ -14,12 +14,14 @@ import 'package:discovaa/features/profile/domain/entities/payout_account.dart';
 import 'package:discovaa/features/profile/domain/entities/provider_payout.dart';
 import 'package:discovaa/features/profile/domain/entities/user_profile.dart';
 import 'package:discovaa/features/profile/domain/repositories/profile_repository.dart';
+import 'package:discovaa/core/storage/secure_token_storage.dart';
 import 'package:flutter/material.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
   final DioClient _dioClient;
   final HiveService _hiveService;
   final NetworkInfo _networkInfo;
+  final SecureTokenStorage _tokenStorage;
   bool _lastProfileFromCache = false;
 
   // Cache configuration
@@ -30,9 +32,11 @@ class ProfileRepositoryImpl implements ProfileRepository {
     required DioClient dioClient,
     required HiveService hiveService,
     required NetworkInfo networkInfo,
+    required SecureTokenStorage tokenStorage,
   }) : _dioClient = dioClient,
        _hiveService = hiveService,
-       _networkInfo = networkInfo;
+       _networkInfo = networkInfo,
+       _tokenStorage = tokenStorage;
 
   @override
   bool get lastProfileFromCache => _lastProfileFromCache;
@@ -309,7 +313,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<UserProfile> saveCertification(Certification certification) async {
+  Future<UserProfile> saveCertification(Certification certification, {String? documentPath}) async {
     final dto = ProviderCertificationDto(
       id: certification.id,
       title: certification.name,
@@ -318,15 +322,30 @@ class ProfileRepositoryImpl implements ProfileRepository {
       expiresDate: certification.expiryDate,
       document: certification.documentUrl,
     );
+    
+    dynamic requestData;
+    Options? options;
+    
+    if (documentPath != null && documentPath.isNotEmpty) {
+      final map = dto.toWriteJson();
+      map['document'] = await MultipartFile.fromFile(documentPath);
+      requestData = FormData.fromMap(map);
+      options = Options(contentType: 'multipart/form-data');
+    } else {
+      requestData = dto.toWriteJson();
+    }
+
     if (_looksLikeUuid(certification.id)) {
       await _dioClient.patch(
         '${ApiEndpoints.providerCertifications}${certification.id}/',
-        data: dto.toWriteJson(),
+        data: requestData,
+        options: options,
       );
     } else {
       await _dioClient.post(
         ApiEndpoints.providerCertifications,
-        data: dto.toWriteJson(),
+        data: requestData,
+        options: options,
       );
     }
     return fetchProfile();
@@ -344,15 +363,30 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<UserProfile> updateBusinessRegistration(
-    BusinessRegistration registration,
-  ) async {
+    BusinessRegistration registration, {
+    String? documentPath,
+  }) async {
+    dynamic requestData;
+    Options? options;
+
+    final writeDto = ProviderProfileWriteDto(
+      displayName: registration.businessName,
+      registrationNumber: registration.registrationNumber,
+    ).toJson();
+
+    if (documentPath != null && documentPath.isNotEmpty) {
+      writeDto['registration_document'] = await MultipartFile.fromFile(documentPath);
+      requestData = FormData.fromMap(writeDto);
+      options = Options(contentType: 'multipart/form-data');
+    } else {
+      requestData = writeDto;
+      options = Options(contentType: Headers.formUrlEncodedContentType);
+    }
+
     await _dioClient.patch(
       ApiEndpoints.providersMeProfile,
-      data: ProviderProfileWriteDto(
-        displayName: registration.businessName,
-        registrationNumber: registration.registrationNumber,
-      ).toJson(),
-      options: Options(contentType: Headers.formUrlEncodedContentType),
+      data: requestData,
+      options: options,
     );
     return fetchProfile();
   }
@@ -504,6 +538,8 @@ class ProfileRepositoryImpl implements ProfileRepository {
     await _dioClient.delete(ApiEndpoints.authLogout);
     // Clear local cache as well since all sessions are terminated
     await clearCache();
+    // CRITICAL: Clear all authentication data locally so the user is signed out on this device too
+    await _tokenStorage.clearAllAuthData();
   }
 }
 

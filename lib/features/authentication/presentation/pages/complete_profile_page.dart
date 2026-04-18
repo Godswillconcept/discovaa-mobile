@@ -150,9 +150,9 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
             // Persist auth state
             final storage = ref.read(secureTokenStorageProvider);
-            final accessToken = storage.getAccessToken();
-            final sessionToken = storage.getSessionToken();
-            final refreshToken = storage.getRefreshToken();
+            final accessToken = await storage.getAccessToken();
+            final sessionToken = await storage.getSessionToken();
+            final refreshToken = await storage.getRefreshToken();
 
             await ref
                 .read(authInitializerProvider.notifier)

@@ -607,7 +607,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<String?> refreshToken() async {
     try {
-      final refreshToken = _tokenStorage.getRefreshToken();
+      final refreshToken = await _tokenStorage.getRefreshToken();
       if (refreshToken == null || refreshToken.isEmpty) {
         return null;
       }

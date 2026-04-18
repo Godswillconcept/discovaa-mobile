@@ -31,6 +31,36 @@ class ApiArtisanRepository implements ArtisanRepository {
   }
 
   @override
+  List<Artisan> getCachedArtisans({
+    String? search,
+    String? category,
+    String? ordering,
+  }) {
+    final query = <String, dynamic>{};
+    if (search != null && search.trim().isNotEmpty) {
+      query['search'] = search.trim();
+    }
+    if (ordering != null && ordering.trim().isNotEmpty) {
+      query['ordering'] = ordering.trim();
+    }
+
+    if (category != null && category.trim().isNotEmpty) {
+      final input = category.trim();
+      final uuid = maybeUuidCategoryId(input);
+      if (uuid != null) {
+        query['category_id'] = uuid;
+      } else if (_categoryNameToId?.containsKey(input.toLowerCase()) == true) {
+        query['category_id'] = _categoryNameToId![input.toLowerCase()];
+      } else {
+        query['category'] = input.toLowerCase().replaceAll(RegExp(r'\s+'), '-');
+      }
+    }
+
+    final cacheKey = _searchCacheKey(query);
+    return _readCachedArtisans(cacheKey);
+  }
+
+  @override
   Future<List<Artisan>> searchArtisans({
     String? search,
     String? category,

@@ -326,10 +326,10 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
   }
 
   /// Add or update a certification
-  Future<bool> saveCertification(Certification certification) async {
+  Future<bool> saveCertification(Certification certification, {String? documentPath}) async {
     if (state.profile == null) return false;
     try {
-      final updatedProfile = await _repository.saveCertification(certification);
+      final updatedProfile = await _repository.saveCertification(certification, documentPath: documentPath);
       return await updateProfile(updatedProfile);
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to save certification.');
@@ -353,12 +353,14 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
 
   /// Update business registration
   Future<bool> updateBusinessRegistration(
-    BusinessRegistration registration,
-  ) async {
+    BusinessRegistration registration, {
+    String? documentPath,
+  }) async {
     if (state.profile == null) return false;
     try {
       final updatedProfile = await _repository.updateBusinessRegistration(
         registration,
+        documentPath: documentPath,
       );
       return await updateProfile(updatedProfile);
     } catch (e) {

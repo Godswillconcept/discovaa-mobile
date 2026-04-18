@@ -18,6 +18,7 @@ enum ServicesStatus { idle, loading, success, failure }
 
 class ServicesState {
   final List<ServiceModel> services;
+  final List<ServiceModel> ownServices;
   final List<ServiceModel> featuredServices;
   final List<ServiceMediaDto> serviceMedia;
   final ServicesStatus status;
@@ -29,6 +30,7 @@ class ServicesState {
 
   const ServicesState({
     this.services = const [],
+    this.ownServices = const [],
     this.featuredServices = const [],
     this.serviceMedia = const [],
     this.status = ServicesStatus.idle,
@@ -41,6 +43,7 @@ class ServicesState {
 
   ServicesState copyWith({
     List<ServiceModel>? services,
+    List<ServiceModel>? ownServices,
     List<ServiceModel>? featuredServices,
     List<ServiceMediaDto>? serviceMedia,
     ServicesStatus? status,
@@ -52,6 +55,7 @@ class ServicesState {
   }) {
     return ServicesState(
       services: services ?? this.services,
+      ownServices: ownServices ?? this.ownServices,
       featuredServices: featuredServices ?? this.featuredServices,
       serviceMedia: serviceMedia ?? this.serviceMedia,
       status: status ?? this.status,
@@ -68,6 +72,19 @@ class ServicesState {
     if (searchQuery.isEmpty) return services;
     final q = searchQuery.toLowerCase();
     return services
+        .where(
+          (s) =>
+              s.title.toLowerCase().contains(q) ||
+              (s.category?.toLowerCase().contains(q) ?? false),
+        )
+        .toList();
+  }
+
+  /// Filtered own services based on current search query
+  List<ServiceModel> get filteredOwn {
+    if (searchQuery.isEmpty) return ownServices;
+    final q = searchQuery.toLowerCase();
+    return ownServices
         .where(
           (s) =>
               s.title.toLowerCase().contains(q) ||
@@ -124,16 +141,26 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
 
     state = state.copyWith(
       services: [...state.services, service],
+      ownServices: [...state.ownServices, service],
       status: ServicesStatus.success,
     );
     try {
       final created = await _repository.createService(service);
-      final updated = [...state.services];
-      final index = updated.indexWhere((item) => item.id == service.id);
-      if (index != -1) {
-        updated[index] = created;
-        state = state.copyWith(services: updated);
-      }
+      
+      // Update services list
+      final updatedServices = [...state.services];
+      final sIndex = updatedServices.indexWhere((item) => item.id == service.id);
+      if (sIndex != -1) updatedServices[sIndex] = created;
+      
+      // Update ownServices list
+      final updatedOwn = [...state.ownServices];
+      final oIndex = updatedOwn.indexWhere((item) => item.id == service.id);
+      if (oIndex != -1) updatedOwn[oIndex] = created;
+
+      state = state.copyWith(
+        services: updatedServices,
+        ownServices: updatedOwn,
+      );
       return created;
     } catch (e) {
       state = state.copyWith(
@@ -145,20 +172,25 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
   }
 
   /// Update an existing service by id
-  Future<ServiceModel?> updateService(ServiceModel updated) async {
-    final index = state.services.indexWhere((s) => s.id == updated.id);
-    if (index == -1) return null;
-    final updatedList = [...state.services];
-    updatedList[index] = updated;
-    state = state.copyWith(
-      services: updatedList,
-      status: ServicesStatus.success,
-    );
+  Future<ServiceModel?> updateService(ServiceModel service) async {
+    state = state.copyWith(status: ServicesStatus.loading);
     try {
-      final remote = await _repository.updateService(updated);
-      updatedList[index] = remote;
-      state = state.copyWith(services: updatedList);
-      return remote;
+      final updated = await _repository.updateService(service);
+      
+      final updatedServices = [...state.services];
+      final sIndex = updatedServices.indexWhere((item) => item.id == service.id);
+      if (sIndex != -1) updatedServices[sIndex] = updated;
+
+      final updatedOwn = [...state.ownServices];
+      final oIndex = updatedOwn.indexWhere((item) => item.id == service.id);
+      if (oIndex != -1) updatedOwn[oIndex] = updated;
+
+      state = state.copyWith(
+        services: updatedServices,
+        ownServices: updatedOwn,
+        status: ServicesStatus.success,
+      );
+      return updated;
     } catch (e) {
       state = state.copyWith(
         status: ServicesStatus.failure,
@@ -169,40 +201,51 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
   }
 
   /// Toggle the active/inactive status of a service
-  Future<void> toggleServiceStatus(String id) async {
-    final index = state.services.indexWhere((s) => s.id == id);
-    if (index == -1) return;
-    final updatedList = [...state.services];
-    updatedList[index] = updatedList[index].copyWith(
-      isActive: !updatedList[index].isActive,
-    );
-    state = state.copyWith(services: updatedList);
+  Future<bool> toggleServiceStatus(ServiceModel service) async {
+    final updated = service.copyWith(isActive: !service.isActive);
     try {
-      final remote = await _repository.updateService(updatedList[index]);
-      updatedList[index] = remote;
-      state = state.copyWith(services: updatedList);
+      final saved = await _repository.updateService(updated);
+      
+      final updatedServices = [...state.services];
+      final sIndex = updatedServices.indexWhere((item) => item.id == service.id);
+      if (sIndex != -1) updatedServices[sIndex] = saved;
+
+      final updatedOwn = [...state.ownServices];
+      final oIndex = updatedOwn.indexWhere((item) => item.id == service.id);
+      if (oIndex != -1) updatedOwn[oIndex] = saved;
+
+      state = state.copyWith(
+        services: updatedServices,
+        ownServices: updatedOwn,
+        status: ServicesStatus.success,
+      );
+      return true;
     } catch (e) {
       state = state.copyWith(
         status: ServicesStatus.failure,
         errorMessage: 'Failed to update service status.',
       );
+      return false;
     }
   }
 
   /// Remove a service by id
-  Future<void> deleteService(String id) async {
-    final previous = state.services;
-    state = state.copyWith(
-      services: state.services.where((s) => s.id != id).toList(),
-    );
+  Future<bool> deleteService(String id) async {
+    state = state.copyWith(status: ServicesStatus.loading);
     try {
       await _repository.deleteService(id);
+      state = state.copyWith(
+        services: state.services.where((item) => item.id != id).toList(),
+        ownServices: state.ownServices.where((item) => item.id != id).toList(),
+        status: ServicesStatus.success,
+      );
+      return true;
     } catch (e) {
       state = state.copyWith(
-        services: previous,
-        status: ServicesStatus.failure,
-        errorMessage: 'Failed to delete service. Please try again.',
+        mediaUploadStatus: ServicesStatus.failure,
+        mediaUploadError: 'Failed to delete media. Please try again.',
       );
+      return false;
     }
   }
 
@@ -322,6 +365,21 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
       state = state.copyWith(
         status: ServicesStatus.failure,
         errorMessage: 'Failed to load services. Please try again.',
+      );
+    }
+  }
+
+  /// Load provider's own services from the management API
+  Future<void> loadOwnServices({bool forceRefresh = false}) async {
+    if (!forceRefresh && state.ownServices.isNotEmpty) return;
+    state = state.copyWith(status: ServicesStatus.loading);
+    try {
+      final data = await _repository.listOwnServices();
+      state = state.copyWith(ownServices: data, status: ServicesStatus.success);
+    } catch (e) {
+      state = state.copyWith(
+        status: ServicesStatus.failure,
+        errorMessage: 'Failed to load your services. Please try again.',
       );
     }
   }

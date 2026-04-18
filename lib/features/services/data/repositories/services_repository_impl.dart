@@ -11,6 +11,7 @@ import 'package:discovaa/features/services/domain/repositories/services_reposito
 class ServicesRepositoryImpl implements ServicesRepository {
   final DioClient _dioClient;
   final HiveService _hiveService;
+  // ignore: unused_field
   final NetworkInfo _networkInfo;
 
   ServicesRepositoryImpl({
@@ -49,6 +50,27 @@ class ServicesRepositoryImpl implements ServicesRepository {
   }
 
   @override
+  Future<List<ServiceModel>> listOwnServices() async {
+    try {
+      final categories = await _categoryMap();
+      final response = await _dioClient.get(ApiEndpoints.mgtServices);
+      final envelope = decodeListEnvelope(
+        response,
+        (item) => ServiceDto.fromJson(item),
+      );
+      final services = envelope.data
+          .map((dto) => mapServiceDto(dto, categories))
+          .toList(growable: false);
+      // We don't necessarily want to overwrite the main cache with own services, 
+      // or maybe we do if the main cache should only show own services for providers.
+      // For now, let's keep it separate or just return.
+      return services;
+    } catch (_) {
+      rethrow;
+    }
+  }
+
+  @override
   Future<List<String>> listCategoryNames() async {
     final categories = await _categoryMap();
     return categories.values.map((item) => item.name).toList(growable: false);
@@ -59,7 +81,7 @@ class ServicesRepositoryImpl implements ServicesRepository {
     final categories = await _categoryMap();
     final categoryId = _resolveCategoryId(categories, service.category);
     final response = await _dioClient.post(
-      ApiEndpoints.services,
+      ApiEndpoints.mgtServices,
       data: mapServiceWriteDto(service, categoryId: categoryId).toJson(),
     );
     final dto = decodeEnvelope(
@@ -76,7 +98,7 @@ class ServicesRepositoryImpl implements ServicesRepository {
     final categories = await _categoryMap();
     final categoryId = _resolveCategoryId(categories, service.category);
     final response = await _dioClient.patch(
-      '${ApiEndpoints.services}${service.id}/',
+      ApiEndpoints.mgtServiceDetail(service.id),
       data: mapServiceWriteDto(service, categoryId: categoryId).toJson(),
     );
     final dto = decodeEnvelope(
@@ -90,7 +112,7 @@ class ServicesRepositoryImpl implements ServicesRepository {
 
   @override
   Future<void> deleteService(String id) async {
-    await _dioClient.delete('${ApiEndpoints.services}$id/');
+    await _dioClient.delete(ApiEndpoints.mgtServiceDetail(id));
     await _removeCachedService(id);
   }
 
@@ -165,14 +187,26 @@ class ServicesRepositoryImpl implements ServicesRepository {
     }
   }
 
+  Map<String, ServiceCategoryDto>? _inMemoryCategories;
+
   Future<Map<String, ServiceCategoryDto>> _categoryMap() async {
+    if (_inMemoryCategories != null) {
+      return _inMemoryCategories!;
+    }
+    
+    final cached = _readCachedCategories();
+    if (cached.isNotEmpty) {
+      _inMemoryCategories = cached;
+      // Fetch in background to keep data fresh without blocking UI
+      _fetchCategoriesSilent();
+      return cached;
+    }
+    
+    return await _fetchCategoriesSilent();
+  }
+
+  Future<Map<String, ServiceCategoryDto>> _fetchCategoriesSilent() async {
     try {
-      if (!await _networkInfo.isConnected) {
-        final cached = _readCachedCategories();
-        if (cached.isNotEmpty) {
-          return cached;
-        }
-      }
       final response = await _dioClient.get(ApiEndpoints.serviceCategories);
       final envelope = decodeListEnvelope(
         response,
@@ -185,10 +219,12 @@ class ServicesRepositoryImpl implements ServicesRepository {
         _categoriesCacheKey,
         envelope.data.map((category) => category.toJson()).toList(),
       );
+      _inMemoryCategories = categories;
       return categories;
     } catch (_) {
       final cached = _readCachedCategories();
       if (cached.isNotEmpty) {
+        _inMemoryCategories = cached;
         return cached;
       }
       rethrow;

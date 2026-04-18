@@ -5,13 +5,9 @@ import 'package:discovaa/app/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize dependencies
   await configureDependencies();
-  
-  runApp(
-    const ProviderScope(
-      child: DiscovaaApp(),
-    ),
-  );
+
+  runApp(const ProviderScope(child: DiscovaaApp()));
 }

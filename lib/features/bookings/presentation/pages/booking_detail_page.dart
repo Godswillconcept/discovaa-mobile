@@ -336,7 +336,7 @@ class _ActionBar extends ConsumerWidget {
         ],
       ),
       child: switch (booking.status) {
-        BookingStatus.pending => Row(
+        BookingStatus.requested => Row(
           children: [
             Expanded(
               child: OutlinedButton(
@@ -384,7 +384,7 @@ class _ActionBar extends ConsumerWidget {
             ),
           ],
         ),
-        BookingStatus.upcoming => Row(
+        BookingStatus.confirmed => Row(
           children: [
             Expanded(
               child: OutlinedButton(

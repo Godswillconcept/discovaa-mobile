@@ -3,6 +3,13 @@ import '../entities/artisan_entity.dart';
 abstract class ArtisanRepository {
   Future<List<Artisan>> getArtisans();
 
+  /// Retrieve artisans symmetrically from local Hive cache instantly
+  List<Artisan> getCachedArtisans({
+    String? search,
+    String? category,
+    String? ordering,
+  });
+
   /// Search or filter artisans from the backend.
   ///
   /// - [search]: free-text search across provider name/bio.

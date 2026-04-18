@@ -3,6 +3,7 @@ import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:flutter/material.dart';
 
 abstract class BookingsRepository {
+  List<BookingModel> getCachedBookings();
   Future<List<BookingModel>> listBookings();
   Future<BookingModel> placeBooking({
     required ServiceModel service,

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:discovaa/features/profile/domain/entities/profile_enums.dart';
 import 'package:go_router/go_router.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
@@ -24,34 +25,66 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    // Load dashboard data after first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadDashboardData();
-    });
+    // Load dashboard data asynchronously without blocking initial render
+    Future.microtask(() => _loadDashboardData());
   }
 
   void _loadDashboardData() {
-    final signupState = ref.read(signupProvider);
-    final role = signupState.selectedRole.isProvider ? 'provider' : 'client';
-    final filter = ref.read(dashboardFilterProvider);
+    // Clear any previous errors before loading new data
+    final currentState = ref.read(dashboardProvider);
+    if (currentState.hasError) {
+      ref.read(dashboardProvider.notifier).clearError();
+    }
 
-    ref.read(dashboardProvider.notifier).loadDashboard(role, filter: filter);
+    final profileState = ref.read(userProfileProvider);
+    final signupState = ref.read(signupProvider);
+
+    // Determine role: Profile role (source of truth) > Signup state (fallback)
+    String roleName = 'client';
+    if (profileState.profile != null) {
+      roleName = profileState.profile!.isProvider ? 'provider' : 'client';
+    } else {
+      roleName = signupState.selectedRole.isProvider ? 'provider' : 'client';
+    }
+
+    final filter = ref.read(dashboardFilterProvider);
+    ref.read(dashboardProvider.notifier).loadDashboard(roleName, filter: filter);
   }
 
   Future<void> _refreshDashboard() async {
+    final profileState = ref.read(userProfileProvider);
     final signupState = ref.read(signupProvider);
-    final role = signupState.selectedRole.isProvider ? 'provider' : 'client';
-    final filter = ref.read(dashboardFilterProvider);
 
-    await ref.read(dashboardProvider.notifier).refresh(role, filter: filter);
+    String roleName = 'client';
+    if (profileState.profile != null) {
+      roleName = profileState.profile!.isProvider ? 'provider' : 'client';
+    } else {
+      roleName = signupState.selectedRole.isProvider ? 'provider' : 'client';
+    }
+
+    final filter = ref.read(dashboardFilterProvider);
+    await ref.read(dashboardProvider.notifier).refresh(roleName, filter: filter);
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(dashboardFilterProvider, (previous, next) {
+      if (previous != next) {
+        _loadDashboardData();
+      }
+    });
+
     final signupState = ref.watch(signupProvider);
     final profileState = ref.watch(userProfileProvider);
-    final isProvider = signupState.selectedRole.isProvider;
-    final isISV = signupState.selectedRole == UserRole.individualProvider;
+
+    // Reactive role detection
+    final isProvider = profileState.profile != null
+        ? profileState.profile!.isProvider
+        : signupState.selectedRole.isProvider;
+
+    final isISV = profileState.profile != null
+        ? profileState.profile!.accountType == AccountType.provider
+        : signupState.selectedRole == UserRole.individualProvider;
     final dashboardState = ref.watch(dashboardProvider);
     final unreadCount = ref.watch(unreadMessagesProvider);
     final displayName =

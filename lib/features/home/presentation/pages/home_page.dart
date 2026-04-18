@@ -28,22 +28,31 @@ class HomePage extends ConsumerWidget {
             const MainHeader(),
             // Identity verification reminder banner (shows if verification pending)
             const IdentityVerificationReminderWidget(),
-            const Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 20),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: _ExploreSearchField(),
-                    ),
-                    SizedBox(height: 32),
-                    // Browse by Category
-                    _BrowseByCategorySection(),
-                    // Service Providers Section
-                    _ServiceProvidersSection(),
-                  ],
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(categoriesProvider);
+                  ref.invalidate(filteredArtisansProvider);
+                  // Allow states to reload safely
+                  await Future.delayed(const Duration(milliseconds: 100));
+                },
+                child: const SingleChildScrollView(
+                  physics: AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 20),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: _ExploreSearchField(),
+                      ),
+                      SizedBox(height: 32),
+                      // Browse by Category
+                      _BrowseByCategorySection(),
+                      // Service Providers Section
+                      _ServiceProvidersSection(),
+                    ],
+                  ),
                 ),
               ),
             ),

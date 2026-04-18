@@ -7,7 +7,12 @@ import 'package:discovaa/features/profile/presentation/widgets/shared/profile_fi
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:discovaa/features/profile/presentation/providers/profile_connectivity_provider.dart';
 
 /// User Info Tab - Main profile information with identity verification
 class UserInfoTab extends ConsumerWidget {
@@ -94,14 +99,14 @@ class UserInfoTab extends ConsumerWidget {
                 label: 'Front of ID',
                 hasDocument:
                     profile.identityVerification?.hasFrontImage ?? false,
-                onUpload: () => _showUploadDialog(context, 'Front of ID'),
+                onUpload: () => _UserInfoTabHelper.showUploadDialog(context, ref, 'Front of ID', 'idFront'),
               ),
               const SizedBox(height: 12),
               _IdUploadRow(
                 label: 'Back of ID',
                 hasDocument:
                     profile.identityVerification?.hasBackImage ?? false,
-                onUpload: () => _showUploadDialog(context, 'Back of ID'),
+                onUpload: () => _UserInfoTabHelper.showUploadDialog(context, ref, 'Back of ID', 'idBack'),
               ),
             ],
           ),
@@ -329,8 +334,64 @@ class UserInfoTab extends ConsumerWidget {
       ),
     );
   }
+}
 
-  void _showUploadDialog(BuildContext context, String label) {
+/// Helper class to handle image picking and cropping for UserInfoTab
+class _UserInfoTabHelper {
+  static Future<void> pickAndCropImage(
+    BuildContext context,
+    WidgetRef ref,
+    ImageSource source,
+    String type,
+  ) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+    if (pickedFile == null) return;
+
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: pickedFile.path,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Crop Image',
+          toolbarColor: const Color(0xFF111827),
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.square,
+          lockAspectRatio: type == 'avatar',
+        ),
+        IOSUiSettings(
+          title: 'Crop Image',
+          aspectRatioLockEnabled: type == 'avatar',
+        ),
+      ],
+    );
+
+    if (croppedFile == null) return;
+
+    // Check connection
+    final connectivityState = ref.read(profileConnectivityProvider);
+    if (connectivityState != ProfileConnectivityState.connected && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No internet connection. Cannot upload image.')),
+      );
+      return;
+    }
+
+    if (type == 'avatar') {
+      await ref.read(userProfileProvider.notifier).uploadAccountProfilePhoto(croppedFile.path);
+    } else if (type == 'idFront') {
+      await ref.read(userProfileProvider.notifier).updateIdentityVerification(
+            idNumber: ref.read(userProfileProvider).profile?.identityVerification?.idNumber ?? '',
+            idFrontImageUrl: croppedFile.path,
+          );
+    } else if (type == 'idBack') {
+      await ref.read(userProfileProvider.notifier).updateIdentityVerification(
+            idNumber: ref.read(userProfileProvider).profile?.identityVerification?.idNumber ?? '',
+            idBackImageUrl: croppedFile.path,
+          );
+    }
+  }
+
+  static void showUploadDialog(BuildContext context, WidgetRef ref, String label, String type) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -356,7 +417,7 @@ class UserInfoTab extends ConsumerWidget {
               title: const Text('Take Photo'),
               onTap: () {
                 Navigator.pop(context);
-                // NOTE: Camera capture to be implemented with image_picker package
+                pickAndCropImage(context, ref, ImageSource.camera, type);
               },
             ),
             ListTile(
@@ -364,17 +425,41 @@ class UserInfoTab extends ConsumerWidget {
               title: const Text('Choose from Gallery'),
               onTap: () {
                 Navigator.pop(context);
-                // NOTE: Gallery picker to be implemented with image_picker package
+                pickAndCropImage(context, ref, ImageSource.gallery, type);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.file_upload),
-              title: const Text('Upload File'),
-              onTap: () {
-                Navigator.pop(context);
-                // NOTE: File picker to be implemented with file_picker package
-              },
-            ),
+            if (type != 'avatar')
+              ListTile(
+                leading: const Icon(Icons.file_upload),
+                title: const Text('Upload File'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final result = await FilePicker.platform.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+                  );
+                  if (result != null && result.files.single.path != null) {
+                    final connectivityState = ref.read(profileConnectivityProvider);
+                    if (connectivityState != ProfileConnectivityState.connected && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('No internet connection. Cannot upload document.')),
+                      );
+                      return;
+                    }
+                    if (type == 'idFront') {
+                      await ref.read(userProfileProvider.notifier).updateIdentityVerification(
+                            idNumber: ref.read(userProfileProvider).profile?.identityVerification?.idNumber ?? '',
+                            idFrontImageUrl: result.files.single.path!,
+                          );
+                    } else if (type == 'idBack') {
+                      await ref.read(userProfileProvider.notifier).updateIdentityVerification(
+                            idNumber: ref.read(userProfileProvider).profile?.identityVerification?.idNumber ?? '',
+                            idBackImageUrl: result.files.single.path!,
+                          );
+                    }
+                  }
+                },
+              ),
           ],
         ),
       ),
@@ -383,13 +468,13 @@ class UserInfoTab extends ConsumerWidget {
 }
 
 /// Profile Header Card with Avatar, Name, Email, and Status
-class _ProfileHeaderCard extends StatelessWidget {
+class _ProfileHeaderCard extends ConsumerWidget {
   final UserProfile profile;
 
   const _ProfileHeaderCard({required this.profile});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       width: double.maxFinite,
       decoration: BoxDecoration(
@@ -404,48 +489,93 @@ class _ProfileHeaderCard extends StatelessWidget {
       child: Column(
         children: [
           // Avatar with Camera Icon
-          Stack(
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.1),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    width: 2,
+          GestureDetector(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.transparent,
+                builder: (context) => Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(24),
+                      topRight: Radius.circular(24),
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Update Profile Photo',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 24),
+                      ListTile(
+                        leading: const Icon(Icons.camera_alt),
+                        title: const Text('Take Photo'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _UserInfoTabHelper.pickAndCropImage(context, ref, ImageSource.camera, 'avatar');
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.photo_library),
+                        title: const Text('Choose from Gallery'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _UserInfoTabHelper.pickAndCropImage(context, ref, ImageSource.gallery, 'avatar');
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                child: Center(
-                  child: Text(
-                    profile.initials,
-                    style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
+              );
+            },
+            child: Stack(
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  clipBehavior: Clip.hardEdge,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.1),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: profile.profileImage != null && profile.profileImage!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: profile.profileImage!,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const Center(
+                            child: CircularProgressIndicator(color: Colors.white),
+                          ),
+                          errorWidget: (context, url, error) => _buildInitials(),
+                        )
+                      : _buildInitials(),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111827),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt,
+                      size: 18,
                       color: Colors.white,
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF111827),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    size: 18,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -504,6 +634,19 @@ class _ProfileHeaderCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildInitials() {
+    return Center(
+      child: Text(
+        profile.initials,
+        style: const TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       ),
     );
   }
@@ -683,6 +826,76 @@ class _PhoneEditSheetState extends State<_PhoneEditSheet> {
             const SizedBox(height: 12),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class ProfileSectionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Widget? action;
+  final List<Widget> children;
+
+  const ProfileSectionCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    this.action,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (action != null) action!,
+            ],
+          ),
+          const SizedBox(height: 24),
+          ...children,
+        ],
       ),
     );
   }

@@ -160,22 +160,26 @@ class MessagesListPage extends ConsumerWidget {
                               ],
                             ),
                           )
-                        : ListView.separated(
-                            padding: EdgeInsets.zero,
-                            itemCount: filteredConversations.length,
-                            separatorBuilder: (context, index) => Padding(
-                              padding: const EdgeInsets.only(left: 90),
-                              child: Divider(
-                                height: 1,
-                                thickness: 0.5,
-                                color: Colors.grey.shade200,
+                        : RefreshIndicator(
+                            onRefresh: () => ref.read(messagingProvider.notifier).refresh(),
+                            child: ListView.separated(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: EdgeInsets.zero,
+                              itemCount: filteredConversations.length,
+                              separatorBuilder: (context, index) => Padding(
+                                padding: const EdgeInsets.only(left: 90),
+                                child: Divider(
+                                  height: 1,
+                                  thickness: 0.5,
+                                  color: Colors.grey.shade200,
+                                ),
                               ),
+                              itemBuilder: (context, index) {
+                                return ConversationTile(
+                                  conversation: filteredConversations[index],
+                                );
+                              },
                             ),
-                            itemBuilder: (context, index) {
-                              return ConversationTile(
-                                conversation: filteredConversations[index],
-                              );
-                            },
                           ),
                   ),
                 ],

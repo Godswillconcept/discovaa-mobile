@@ -12,6 +12,7 @@ import 'package:discovaa/features/services/presentation/pages/services_page.dart
 import 'package:discovaa/features/authentication/presentation/pages/identification_page.dart';
 import 'package:discovaa/shared/presentation/pages/main_navigation_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:discovaa/core/storage/secure_token_storage.dart';
@@ -60,6 +61,9 @@ SecureTokenStorage? _tokenStorage;
 SecureTokenStorage get _routerTokenStorage {
   return _tokenStorage ??= SecureTokenStorage(
     hiveService: HiveService.instance,
+    secureStorage: const FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    ),
   );
 }
 
@@ -69,7 +73,7 @@ class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: RouteNames.splash,
     debugLogDiagnostics: true,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final location = state.uri.path;
 
       // Allow access to public routes
@@ -80,7 +84,7 @@ class AppRouter {
       // Check if user is authenticated
       final isAuthenticated =
           _routerTokenStorage.isAuthenticated() &&
-          _routerTokenStorage.hasValidTokens();
+          await _routerTokenStorage.hasValidTokens();
 
       // Redirect unauthenticated users to login
       if (!isAuthenticated) {

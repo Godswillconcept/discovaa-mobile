@@ -86,13 +86,14 @@ void main() {
 
     test('toggleServiceStatus flips isActive correctly', () {
       addTestService();
-      final id = container.read(servicesProvider).services.first.id;
-      expect(container.read(servicesProvider).services.first.isActive, isTrue);
+      final service = container.read(servicesProvider).services.first;
+      expect(service.isActive, isTrue);
 
-      container.read(servicesProvider.notifier).toggleServiceStatus(id);
+      container.read(servicesProvider.notifier).toggleServiceStatus(service);
       expect(container.read(servicesProvider).services.first.isActive, isFalse);
 
-      container.read(servicesProvider.notifier).toggleServiceStatus(id);
+      final updatedService = container.read(servicesProvider).services.first;
+      container.read(servicesProvider.notifier).toggleServiceStatus(updatedService);
       expect(container.read(servicesProvider).services.first.isActive, isTrue);
     });
 

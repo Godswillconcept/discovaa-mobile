@@ -2,6 +2,9 @@ import '../entities/dashboard_entity.dart';
 
 /// Repository interface for dashboard data
 abstract class DashboardRepository {
+  /// Get dashboard data from local cache instantly
+  DashboardEntity? getCachedDashboard(String role, {DashboardFilterEntity? filter});
+
   /// Get provider dashboard data with KPIs and analytics
   /// 
   /// [filter] Optional filter for date range and other parameters

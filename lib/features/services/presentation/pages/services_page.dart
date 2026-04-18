@@ -53,9 +53,14 @@ class _ServicesPageState extends ConsumerState<ServicesPage> {
   @override
   void initState() {
     super.initState();
-    // Trigger API fetch on first load
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(servicesProvider.notifier).loadServices();
+    // Trigger API fetch asynchronously
+    Future.microtask(() {
+      final isProvider = ref.read(userProfileProvider).profile?.isProvider ?? false;
+      if (isProvider) {
+        ref.read(servicesProvider.notifier).loadOwnServices();
+      } else {
+        ref.read(servicesProvider.notifier).loadServices();
+      }
     });
   }
 
@@ -183,7 +188,7 @@ class _ProviderServicesView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final servicesState = ref.watch(servicesProvider);
-    final filtered = ref.watch(filteredServicesProvider);
+    final filtered = servicesState.filteredOwn;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -340,35 +345,39 @@ class _ProviderServiceList extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: services.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-              childAspectRatio: 0.74,
-            ),
-            itemBuilder: (context, index) {
-              final svc = services[index];
-              return ServiceCard(
-                service: svc,
-                isProvider: true,
-                onEdit: () => showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => FractionallySizedBox(
-                    heightFactor: 0.92,
-                    child: AddServiceSheet(existing: svc),
+          child: RefreshIndicator(
+            onRefresh: () => ref.read(servicesProvider.notifier).loadOwnServices(forceRefresh: true),
+            child: GridView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: services.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 0.74,
+              ),
+              itemBuilder: (context, index) {
+                final svc = services[index];
+                return ServiceCard(
+                  service: svc,
+                  isProvider: true,
+                  onEdit: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => FractionallySizedBox(
+                      heightFactor: 0.92,
+                      child: AddServiceSheet(existing: svc),
+                    ),
                   ),
-                ),
-                onToggleStatus: () => ref
-                    .read(servicesProvider.notifier)
-                    .toggleServiceStatus(svc.id),
-                onDelete: () => _confirmDelete(context, ref, svc),
-              );
-            },
+                  onToggleStatus: () => ref
+                      .read(servicesProvider.notifier)
+                      .toggleServiceStatus(svc),
+                  onDelete: () => _confirmDelete(context, ref, svc),
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -542,21 +551,32 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
                     ),
                   ),
                 )
-              : visibleServices.isEmpty
-              ? _UserEmptyState(tab: _filterLabels[_selectedTab])
-              : GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: visibleServices.length,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 14,
-                    mainAxisSpacing: 14,
-                    childAspectRatio: 0.74,
-                  ),
-                  itemBuilder: (context, index) => ServiceCard(
-                    service: visibleServices[index],
-                    isProvider: false,
-                  ),
+              : RefreshIndicator(
+                  onRefresh: () => ref.read(servicesProvider.notifier).loadServices(),
+                  child: visibleServices.isEmpty
+                      ? SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: Container(
+                            height: MediaQuery.of(context).size.height * 0.5,
+                            alignment: Alignment.center,
+                            child: _UserEmptyState(tab: _filterLabels[_selectedTab]),
+                          ),
+                        )
+                      : GridView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: visibleServices.length,
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 14,
+                            mainAxisSpacing: 14,
+                            childAspectRatio: 0.74,
+                          ),
+                          itemBuilder: (context, index) => ServiceCard(
+                            service: visibleServices[index],
+                            isProvider: false,
+                          ),
+                        ),
                 ),
         ),
         const SizedBox(height: 16),

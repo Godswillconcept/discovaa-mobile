@@ -3,45 +3,45 @@ import 'package:flutter/material.dart';
 
 /// Lifecycle status of a booking
 enum BookingStatus {
-  pending,
-  upcoming,
-  ongoing,
+  requested,
+  confirmed,
+  cancelled,
   completed,
-  cancelled;
+  ongoing; // Kept for internal UI state if needed, but primary tabs use the 4 above.
 
   String get displayName {
     switch (this) {
-      case BookingStatus.pending:
-        return 'Pending';
-      case BookingStatus.upcoming:
-        return 'Upcoming';
-      case BookingStatus.ongoing:
-        return 'Ongoing';
-      case BookingStatus.completed:
-        return 'Completed';
+      case BookingStatus.requested:
+        return 'Requested';
+      case BookingStatus.confirmed:
+        return 'Confirmed';
       case BookingStatus.cancelled:
         return 'Cancelled';
+      case BookingStatus.completed:
+        return 'Completed';
+      case BookingStatus.ongoing:
+        return 'Ongoing';
     }
   }
 
   Color get color {
     switch (this) {
-      case BookingStatus.pending:
+      case BookingStatus.requested:
         return const Color(0xFFF59E0B); // amber
-      case BookingStatus.upcoming:
+      case BookingStatus.confirmed:
         return const Color(0xFF3B82F6); // blue
-      case BookingStatus.ongoing:
-        return const Color(0xFF8B5CF6); // purple
-      case BookingStatus.completed:
-        return const Color(0xFF10B981); // green
       case BookingStatus.cancelled:
         return const Color(0xFFE2211D); // red
+      case BookingStatus.completed:
+        return const Color(0xFF10B981); // green
+      case BookingStatus.ongoing:
+        return const Color(0xFF8B5CF6); // purple
     }
   }
 
   bool get isActive =>
-      this == BookingStatus.pending ||
-      this == BookingStatus.upcoming ||
+      this == BookingStatus.requested ||
+      this == BookingStatus.confirmed ||
       this == BookingStatus.ongoing;
 }
 
@@ -234,8 +234,8 @@ class BookingModel {
       minute: json['scheduledMinute'] as int,
     ),
     status: BookingStatus.values.firstWhere(
-      (e) => e.name == json['status'],
-      orElse: () => BookingStatus.pending,
+      (e) => e.name == json['status'].toString().toLowerCase(),
+      orElse: () => BookingStatus.requested,
     ),
     note: json['note'] as String?,
     createdAt: DateTime.parse(json['createdAt'] as String),

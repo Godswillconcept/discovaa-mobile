@@ -29,6 +29,9 @@ class BookingsRepositoryImpl implements BookingsRepository {
   static const _bookingsCacheKey = 'bookings.cache.list';
 
   @override
+  List<BookingModel> getCachedBookings() => _readCachedBookings();
+
+  @override
   Future<List<BookingModel>> listBookings() async {
     try {
       if (!await _networkInfo.isConnected) {
@@ -37,10 +40,16 @@ class BookingsRepositoryImpl implements BookingsRepository {
           return cached;
         }
       }
-      final services = await _servicesRepository.listServices();
-      final serviceMap = {for (final service in services) service.id: service};
+      // Run both API calls in parallel to reduce total loading time
+      final results = await Future.wait([
+        _servicesRepository.listServices(),
+        _dioClient.get(ApiEndpoints.bookings),
+      ]);
 
-      final response = await _dioClient.get(ApiEndpoints.bookings);
+      final services = results[0] as List<ServiceModel>;
+      final serviceMap = {for (final service in services) service.id: service};
+      final response = results[1] as dynamic;
+
       final envelope = decodeListEnvelope(
         response,
         (item) => BookingDto.fromJson(item),
@@ -114,7 +123,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
   Future<BookingModel> confirmBooking(BookingModel booking) async {
     await _dioClient.post(ApiEndpoints.bookingConfirm(booking.id));
     final updated = booking.copyWith(
-      status: BookingStatus.upcoming,
+      status: BookingStatus.confirmed,
       updatedAt: DateTime.now(),
     );
     await _upsertCachedBooking(updated);

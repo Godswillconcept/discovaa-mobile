@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
+import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/core/network/api_helpers.dart';
 import 'package:discovaa/core/network/dio_client.dart';
 import '../models/dashboard_models.dart';
+import 'package:flutter/material.dart';
 
 /// Remote data source for dashboard API calls
 abstract class DashboardRemoteDataSource {
@@ -61,23 +62,30 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
   @override
   Future<DashboardDto> getClientDashboard({DashboardFilterDto? filter}) async {
     // For clients, we need to construct dashboard from multiple endpoints
-    // since there's no dedicated client dashboard endpoint
+    // Optimized: Consolidated bookings fetch + message counts (3 parallel calls instead of 6)
+    // Add error handling to prevent one failure from blocking the entire dashboard load
     final results = await Future.wait([
-      _getClientBookings(filter: filter),
-      getRecentBookings(limit: 5),
-      getUnreadMessageCount(),
-      getPendingMessageCount(),
-      getSpendingTrend(range: filter?.range ?? '30d'),
-      getBookingMix(),
+      _getClientBookings(filter: filter).catchError((e) {
+        debugPrint('[DashboardRemoteDataSource] Bookings fetch failed: $e');
+        return _getEmptyBookingsData();
+      }),
+      getUnreadMessageCount().catchError((e) {
+        debugPrint('[DashboardRemoteDataSource] Unread count fetch failed: $e');
+        return 0;
+      }),
+      getPendingMessageCount().catchError((e) {
+        debugPrint(
+          '[DashboardRemoteDataSource] Pending count fetch failed: $e',
+        );
+        return 0;
+      }),
     ]);
 
     final bookingsData = results[0] as Map<String, dynamic>;
-    final recentBookings = results[1] as List<RecentBookingDto>;
-    final unreadCount = results[2] as int;
-    final pendingCount = results[3] as int;
-    final spendingTrend = results[4] as SpendingTrendDto;
-    final bookingMix = results[5] as BookingMixDto;
+    final unreadCount = results[1] as int;
+    final pendingCount = results[2] as int;
 
+    // Extract data from consolidated bookings response
     final upcomingCount =
         (bookingsData['upcoming_count'] as num?)?.toInt() ?? 0;
     final totalSpend = (bookingsData['total_spend'] as num?)?.toDouble() ?? 0.0;
@@ -85,6 +93,10 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
         (bookingsData['completed_count'] as num?)?.toInt() ?? 0;
     final cancelledCount =
         (bookingsData['cancelled_count'] as num?)?.toInt() ?? 0;
+    final spendingTrend = bookingsData['spending_trend'] as SpendingTrendDto;
+    final bookingMix = bookingsData['booking_mix'] as BookingMixDto;
+    final recentBookings =
+        bookingsData['recent_bookings'] as List<RecentBookingDto>;
 
     final kpis = DashboardKpiDto(
       totalSpend: totalSpend,
@@ -138,8 +150,14 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
     int upcomingCount = 0;
     int completedCount = 0;
     int cancelledCount = 0;
+    int requestedCount = 0;
+    int confirmedCount = 0;
     String? currency;
     final upcoming = <Map<String, dynamic>>[];
+
+    // For spending trend
+    final Map<String, double> dailyTotals = {};
+    double totalAmount = 0.0;
 
     final now = DateTime.now();
 
@@ -147,6 +165,7 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       final status = booking['status']?.toString() ?? '';
       final total = (booking['total'] as num?)?.toDouble() ?? 0.0;
       final scheduledStart = booking['scheduled_start']?.toString();
+      final createdAt = booking['created_at']?.toString();
 
       if (currency == null && booking['currency'] != null) {
         currency = booking['currency']?.toString();
@@ -154,8 +173,20 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
 
       totalSpend += total;
 
-      if (status.toUpperCase() == 'CONFIRMED' ||
-          status.toUpperCase() == 'REQUESTED') {
+      // Count by status
+      final statusUpper = status.toUpperCase();
+      if (statusUpper == 'REQUESTED') {
+        requestedCount++;
+      } else if (statusUpper == 'CONFIRMED') {
+        confirmedCount++;
+      } else if (statusUpper == 'COMPLETED') {
+        completedCount++;
+      } else if (statusUpper == 'CANCELLED') {
+        cancelledCount++;
+      }
+
+      // Upcoming appointments
+      if (statusUpper == 'CONFIRMED' || statusUpper == 'REQUESTED') {
         upcomingCount++;
         if (scheduledStart != null) {
           final date = _tryParseDateTime(scheduledStart);
@@ -172,12 +203,92 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
             });
           }
         }
-      } else if (status.toUpperCase() == 'COMPLETED') {
-        completedCount++;
-      } else if (status.toUpperCase() == 'CANCELLED') {
-        cancelledCount++;
+      }
+
+      // Spending trend data (only for completed/confirmed bookings)
+      if (statusUpper == 'COMPLETED' || statusUpper == 'CONFIRMED') {
+        totalAmount += total;
+
+        if (createdAt != null) {
+          final date = _tryParseDateTime(createdAt);
+          if (date != null) {
+            final dateKey =
+                '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+            dailyTotals[dateKey] = (dailyTotals[dateKey] ?? 0.0) + total;
+          }
+        }
       }
     }
+
+    // Calculate spending trend
+    final sortedDates = dailyTotals.keys.toList()..sort();
+    final spendingTrendPoints = sortedDates.map((dateStr) {
+      final parts = dateStr.split('-');
+      return SpendingTrendDataPointDto(
+        date: DateTime(
+          int.parse(parts[0]),
+          int.parse(parts[1]),
+          int.parse(parts[2]),
+        ),
+        amount: dailyTotals[dateStr]!,
+      );
+    }).toList();
+
+    // If no data points, generate empty trend for last 7 days
+    if (spendingTrendPoints.isEmpty) {
+      for (int i = 6; i >= 0; i--) {
+        spendingTrendPoints.add(
+          SpendingTrendDataPointDto(
+            date: now.subtract(Duration(days: i)),
+            amount: 0.0,
+          ),
+        );
+      }
+    }
+
+    // Calculate percentage change
+    double? percentageChange;
+    if (spendingTrendPoints.length >= 2) {
+      final firstHalf = spendingTrendPoints
+          .take(spendingTrendPoints.length ~/ 2)
+          .fold<double>(0.0, (sum, p) => sum + p.amount);
+      final secondHalf = spendingTrendPoints
+          .skip(spendingTrendPoints.length ~/ 2)
+          .fold<double>(0.0, (sum, p) => sum + p.amount);
+
+      if (firstHalf > 0) {
+        percentageChange = ((secondHalf - firstHalf) / firstHalf) * 100;
+      }
+    }
+
+    final spendingTrend = SpendingTrendDto(
+      points: spendingTrendPoints,
+      totalAmount: totalAmount,
+      percentageChange: percentageChange,
+      periodLabel: 'Last 30 days',
+    );
+
+    // Calculate booking mix
+    final bookingMix = BookingMixDto(
+      requested: requestedCount,
+      confirmed: confirmedCount,
+      completed: completedCount,
+      cancelled: cancelledCount,
+      total: requestedCount + confirmedCount + completedCount + cancelledCount,
+    );
+
+    // Get recent bookings (top 5 by creation date)
+    final sortedByCreation = List<Map<String, dynamic>>.from(bookings)
+      ..sort((a, b) {
+        final aDate = _tryParseDateTime(a['created_at']?.toString());
+        final bDate = _tryParseDateTime(b['created_at']?.toString());
+        if (aDate == null || bDate == null) return 0;
+        return bDate.compareTo(aDate);
+      });
+
+    final recentBookings = sortedByCreation.take(5).map((booking) {
+      return _mapBookingToRecent(booking);
+    }).toList();
 
     return {
       'total_spend': totalSpend,
@@ -186,6 +297,9 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       'cancelled_count': cancelledCount,
       'currency': currency ?? 'USD',
       'upcoming': upcoming.take(5).toList(),
+      'spending_trend': spendingTrend,
+      'booking_mix': bookingMix,
+      'recent_bookings': recentBookings,
     };
   }
 
@@ -368,6 +482,7 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
     final items = booking['items'] as List<dynamic>?;
     String serviceName = 'Service';
     String? serviceImage;
+    String serviceId = '';
 
     if (items != null && items.isNotEmpty) {
       final firstItem = items.first as Map<String, dynamic>;
@@ -375,14 +490,30 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
           firstItem['service_snapshot'] as Map<String, dynamic>?;
       if (serviceSnapshot != null) {
         serviceName = serviceSnapshot['title']?.toString() ?? 'Service';
-        // Get first media item if available
+        serviceId = serviceSnapshot['id']?.toString() ?? '';
+        // Get first media item if available - validate it's a renderable URL
         final media = serviceSnapshot['media'] as List<dynamic>?;
         if (media != null && media.isNotEmpty) {
-          serviceImage = (media.first as Map<String, dynamic>)['file']
-              ?.toString();
+          final firstMedia = media.first;
+          if (firstMedia is Map<String, dynamic>) {
+            final fileUrl = firstMedia['file']?.toString();
+            if (_isRenderableImagePath(fileUrl)) {
+              serviceImage = fileUrl;
+            }
+          } else if (firstMedia is String) {
+            // Handle case where media is just a string (UUID or URL)
+            if (_isRenderableImagePath(firstMedia)) {
+              serviceImage = firstMedia;
+            }
+          }
         }
       }
     }
+
+    // Fall back to placeholder if no valid image URL found
+    serviceImage ??= AppAssets.servicePlaceholder(
+      serviceId.isNotEmpty ? serviceId : 'booking',
+    );
 
     final provider = booking['provider'] as Map<String, dynamic>?;
 
@@ -552,5 +683,53 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       return raw;
     }
     return {};
+  }
+
+  /// Returns empty bookings data structure for error fallback
+  Map<String, dynamic> _getEmptyBookingsData() {
+    final now = DateTime.now();
+    final spendingTrendPoints = <SpendingTrendDataPointDto>[];
+    for (int i = 6; i >= 0; i--) {
+      spendingTrendPoints.add(
+        SpendingTrendDataPointDto(
+          date: now.subtract(Duration(days: i)),
+          amount: 0.0,
+        ),
+      );
+    }
+
+    return {
+      'total_spend': 0.0,
+      'upcoming_count': 0,
+      'completed_count': 0,
+      'cancelled_count': 0,
+      'currency': 'USD',
+      'upcoming': <Map<String, dynamic>>[],
+      'spending_trend': SpendingTrendDto(
+        points: spendingTrendPoints,
+        totalAmount: 0.0,
+        percentageChange: null,
+        periodLabel: 'Last 30 days',
+      ),
+      'booking_mix': BookingMixDto(
+        requested: 0,
+        confirmed: 0,
+        completed: 0,
+        cancelled: 0,
+        total: 0,
+      ),
+      'recent_bookings': <RecentBookingDto>[],
+    };
+  }
+
+  /// Validates that a string is a renderable image path (URL or asset path)
+  /// Rejects UUIDs and other non-renderable strings
+  bool _isRenderableImagePath(String? value) {
+    if (value == null || value.isEmpty) {
+      return false;
+    }
+    return value.startsWith('http://') ||
+        value.startsWith('https://') ||
+        value.startsWith('assets/');
   }
 }

@@ -20,6 +20,12 @@ abstract class ArtisanDetailRepository {
 
   /// Clear cache for a specific artisan
   Future<void> clearCache(String artisanId);
+
+  // Synchronous cache retrievals
+  Artisan? getCachedArtisanDetail(String artisanId);
+  List<ArtisanService> getCachedArtisanServices(String artisanId);
+  List<Review> getCachedArtisanReviews(String artisanId);
+  Map<String, String> getCachedArtisanAvailability(String artisanId);
 }
 
 /// Extended service information for an artisan

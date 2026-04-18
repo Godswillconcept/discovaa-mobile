@@ -131,9 +131,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
             // Get tokens from storage (already saved by AuthRemoteDataSource)
             final storage = ref.read(secureTokenStorageProvider);
-            final accessToken = storage.getAccessToken();
-            final sessionToken = storage.getSessionToken();
-            final refreshToken = storage.getRefreshToken();
+            final accessToken = await storage.getAccessToken();
+            final sessionToken = await storage.getSessionToken();
+            final refreshToken = await storage.getRefreshToken();
 
             // Log token summary for observability
             debugPrint(

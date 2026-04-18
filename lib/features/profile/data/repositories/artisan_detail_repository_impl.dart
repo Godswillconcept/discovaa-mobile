@@ -28,6 +28,15 @@ class ArtisanDetailRepositoryImpl implements ArtisanDetailRepository {
       'artisan.availability.$artisanId';
 
   @override
+  Artisan? getCachedArtisanDetail(String artisanId) => _readCachedArtisan(artisanId);
+  @override
+  List<ArtisanService> getCachedArtisanServices(String artisanId) => _readCachedServices(artisanId);
+  @override
+  List<Review> getCachedArtisanReviews(String artisanId) => _readCachedReviews(artisanId);
+  @override
+  Map<String, String> getCachedArtisanAvailability(String artisanId) => _readCachedAvailability(artisanId);
+
+  @override
   Future<Artisan> getArtisanDetail(String artisanId) async {
     try {
       if (!await _networkInfo.isConnected) {

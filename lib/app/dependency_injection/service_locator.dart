@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:injectable/injectable.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:discovaa/core/network/dio_client.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
@@ -23,16 +24,26 @@ Future<void> configureDependencies() async {
   // Auth depends on both DioClient and HiveService
   await _initAuth();
   // Profile repository with caching support
-  await initProfileDependencies();
+  await _initProfile();
 }
 
 Future<void> _initHive() async {
   final hiveService = HiveService.instance;
   await hiveService.init();
   sl.registerSingleton<HiveService>(hiveService);
-  // Register SecureTokenStorage which depends on HiveService
+
+  // Register FlutterSecureStorage with encryptedSharedPreferences for Android
+  const secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+  sl.registerSingleton<FlutterSecureStorage>(secureStorage);
+
+  // Register SecureTokenStorage which depends on HiveService and FlutterSecureStorage
   sl.registerSingleton<SecureTokenStorage>(
-    SecureTokenStorage(hiveService: hiveService),
+    SecureTokenStorage(
+      hiveService: hiveService,
+      secureStorage: secureStorage,
+    ),
   );
 }
 
@@ -79,13 +90,14 @@ Future<void> _initAuth() async {
   );
 }
 
-Future<void> initProfileDependencies() async {
+Future<void> _initProfile() async {
   // Register ProfileRepository with caching dependencies
   sl.registerLazySingleton<ProfileRepository>(
     () => ProfileRepositoryImpl(
       dioClient: sl<DioClient>(),
       hiveService: sl<HiveService>(),
       networkInfo: sl<NetworkInfo>(),
+      tokenStorage: sl<SecureTokenStorage>(),
     ),
   );
 }

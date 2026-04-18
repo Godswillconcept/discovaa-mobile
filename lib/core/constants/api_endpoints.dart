@@ -78,6 +78,12 @@ class ApiEndpoints {
   static const String servicesFeatured = '/api/services/featured/';
   static const String serviceMedia = '/api/service-media/';
 
+  // Provider Management (Own Services)
+  static const String mgtServices = '/mgt/api/services/';
+  static String mgtServiceDetail(String id) => '/mgt/api/services/$id/';
+  static const String mgtServicesFeatured = '/mgt/api/services/featured/';
+  static const String mgtServiceMedia = '/mgt/api/service-media/';
+
   static const String bookings = '/api/bookings/';
   static const String bookingItems = '/api/booking-items/';
 

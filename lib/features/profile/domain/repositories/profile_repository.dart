@@ -33,11 +33,12 @@ abstract class ProfileRepository {
   Future<UserProfile> updateAvailability(Availability availability);
   Future<UserProfile> saveLocation(ServiceLocation serviceLocation);
   Future<UserProfile> deleteLocation(String locationId);
-  Future<UserProfile> saveCertification(Certification certification);
+  Future<UserProfile> saveCertification(Certification certification, {String? documentPath});
   Future<UserProfile> deleteCertification(String certificationId);
   Future<UserProfile> updateBusinessRegistration(
-    BusinessRegistration registration,
-  );
+    BusinessRegistration registration, {
+    String? documentPath,
+  });
   Future<UserProfile> updatePayoutAccount(PayoutAccount payoutAccount);
   Future<String?> startPayoutOnboarding({
     required String currency,

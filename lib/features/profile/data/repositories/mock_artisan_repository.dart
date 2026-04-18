@@ -138,6 +138,16 @@ class MockArtisanRepository implements ArtisanRepository {
   }
 
   @override
+  List<Artisan> getCachedArtisans({
+    String? search,
+    String? category,
+    String? ordering,
+  }) {
+    // Basic in-memory filtering for cache
+    return _artisans;
+  }
+
+  @override
   Future<List<Artisan>> searchArtisans({
     String? search,
     String? category,

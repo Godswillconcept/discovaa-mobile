@@ -41,18 +41,17 @@ class CategoriesNotifier extends StateNotifier<List<ArtisanCategory>> {
 
   final DioClient _dio;
   final HiveService _hiveService;
+  // ignore: unused_field
   final NetworkInfo _networkInfo;
   static const _categoriesCacheKey = 'artisans.cache.categories.ui';
 
   Future<void> _load() async {
+    final cached = _readCachedCategories();
+    if (cached.isNotEmpty) {
+      state = cached;
+    }
+    
     try {
-      if (!await _networkInfo.isConnected) {
-        final cached = _readCachedCategories();
-        if (cached.isNotEmpty) {
-          state = cached;
-          return;
-        }
-      }
       final response = await _dio.get(
         ApiEndpoints.serviceCategories,
         options: Options(headers: {'X-Skip-Auth': 'true'}),
@@ -73,10 +72,14 @@ class CategoriesNotifier extends StateNotifier<List<ArtisanCategory>> {
         _categoriesCacheKey,
         items.map((item) => {'name': item.name, 'image': item.image}).toList(),
       );
-      state = items;
+      if (mounted) {
+        state = items;
+      }
     } catch (_) {
-      final cached = _readCachedCategories();
-      state = cached;
+      if (cached.isEmpty && mounted) {
+        final fallbackCached = _readCachedCategories();
+        state = fallbackCached;
+      }
     }
   }
 
@@ -229,33 +232,49 @@ final bookingProvider = StateNotifierProvider<BookingNotifier, BookingState>((
   return BookingNotifier();
 });
 
-final filteredArtisansProvider = FutureProvider<List<Artisan>>((ref) async {
-  final filter = ref.watch(artisanFilterProvider);
-  final repo = ref.watch(artisanRepositoryProvider);
+class FilteredArtisansNotifier extends AsyncNotifier<List<Artisan>> {
+  @override
+  Future<List<Artisan>> build() async {
+    final filter = ref.watch(artisanFilterProvider);
+    final repo = ref.watch(artisanRepositoryProvider);
 
-  String? ordering;
-  switch (filter.sortBy) {
-    case ArtisanSort.ratings:
-      ordering = '-avg_rating';
-      break;
-    case ArtisanSort.popularity:
-      ordering = '-hires_count';
-      break;
-    case ArtisanSort.proximity:
-      // Requires geo context; default to none for now
-      ordering = null;
-      break;
-    case ArtisanSort.categories:
-      ordering = null;
-      break;
+    String? ordering;
+    switch (filter.sortBy) {
+      case ArtisanSort.ratings:
+        ordering = '-avg_rating';
+        break;
+      case ArtisanSort.popularity:
+        ordering = '-hires_count';
+        break;
+      case ArtisanSort.proximity:
+        // Requires geo context; default to none for now
+        ordering = null;
+        break;
+      case ArtisanSort.categories:
+        ordering = null;
+        break;
+    }
+
+    final cached = repo.getCachedArtisans(
+      search: filter.searchQuery.isNotEmpty ? filter.searchQuery : null,
+      category: filter.selectedCategory,
+      ordering: ordering,
+    );
+    if (cached.isNotEmpty) {
+      state = AsyncData(cached);
+    }
+
+    final results = await repo.searchArtisans(
+      search: filter.searchQuery.isNotEmpty ? filter.searchQuery : null,
+      category: filter.selectedCategory,
+      ordering: ordering,
+    );
+    return results;
   }
+}
 
-  final results = await repo.searchArtisans(
-    search: filter.searchQuery.isNotEmpty ? filter.searchQuery : null,
-    category: filter.selectedCategory,
-    ordering: ordering,
-  );
-  return results;
+final filteredArtisansProvider = AsyncNotifierProvider<FilteredArtisansNotifier, List<Artisan>>(() {
+  return FilteredArtisansNotifier();
 });
 
 class _CategoryLite {

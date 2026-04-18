@@ -154,12 +154,12 @@ String _formatAmount(String? amount, String? currency) {
 BookingStatus _bookingStatus(String raw) {
   switch (raw.toUpperCase()) {
     case 'CONFIRMED':
-      return BookingStatus.upcoming;
+      return BookingStatus.confirmed;
     case 'COMPLETED':
       return BookingStatus.completed;
     case 'CANCELLED':
       return BookingStatus.cancelled;
     default:
-      return BookingStatus.pending;
+      return BookingStatus.requested;
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:discovaa/core/errors/exceptions.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import '../../domain/entities/dashboard_entity.dart';
@@ -19,6 +20,21 @@ class DashboardRepositoryImpl implements DashboardRepository {
   }) : _remoteDataSource = remoteDataSource,
        _hiveService = hiveService,
        _networkInfo = networkInfo;
+
+  @override
+  DashboardEntity? getCachedDashboard(String role, {DashboardFilterEntity? filter}) {
+    final filterDto = filter != null
+        ? DashboardFilterDto(
+            range: filter.range,
+            from: filter.from,
+            to: filter.to,
+            role: filter.role,
+          )
+        : null;
+    final cached = _readCachedDashboard(_cacheKey(role, filterDto));
+    if (cached != null) return _mapDtoToEntity(cached);
+    return null;
+  }
 
   @override
   Future<DashboardEntity> getProviderDashboard({
@@ -84,19 +100,33 @@ class DashboardRepositoryImpl implements DashboardRepository {
     required String cacheKey,
     required Future<DashboardDto> Function() loader,
   }) async {
+    // First, check if we have cached data available
+    final cached = _readCachedDashboard(cacheKey);
+    final hasCache = cached != null;
+
     try {
       if (!await _networkInfo.isConnected) {
-        final cached = _readCachedDashboard(cacheKey);
-        if (cached != null) {
+        if (hasCache) {
           return _mapDtoToEntity(cached);
         }
+        throw const NetworkException(
+          message: 'No internet connection and no cached data available',
+          code: 'NO_INTERNET',
+        );
       }
+
+      // Fetch fresh data - let RetryInterceptor handle timeouts and retries
+      // The RetryInterceptor will automatically retry on timeout (up to 3 times)
+      // with exponential backoff, ensuring transient timeouts don't fail the request
       final dto = await loader();
+
+      // Successfully got fresh data - cache it
       await _hiveService.setMap(cacheKey, dto.toJson());
       return _mapDtoToEntity(dto);
-    } catch (_) {
-      final cached = _readCachedDashboard(cacheKey);
-      if (cached != null) {
+    } catch (e) {
+      // On any error (after all retries are exhausted), return cached data if available
+      // This ensures the UI always has something to display
+      if (hasCache) {
         return _mapDtoToEntity(cached);
       }
       rethrow;

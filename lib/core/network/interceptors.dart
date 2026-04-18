@@ -112,11 +112,11 @@ class AuthInterceptor extends Interceptor {
         skipAuthHeader == 'true';
     if (!skipAuth) {
       // Add auth token if available (OpenAPI uses access_token)
-      var token = _tokenStorage.getAccessToken();
+      var token = await _tokenStorage.getAccessToken();
       var tokenType = 'access_token';
       // Fallback to session_token if access_token is not available
       if (token == null || token.isEmpty) {
-        token = _tokenStorage.getSessionToken();
+        token = await _tokenStorage.getSessionToken();
         tokenType = 'session_token';
       }
       debugPrint(
@@ -242,7 +242,7 @@ class AuthInterceptor extends Interceptor {
 
   Future<_TokenRefreshResult> _refreshToken() async {
     try {
-      final refreshToken = _tokenStorage.getRefreshToken();
+      final refreshToken = await _tokenStorage.getRefreshToken();
       final hasRefreshToken = refreshToken != null && refreshToken.isNotEmpty;
       debugPrint(
         '[AuthInterceptor][auth] Refresh token present for refresh: $hasRefreshToken',
@@ -264,9 +264,14 @@ class AuthInterceptor extends Interceptor {
       // Create a dedicated Dio instance with proper configuration
       final dio = Dio(
         BaseOptions(
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
-          headers: {'Content-Type': 'application/json'},
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-App-Version': AppConstants.appVersion,
+            'X-Platform': AppConstants.platform,
+          },
         ),
       );
 
@@ -279,21 +284,26 @@ class AuthInterceptor extends Interceptor {
         '[AuthInterceptor] Token refresh response status: ${response.statusCode}',
       );
 
-      if (response.statusCode == 200) {
-        // Handle wrapped API response format: {success, data, meta, error}
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = response.data as Map<String, dynamic>?;
-        final success = responseData?['success'] == true;
+        if (responseData == null) return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
 
-        if (!success) {
-          debugPrint(
-            '[AuthInterceptor] Token refresh failed: success=false in response',
-          );
-          return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
+        // 1. Try to parse from envelope: { success, data: { access_token, refresh_token } }
+        final success = responseData['success'] == true;
+        final data = responseData['data'] as Map<String, dynamic>?;
+
+        String? newToken;
+        String? newRefreshToken;
+
+        if (success && data != null) {
+          newToken = data['access_token']?.toString();
+          newRefreshToken = data['refresh_token']?.toString();
         }
-
-        final data = responseData?['data'] as Map<String, dynamic>?;
-        final newToken = data?['access_token'] as String?;
-        final newRefreshToken = data?['refresh_token'] as String?;
+        // 2. Fallback: Check for flat response: { access_token, refresh_token }
+        else {
+          newToken = responseData['access_token']?.toString();
+          newRefreshToken = responseData['refresh_token']?.toString();
+        }
 
         if (newToken != null && newToken.isNotEmpty) {
           await _tokenStorage.saveTokens(
@@ -309,7 +319,7 @@ class AuthInterceptor extends Interceptor {
           );
         } else {
           debugPrint(
-            '[AuthInterceptor] Token refresh failed: no access_token in response data',
+            '[AuthInterceptor] Token refresh failed: no access_token found in response (flat or enveloped)',
           );
           return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
         }
@@ -327,13 +337,12 @@ class AuthInterceptor extends Interceptor {
       debugPrint('[AuthInterceptor] Response data: ${e.response?.data}');
       debugPrint('[AuthInterceptor] Error message: ${e.message}');
       final statusCode = e.response?.statusCode;
-      final responseText = '${e.response?.data}';
-      if (statusCode == 400 && responseText.contains('refresh_token')) {
-        return const _TokenRefreshResult(
-          status: _TokenRefreshStatus.invalidRequest,
+      // Any 4xx error from the token refresh endpoint means the refresh token
+      // is invalid, expired, or malformed. All require re-authentication.
+      if (statusCode != null && statusCode >= 400 && statusCode < 500) {
+        debugPrint(
+          '[AuthInterceptor] Token refresh returned $statusCode, treating as unauthorized',
         );
-      }
-      if (statusCode == 401 || statusCode == 403) {
         return const _TokenRefreshResult(
           status: _TokenRefreshStatus.unauthorized,
         );
@@ -371,7 +380,6 @@ class AuthInterceptor extends Interceptor {
 enum _TokenRefreshStatus {
   success,
   missingRefreshToken,
-  invalidRequest,
   unauthorized,
   transientFailure,
   failed,

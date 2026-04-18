@@ -1,16 +1,16 @@
 import 'package:discovaa/features/profile/domain/entities/business_registration.dart';
-import 'package:discovaa/features/profile/domain/entities/location.dart'
-    as location;
 import 'package:discovaa/features/profile/domain/entities/user_profile.dart';
 import 'package:discovaa/features/profile/domain/entities/profile_enums.dart';
-import 'package:discovaa/features/profile/domain/entities/location.dart';
 import 'package:discovaa/features/profile/domain/entities/certification.dart';
+import 'package:discovaa/features/profile/domain/entities/location.dart';
 import 'package:discovaa/features/profile/presentation/providers/profile_connectivity_provider.dart';
 import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:discovaa/features/profile/presentation/widgets/shared/profile_field_row.dart';
 import 'package:discovaa/features/profile/presentation/widgets/shared/status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 
 /// Provider Profile Tab - Provider-specific information
 class ProviderProfileTab extends ConsumerWidget {
@@ -62,7 +62,7 @@ class ProviderProfileTab extends ConsumerWidget {
               ),
             ],
           ),
-
+          const SizedBox(height: 24),
           // Locations Section
           ProfileSectionCard(
             title: 'Locations',
@@ -83,6 +83,7 @@ class ProviderProfileTab extends ConsumerWidget {
                       )
                       .toList(),
           ),
+          const SizedBox(height: 24),
 
           // Business Registration Section
           ProfileSectionCard(
@@ -104,12 +105,32 @@ class ProviderProfileTab extends ConsumerWidget {
               _buildDocumentUploadRow(
                 label: 'Registration Document',
                 hasDocument: profile.businessRegistration?.hasDocument ?? false,
-                onUpload: () =>
-                    _showUploadDialog(context, 'Registration Document'),
+                onUpload: () async {
+                  final path = await _showUploadDialog(
+                    context,
+                    'Registration Document',
+                  );
+                  if (path != null) {
+                    final currentReg =
+                        profile.businessRegistration ??
+                        BusinessRegistration(
+                          businessName: profile.displayName ?? '',
+                          registrationNumber: '',
+                          businessType: '',
+                          registrationDate: DateTime.now(),
+                        );
+                    await ref
+                        .read(userProfileProvider.notifier)
+                        .updateBusinessRegistration(
+                          currentReg,
+                          documentPath: path,
+                        );
+                  }
+                },
               ),
             ],
           ),
-
+          const SizedBox(height: 24),
           // Certifications Section
           ProfileSectionCard(
             title: 'Certifications',
@@ -329,16 +350,20 @@ class ProviderProfileTab extends ConsumerWidget {
               icon: const Icon(Icons.visibility, size: 20),
               color: const Color(0xFF6B7280),
             ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE5E7EB),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              hasDocument ? Icons.refresh : Icons.upload,
-              size: 20,
-              color: const Color(0xFF6B7280),
+          InkWell(
+            onTap: onUpload,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E7EB),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                hasDocument ? Icons.refresh : Icons.upload,
+                size: 20,
+                color: const Color(0xFF6B7280),
+              ),
             ),
           ),
         ],
@@ -662,207 +687,212 @@ class ProviderProfileTab extends ConsumerWidget {
     );
     bool isPrimary = existingLocation?.isPrimary ?? false;
 
-    final connectivityState = ref.read(profileConnectivityProvider);
-    final isConnected = connectivityState == ProfileConnectivityState.connected;
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24),
-                topRight: Radius.circular(24),
-              ),
+        builder: (context, setState) {
+          final isConnected =
+              ref.watch(profileConnectivityProvider) ==
+              ProfileConnectivityState.connected;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-            padding: const EdgeInsets.all(24),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isEditing ? 'Edit Location' : 'Add Location',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Enter your service location details',
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 24),
-                  TextFormField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Location Name',
-                      hintText: 'e.g., Main Office',
-                      prefixIcon: const Icon(Icons.location_on_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              padding: const EdgeInsets.all(24),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEditing ? 'Edit Location' : 'Add Location',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: addressController,
-                    decoration: InputDecoration(
-                      labelText: 'Address',
-                      hintText: 'Street address',
-                      prefixIcon: const Icon(Icons.home_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Enter your service location details',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: cityController,
-                    decoration: InputDecoration(
-                      labelText: 'City',
-                      hintText: 'City name',
-                      prefixIcon: const Icon(Icons.location_city_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: radiusController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Service Radius (km)',
-                      hintText: '50',
-                      prefixIcon: const Icon(Icons.radar_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SwitchListTile(
-                    title: const Text('Primary Location'),
-                    subtitle: const Text('Set as your main service location'),
-                    value: isPrimary,
-                    onChanged: (value) => setState(() => isPrimary = value),
-                    activeThumbColor: const Color(0xFF111827),
-                  ),
-                  if (!isConnected) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.wifi_off,
-                            size: 16,
-                            color: Colors.orange.shade700,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'No internet connection. Changes will be saved locally.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.orange.shade700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        final name = nameController.text.trim();
-                        final address = addressController.text.trim();
-                        final city = cityController.text.trim();
-                        final radius =
-                            int.tryParse(radiusController.text.trim()) ?? 50;
-
-                        if (name.isEmpty || address.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Please enter name and address'),
-                            ),
-                          );
-                          return;
-                        }
-
-                        final profile = ref.read(userProfileProvider).profile;
-                        if (profile == null) return;
-
-                        final newLocation = location.ServiceLocation(
-                          id:
-                              existingLocation?.id ??
-                              'loc_${DateTime.now().millisecondsSinceEpoch}',
-                          name: name,
-                          address: address,
-                          city: city,
-                          country: profile.country,
-                          isPrimary: isPrimary,
-                          serviceRadius: radius.toDouble(),
-                        );
-
-                        final success = await ref
-                            .read(userProfileProvider.notifier)
-                            .saveLocation(newLocation);
-
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  isEditing
-                                      ? 'Location updated'
-                                      : 'Location added',
-                                ),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Failed to save location'),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF111827),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Location Name',
+                        hintText: 'e.g., Main Office',
+                        prefixIcon: const Icon(Icons.location_on_outlined),
+                        border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: Text(isEditing ? 'Update' : 'Add'),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: addressController,
+                      decoration: InputDecoration(
+                        labelText: 'Address',
+                        hintText: 'Street address',
+                        prefixIcon: const Icon(Icons.home_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: cityController,
+                      decoration: InputDecoration(
+                        labelText: 'City',
+                        hintText: 'City name',
+                        prefixIcon: const Icon(Icons.location_city_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: radiusController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Service Radius (km)',
+                        hintText: '50',
+                        prefixIcon: const Icon(Icons.radar_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      title: const Text('Primary Location'),
+                      subtitle: const Text('Set as your main service location'),
+                      value: isPrimary,
+                      onChanged: (value) => setState(() => isPrimary = value),
+                      activeThumbColor: const Color(0xFF111827),
+                    ),
+                    if (!isConnected) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.wifi_off,
+                              size: 16,
+                              color: Colors.orange.shade700,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'No internet connection. Changes will be saved locally.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final name = nameController.text.trim();
+                          final address = addressController.text.trim();
+                          final city = cityController.text.trim();
+                          final radius =
+                              int.tryParse(radiusController.text.trim()) ?? 50;
+
+                          if (name.isEmpty || address.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter name and address'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final profile = ref.read(userProfileProvider).profile;
+                          if (profile == null) return;
+
+                          final newLocation = ServiceLocation(
+                            id:
+                                existingLocation?.id ??
+                                'loc_${DateTime.now().millisecondsSinceEpoch}',
+                            name: name,
+                            address: address,
+                            city: city,
+                            country: profile.country,
+                            isPrimary: isPrimary,
+                            serviceRadius: radius.toDouble(),
+                          );
+
+                          final success = await ref
+                              .read(userProfileProvider.notifier)
+                              .saveLocation(newLocation);
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            if (success) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isEditing
+                                        ? 'Location updated'
+                                        : 'Location added',
+                                  ),
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Failed to save location'),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF111827),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(isEditing ? 'Update' : 'Add'),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -894,209 +924,299 @@ class ProviderProfileTab extends ConsumerWidget {
     final yearController = TextEditingController(
       text: existingCert?.issueDate?.year.toString() ?? '',
     );
-
-    final connectivityState = ref.read(profileConnectivityProvider);
-    final isConnected = connectivityState == ProfileConnectivityState.connected;
+    String? selectedDocumentPath;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          final isConnected =
+              ref.watch(profileConnectivityProvider) ==
+              ProfileConnectivityState.connected;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isEditing ? 'Edit Certification' : 'Add Certification',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Enter certification details',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Certification Title',
-                    hintText: 'e.g., Master Plumber',
-                    prefixIcon: const Icon(Icons.school_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(24),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEditing ? 'Edit Certification' : 'Add Certification',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: issuerController,
-                  decoration: InputDecoration(
-                    labelText: 'Issuing Organization',
-                    hintText: 'e.g., Plumbing Association',
-                    prefixIcon: const Icon(Icons.business_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Enter certification details',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: yearController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Year Obtained',
-                    hintText: '2020',
-                    prefixIcon: const Icon(Icons.calendar_today_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                if (!isConnected) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.wifi_off,
-                          size: 16,
-                          color: Colors.orange.shade700,
+                    const SizedBox(height: 24),
+                    TextFormField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: 'Certification Title',
+                        hintText: 'e.g., Master Plumber',
+                        prefixIcon: const Icon(Icons.school_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'No internet connection. Changes will be saved locally.',
-                            style: TextStyle(
-                              fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: issuerController,
+                      decoration: InputDecoration(
+                        labelText: 'Issuing Organization',
+                        hintText: 'e.g., Plumbing Association',
+                        prefixIcon: const Icon(Icons.business_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: yearController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Year Obtained',
+                        hintText: '2020',
+                        prefixIcon: const Icon(Icons.calendar_today_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    const Text(
+                      'Upload Document',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF374151),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () async {
+                        final path = await _showUploadDialog(
+                          context,
+                          'Certification Document',
+                        );
+                        if (path != null) {
+                          setState(() {
+                            selectedDocumentPath = path;
+                          });
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              selectedDocumentPath != null ||
+                                      (existingCert?.documentUrl != null &&
+                                          existingCert!.documentUrl!.isNotEmpty)
+                                  ? Icons.check_circle
+                                  : Icons.upload_file,
+                              color:
+                                  selectedDocumentPath != null ||
+                                      (existingCert?.documentUrl != null &&
+                                          existingCert!.documentUrl!.isNotEmpty)
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFF6B7280),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                selectedDocumentPath != null
+                                    ? selectedDocumentPath!.split('/').last
+                                    : (existingCert?.documentUrl != null &&
+                                          existingCert!.documentUrl!.isNotEmpty)
+                                    ? 'Document uploaded'
+                                    : 'Upload certificate (PDF, JPG)',
+                                style: TextStyle(
+                                  color:
+                                      selectedDocumentPath != null ||
+                                          (existingCert?.documentUrl != null &&
+                                              existingCert!
+                                                  .documentUrl!
+                                                  .isNotEmpty)
+                                      ? const Color(0xFF111827)
+                                      : const Color(0xFF6B7280),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    if (!isConnected) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.wifi_off,
+                              size: 16,
                               color: Colors.orange.shade700,
                             ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'No internet connection. Changes will be saved locally.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.orange.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        if (isEditing)
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () async {
+                                final success = await ref
+                                    .read(userProfileProvider.notifier)
+                                    .deleteCertification(existingCert.id);
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Certification deleted'),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                side: const BorderSide(color: Colors.red),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text('Delete'),
+                            ),
+                          ),
+                        if (isEditing) const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final title = nameController.text.trim();
+                              if (title.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Please enter a certification title',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              final year = int.tryParse(
+                                yearController.text.trim(),
+                              );
+                              final cert = Certification(
+                                id:
+                                    existingCert?.id ??
+                                    'cert_${DateTime.now().millisecondsSinceEpoch}',
+                                name: title,
+                                issuingOrganization: issuerController.text
+                                    .trim(),
+                                issueDate: year != null ? DateTime(year) : null,
+                                verificationStatus:
+                                    existingCert?.verificationStatus ??
+                                    VerificationStatus.unverified,
+                              );
+
+                              final success = await ref
+                                  .read(userProfileProvider.notifier)
+                                  .saveCertification(
+                                    cert,
+                                    documentPath: selectedDocumentPath,
+                                  );
+
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                if (success) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        isEditing
+                                            ? 'Certification updated'
+                                            : 'Certification added',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF111827),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(isEditing ? 'Update' : 'Add'),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    if (isEditing)
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            final success = await ref
-                                .read(userProfileProvider.notifier)
-                                .deleteCertification(existingCert.id);
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                              if (success) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Certification deleted'),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: const Text('Delete'),
-                        ),
-                      ),
-                    if (isEditing) const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final title = nameController.text.trim();
-                          if (title.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Please enter a certification title',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final year = int.tryParse(yearController.text.trim());
-                          final cert = Certification(
-                            id:
-                                existingCert?.id ??
-                                'cert_${DateTime.now().millisecondsSinceEpoch}',
-                            name: title,
-                            issuingOrganization: issuerController.text.trim(),
-                            issueDate: year != null ? DateTime(year) : null,
-                            verificationStatus:
-                                existingCert?.verificationStatus ??
-                                VerificationStatus.unverified,
-                          );
-
-                          final success = await ref
-                              .read(userProfileProvider.notifier)
-                              .saveCertification(cert);
-
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            if (success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    isEditing
-                                        ? 'Certification updated'
-                                        : 'Certification added',
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF111827),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(isEditing ? 'Update' : 'Add'),
-                      ),
-                    ),
+                    const SizedBox(height: 12),
                   ],
                 ),
-                const SizedBox(height: 12),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -1194,8 +1314,8 @@ class ProviderProfileTab extends ConsumerWidget {
     );
   }
 
-  void _showUploadDialog(BuildContext context, String label) {
-    showModalBottomSheet(
+  Future<String?> _showUploadDialog(BuildContext context, String label) async {
+    return showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
@@ -1224,25 +1344,40 @@ class ProviderProfileTab extends ConsumerWidget {
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
               title: const Text('Camera'),
-              onTap: () {
-                Navigator.pop(context);
-                // NOTE: Camera capture to be implemented with image_picker package
+              onTap: () async {
+                final picker = ImagePicker();
+                final pickedFile = await picker.pickImage(
+                  source: ImageSource.camera,
+                );
+                if (context.mounted) {
+                  Navigator.pop(context, pickedFile?.path);
+                }
               },
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                // NOTE: Gallery picker to be implemented with image_picker package
+              onTap: () async {
+                final picker = ImagePicker();
+                final pickedFile = await picker.pickImage(
+                  source: ImageSource.gallery,
+                );
+                if (context.mounted) {
+                  Navigator.pop(context, pickedFile?.path);
+                }
               },
             ),
             ListTile(
               leading: const Icon(Icons.folder_open_outlined),
               title: const Text('Files'),
-              onTap: () {
-                Navigator.pop(context);
-                // NOTE: File picker to be implemented with file_picker package
+              onTap: () async {
+                final result = await FilePicker.platform.pickFiles(
+                  type: FileType.custom,
+                  allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+                );
+                if (context.mounted) {
+                  Navigator.pop(context, result?.files.single.path);
+                }
               },
             ),
             const SizedBox(height: 12),
@@ -1442,6 +1577,76 @@ class _NotProviderView extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class ProfileSectionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Widget? action;
+  final List<Widget> children;
+
+  const ProfileSectionCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    this.action,
+    required this.children,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF111827),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (action != null) action!,
+            ],
+          ),
+          const SizedBox(height: 24),
+          ...children,
+        ],
       ),
     );
   }

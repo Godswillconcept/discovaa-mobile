@@ -1,5 +1,6 @@
 import 'dart:convert';
-
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/features/authentication/data/models/user_model.dart';
 import 'package:discovaa/features/authentication/domain/entities/user_entity.dart';
@@ -12,9 +13,11 @@ import 'package:discovaa/features/authentication/domain/entities/user_entity.dar
 /// - User data
 /// - Authentication status
 ///
-/// All data is stored using Hive for persistence across app restarts.
+/// Sensitive tokens are stored using FlutterSecureStorage, while
+/// non-sensitive data is stored using Hive.
 class SecureTokenStorage {
   final HiveService _hiveService;
+  final FlutterSecureStorage _secureStorage;
 
   // Storage keys
   static const String _accessTokenKey = 'access_token';
@@ -24,8 +27,11 @@ class SecureTokenStorage {
   static const String _isAuthenticatedKey = 'is_authenticated';
   static const String _hasCompletedOnboardingKey = 'has_completed_onboarding';
 
-  SecureTokenStorage({required HiveService hiveService})
-    : _hiveService = hiveService;
+  SecureTokenStorage({
+    required HiveService hiveService,
+    required FlutterSecureStorage secureStorage,
+  }) : _hiveService = hiveService,
+       _secureStorage = secureStorage;
 
   // ==================== TOKEN MANAGEMENT ====================
 
@@ -39,51 +45,62 @@ class SecureTokenStorage {
     String? sessionToken,
     String? refreshToken,
   }) async {
-    if (accessToken != null && accessToken.isNotEmpty) {
-      await _hiveService.setString(_accessTokenKey, accessToken);
-    }
-    if (sessionToken != null && sessionToken.isNotEmpty) {
-      await _hiveService.setString(_sessionTokenKey, sessionToken);
-    }
-    if (refreshToken != null && refreshToken.isNotEmpty) {
-      await _hiveService.setString(_refreshTokenKey, refreshToken);
+    try {
+      if (accessToken != null && accessToken.isNotEmpty) {
+        debugPrint('[SecureTokenStorage] Writing access_token...');
+        await _secureStorage.write(key: _accessTokenKey, value: accessToken);
+        debugPrint('[SecureTokenStorage] access_token written.');
+      }
+      if (sessionToken != null && sessionToken.isNotEmpty) {
+        debugPrint('[SecureTokenStorage] Writing session_token...');
+        await _secureStorage.write(key: _sessionTokenKey, value: sessionToken);
+        debugPrint('[SecureTokenStorage] session_token written.');
+      }
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        debugPrint('[SecureTokenStorage] Writing refresh_token...');
+        await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
+        debugPrint('[SecureTokenStorage] refresh_token written.');
+      }
+    } catch (e) {
+      debugPrint('[SecureTokenStorage] ERROR during saveTokens: $e');
+      rethrow;
     }
   }
 
   /// Retrieve the stored access token.
   ///
   /// Returns null if no token is stored.
-  String? getAccessToken() {
-    return _hiveService.getString(_accessTokenKey);
+  Future<String?> getAccessToken() async {
+    return await _secureStorage.read(key: _accessTokenKey);
   }
 
   /// Retrieve the stored session token.
   ///
   /// Returns null if no token is stored.
-  String? getSessionToken() {
-    return _hiveService.getString(_sessionTokenKey);
+  Future<String?> getSessionToken() async {
+    return await _secureStorage.read(key: _sessionTokenKey);
   }
 
   /// Retrieve the stored refresh token.
   ///
   /// Returns null if no token is stored.
-  String? getRefreshToken() {
-    return _hiveService.getString(_refreshTokenKey);
+  Future<String?> getRefreshToken() async {
+    return await _secureStorage.read(key: _refreshTokenKey);
   }
 
   /// Check if valid tokens exist in storage.
   ///
   /// Returns true if access token exists and is not empty.
-  bool hasValidTokens() {
-    final accessToken = getAccessToken();
+  Future<bool> hasValidTokens() async {
+    final accessToken = await getAccessToken();
     return accessToken != null && accessToken.isNotEmpty;
   }
 
   /// Clear all stored tokens.
   Future<void> clearTokens() async {
-    await _hiveService.remove(_accessTokenKey);
-    await _hiveService.remove(_sessionTokenKey);
-    await _hiveService.remove(_refreshTokenKey);
+    await _secureStorage.delete(key: _accessTokenKey);
+    await _secureStorage.delete(key: _sessionTokenKey);
+    await _secureStorage.delete(key: _refreshTokenKey);
   }
 
   // ==================== USER DATA MANAGEMENT ====================

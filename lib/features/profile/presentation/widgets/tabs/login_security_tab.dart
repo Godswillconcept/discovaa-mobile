@@ -904,15 +904,24 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
     setState(() => _isLoading = true);
 
     try {
-      // NOTE: Logout from all devices API pending backend implementation
-      // Simulating API call with delay for UX feedback
-      await Future.delayed(const Duration(seconds: 1));
+      final success = await ref
+          .read(userProfileProvider.notifier)
+          .logoutAllDevices();
 
-      if (mounted) {
+      if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Logged out from all devices'),
             backgroundColor: Color(0xFF10B981),
+          ),
+        );
+        context.go(RouteNames.login);
+      } else if (mounted) {
+        final error = ref.read(userProfileProvider).errorMessage;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error ?? 'Failed to log out from all devices'),
+            backgroundColor: const Color(0xFFEF4444),
           ),
         );
       }
@@ -920,13 +929,15 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to log out from all devices'),
+            content: Text('An unexpected error occurred'),
             backgroundColor: Color(0xFFEF4444),
           ),
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 }

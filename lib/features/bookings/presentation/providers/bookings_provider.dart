@@ -71,6 +71,34 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
 
   Future<void> loadBookings() async {
     if (state.bookings.isNotEmpty) return;
+    
+    final cached = _repository.getCachedBookings();
+    if (cached.isNotEmpty) {
+      state = state.copyWith(bookings: cached, status: BookingsLoadStatus.success);
+    } else {
+      state = state.copyWith(status: BookingsLoadStatus.loading);
+    }
+    
+    try {
+      final data = await _repository.listBookings();
+      if (mounted) {
+        state = state.copyWith(
+          bookings: data,
+          status: BookingsLoadStatus.success,
+        );
+      }
+    } catch (e) {
+      if (mounted && cached.isEmpty) {
+        state = state.copyWith(
+          status: BookingsLoadStatus.failure,
+          errorMessage: 'Failed to load bookings. Please try again.',
+        );
+      }
+    }
+  }
+
+  /// Force reload bookings from server (ignores cache check)
+  Future<void> refreshBookings() async {
     state = state.copyWith(status: BookingsLoadStatus.loading);
     try {
       final data = await _repository.listBookings();
@@ -81,7 +109,7 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     } catch (e) {
       state = state.copyWith(
         status: BookingsLoadStatus.failure,
-        errorMessage: 'Failed to load bookings. Please try again.',
+        errorMessage: 'Failed to refresh bookings. Please try again.',
       );
     }
   }
@@ -205,7 +233,7 @@ final bookingsByStatusProvider =
 /// Count of active (pending + upcoming + ongoing) bookings — useful for badges
 final activeBookingCountProvider = Provider<int>((ref) {
   final state = ref.watch(bookingsProvider);
-  return state.countByStatus(BookingStatus.pending) +
-      state.countByStatus(BookingStatus.upcoming) +
+  return state.countByStatus(BookingStatus.requested) +
+      state.countByStatus(BookingStatus.confirmed) +
       state.countByStatus(BookingStatus.ongoing);
 });

@@ -3,6 +3,7 @@ import 'package:discovaa/features/services/data/models/service_model.dart';
 
 abstract class ServicesRepository {
   Future<List<ServiceModel>> listServices();
+  Future<List<ServiceModel>> listOwnServices();
   Future<List<String>> listCategoryNames();
   Future<ServiceModel> createService(ServiceModel service);
   Future<ServiceModel> updateService(ServiceModel service);
