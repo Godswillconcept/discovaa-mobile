@@ -458,13 +458,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> logout() async {
     try {
-      // Call logout API if available
+      // Call logout API with a short timeout.
+      // We don't want to wait 30s for a logout to fail if the server is down.
       try {
-        await _dioClient.delete(ApiEndpoints.authLogout);
+        await _dioClient.delete(
+          ApiEndpoints.authLogout,
+          options: Options(
+            sendTimeout: const Duration(seconds: 5),
+            receiveTimeout: const Duration(seconds: 5),
+            // We can add a custom header to hint the RetryInterceptor to skip retries
+            extra: {'no-retry': true},
+          ),
+        );
       } catch (e) {
         // Ignore API errors during logout - we still want to clear local data
-        debugPrint('Logout API call failed: $e');
+        debugPrint('[AuthRemoteDataSource] Logout API call failed or timed out: $e');
+        debugPrint('[AuthRemoteDataSource] Proceeding with local data clearance...');
       }
+
       // Clear all auth data from local storage
       await _clearAllAuthData();
     } catch (e) {

@@ -534,8 +534,9 @@ class RetryInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final extra = err.requestOptions.extra;
     final retries = (extra['retries'] ?? 0) as int;
+    final noRetry = (extra['no-retry'] ?? false) as bool;
 
-    if (retries < maxRetries && _shouldRetry(err)) {
+    if (!noRetry && retries < maxRetries && _shouldRetry(err)) {
       final attempt = retries + 1;
       extra['retries'] = attempt;
 

@@ -160,18 +160,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
       errorMessage: null,
     );
 
-    final result = await _repository.logout();
+    // Call the repository to logout from server.
+    // The repository implementation now has a short timeout and ignores failures.
+    await _repository.logout();
 
-    if (result.isSuccess) {
-      state = const AuthState(); // Reset to initial state
-      return true;
-    } else {
-      state = state.copyWith(
-        state: AuthOperationState.error,
-        errorMessage: result.failure?.message ?? 'Logout failed',
-      );
-      return false;
-    }
+    // REGARDLESS of whether the API call succeeded or failed,
+    // we MUST clear the local authentication state.
+    state = const AuthState(
+      user: null,
+      isAuthenticated: false,
+      state: AuthOperationState.success,
+    );
+    return true;
   }
 
   /// Get current user
