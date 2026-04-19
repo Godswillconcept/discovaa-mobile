@@ -94,7 +94,20 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     try {
       DashboardEntity data;
       if (role == 'provider') {
-        data = await _repository.getProviderDashboard(filter: filter);
+        try {
+          data = await _repository.getProviderDashboard(filter: filter);
+        } catch (e) {
+          if (e.toString().contains('403') || 
+              e.toString().contains('Forbidden') || 
+              e.toString().contains('not found')) {
+            // Fallback auto-degradation: if the user's provider account is not fully set up or verified, 
+            // the backend denies access. We gracefully fall back to the standard client dashboard.
+            debugPrint('[DashboardNotifier] Provider access denied/missing. Auto-falling back to client dashboard.');
+            data = await _repository.getClientDashboard(filter: filter);
+          } else {
+            rethrow;
+          }
+        }
       } else {
         data = await _repository.getClientDashboard(filter: filter);
       }
@@ -130,7 +143,24 @@ class DashboardNotifier extends StateNotifier<DashboardState> {
     final key = _cacheKey(role, filter);
 
     try {
-      final data = await _repository.refreshDashboard(role, filter: filter);
+      DashboardEntity data;
+      if (role == 'provider') {
+        try {
+          data = await _repository.refreshDashboard(role, filter: filter);
+        } catch (e) {
+          if (e.toString().contains('403') || 
+              e.toString().contains('Forbidden') || 
+              e.toString().contains('not found')) {
+            debugPrint('[DashboardNotifier] Provider access missing on refresh. Auto-falling back to client dashboard.');
+            data = await _repository.refreshDashboard('client', filter: filter);
+          } else {
+            rethrow;
+          }
+        }
+      } else {
+        data = await _repository.refreshDashboard(role, filter: filter);
+      }
+      
       state = state.copyWith(
         isRefreshing: false,
         data: data,

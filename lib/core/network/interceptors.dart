@@ -57,12 +57,19 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (AppConstants.isDebugMode) {
-      debugPrint('=== API Error ===');
-      debugPrint('Group: ${_endpointGroup(err.requestOptions.path)}');
-      debugPrint('Type: ${err.type}');
-      debugPrint('Message: ${err.message}');
-      debugPrint('Response: ${err.response}');
-      debugPrint('================');
+      // Don't show scary error block for an expected 401 on logout
+      final isExpectedLogout401 = err.response?.statusCode == 401 &&
+          err.requestOptions.method == 'DELETE' &&
+          err.requestOptions.path.contains('/auth/session');
+
+      if (!isExpectedLogout401) {
+        debugPrint('=== API Error ===');
+        debugPrint('Group: ${_endpointGroup(err.requestOptions.path)}');
+        debugPrint('Type: ${err.type}');
+        debugPrint('Message: ${err.message}');
+        debugPrint('Response: ${err.response}');
+        debugPrint('================');
+      }
     }
     super.onError(err, handler);
   }
@@ -163,7 +170,19 @@ class AuthInterceptor extends Interceptor {
         debugPrint(
           '[AuthInterceptor] 401 on refresh/already retried request. Clearing auth state.',
         );
-        await _clearAuthState();
+        await _clearAuthState(reason: 'refresh_retry_limit');
+        super.onError(err, handler);
+        return;
+      }
+
+      // optimization: if we are trying to logout (DELETE session) and it fails with 401,
+      // it means the session is already gone. Just clear local state and don't refresh.
+      if (originalRequest.method == 'DELETE' &&
+          originalRequest.path == ApiEndpoints.authLogout) {
+        debugPrint(
+          '[AuthInterceptor] Server session already expired (401). Completing local logout...',
+        );
+        await _clearAuthState(reason: 'logout_session_gone');
         super.onError(err, handler);
         return;
       }
@@ -189,7 +208,7 @@ class AuthInterceptor extends Interceptor {
         if (refreshResult.status == _TokenRefreshStatus.unauthorized) {
           // Only clear auth state if refresh token was present but rejected by server
           // This indicates the refresh token itself is invalid/expired
-          await _clearAuthState();
+          await _clearAuthState(reason: 'refresh_token_rejected');
         } else if (refreshResult.status == _TokenRefreshStatus.failed) {
           // For other failures (network, server error, etc.), preserve auth state
           // to allow retry when connectivity is restored
@@ -286,23 +305,34 @@ class AuthInterceptor extends Interceptor {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = response.data as Map<String, dynamic>?;
-        if (responseData == null) return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
-
-        // 1. Try to parse from envelope: { success, data: { access_token, refresh_token } }
-        final success = responseData['success'] == true;
-        final data = responseData['data'] as Map<String, dynamic>?;
-
-        String? newToken;
-        String? newRefreshToken;
-
-        if (success && data != null) {
-          newToken = data['access_token']?.toString();
-          newRefreshToken = data['refresh_token']?.toString();
+        if (responseData == null) {
+          debugPrint('[AuthInterceptor] Token refresh failed: response data is null');
+          return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
         }
-        // 2. Fallback: Check for flat response: { access_token, refresh_token }
-        else {
-          newToken = responseData['access_token']?.toString();
-          newRefreshToken = responseData['refresh_token']?.toString();
+
+        debugPrint('[AuthInterceptor] Token refresh response data: $responseData');
+
+        // Extract tokens by checking multiple possible locations in the response
+        // 1. Check data field (standard for this project's envelope)
+        final data = responseData['data'] as Map<String, dynamic>?;
+        // 2. Check meta field (tokens are often stored here)
+        final meta = responseData['meta'] as Map<String, dynamic>?;
+
+        String? newToken =
+            data?['access_token']?.toString() ??
+            meta?['access_token']?.toString() ??
+            responseData['access_token']?.toString();
+
+        String? newRefreshToken =
+            data?['refresh_token']?.toString() ??
+            meta?['refresh_token']?.toString() ??
+            responseData['refresh_token']?.toString();
+
+        // Check if authentication failed according to meta even though status is 200
+        final isAuth = meta?['is_authenticated'] == true;
+        if (meta != null && !isAuth && newToken == null) {
+          debugPrint('[AuthInterceptor] Token refresh failed: meta.is_authenticated is false');
+          return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
         }
 
         if (newToken != null && newToken.isNotEmpty) {
@@ -319,7 +349,7 @@ class AuthInterceptor extends Interceptor {
           );
         } else {
           debugPrint(
-            '[AuthInterceptor] Token refresh failed: no access_token found in response (flat or enveloped)',
+            '[AuthInterceptor] Token refresh failed: no access_token found anywhere in response',
           );
           return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
         }
@@ -367,12 +397,15 @@ class AuthInterceptor extends Interceptor {
     return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
   }
 
-  /// Clear all authentication state when token refresh fails
-  Future<void> _clearAuthState() async {
+  /// Clear all authentication state
+  ///
+  /// [reason] is logged for observability. Common reasons:
+  /// - 'logout_session_gone': logout endpoint returned 401 (session already expired)
+  /// - 'refresh_token_rejected': refresh token was rejected by server (401 on refresh)
+  /// - 'refresh_retry_limit': already retried after refresh, still getting 401
+  Future<void> _clearAuthState({String reason = 'unknown'}) async {
     await _tokenStorage.clearAllAuthData();
-    debugPrint(
-      '[AuthInterceptor] Auth state cleared due to token refresh failure',
-    );
+    debugPrint('[AuthInterceptor] Auth state cleared. Reason: $reason');
     // Auth state change will be detected by AuthInitializer on next app check
   }
 }

@@ -18,8 +18,10 @@ class RouteNames {
   static const String search = '/search';
   static const String searchResults = '/search/results';
   static const String profile = '/profile';
-  static const String userProfile = '/user-profile';
-  static const String favorites = '/favorites';
+  // These pages are nested inside the shell (under /home) so they display
+  // with the BottomNavBar. Absolute paths must match the router nesting.
+  static const String userProfile = '/home/user-profile';
+  static const String favorites = '/home/favorites';
   static const String notifications = '/notifications';
   static const String editProfile = '/profile/edit';
   static const String messages = '/messages';

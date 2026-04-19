@@ -181,6 +181,19 @@ class AppRouter {
               GoRoute(
                 path: RouteNames.home,
                 builder: (context, state) => const HomePage(),
+                routes: [
+                  // Favorites & UserProfile are nested here so they render
+                  // inside the shell (with BottomNavBar) and back-navigation
+                  // works correctly (pop instead of app exit).
+                  GoRoute(
+                    path: 'favorites',
+                    builder: (context, state) => const FavoritesPage(),
+                  ),
+                  GoRoute(
+                    path: 'user-profile',
+                    builder: (context, state) => const UserProfilePage(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -234,17 +247,7 @@ class AppRouter {
         builder: (context, state) => const NotificationsPage(),
       ),
 
-      // Favorites
-      GoRoute(
-        path: RouteNames.favorites,
-        builder: (context, state) => const FavoritesPage(),
-      ),
-      // User Profile
-      GoRoute(
-        path: RouteNames.userProfile,
-        builder: (context, state) => const UserProfilePage(),
-      ),
-      // Artisan Profile
+      // Artisan Profile (outside shell — full-screen detail view)
       GoRoute(
         path: RouteNames.artisanProfile,
         builder: (context, state) => const ArtisanProfilePage(),

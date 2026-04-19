@@ -134,12 +134,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       // Loading State
                       if (dashboardState.isLoading) ...[
                         const _DashboardSkeleton(),
-                      ] else if (dashboardState.hasError) ...[
-                        _DashboardError(
-                          message: dashboardState.error!,
-                          onRetry: _loadDashboardData,
-                        ),
                       ] else ...[
+                        if (dashboardState.hasError) ...[
+                          _DashboardError(
+                            message: dashboardState.error!,
+                            onRetry: _loadDashboardData,
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+
                         // Spending Trend
                         const _SpendingTrendCard(),
                         const SizedBox(height: 20),

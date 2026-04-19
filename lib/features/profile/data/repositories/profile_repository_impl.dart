@@ -534,8 +534,20 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<void> logoutAllDevices() async {
     // Delete all sessions - in AllAuth this typically means revoking all tokens
-    // Call DELETE on the session endpoint which invalidates the session
-    await _dioClient.delete(ApiEndpoints.authLogout);
+    try {
+      await _dioClient.delete(
+        ApiEndpoints.authLogout,
+        options: Options(
+          sendTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+          extra: {'no-retry': true},
+        ),
+      );
+    } catch (e) {
+      // Ignore API errors during logout - we still want to clear local data securely
+      debugPrint('[ProfileRepository] Logout API call failed: $e');
+    }
+    
     // Clear local cache as well since all sessions are terminated
     await clearCache();
     // CRITICAL: Clear all authentication data locally so the user is signed out on this device too

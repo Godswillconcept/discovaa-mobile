@@ -11,7 +11,7 @@ class MainHeader extends ConsumerWidget {
   const MainHeader({super.key});
 
   void _openFavorites(BuildContext context) {
-    context.go(RouteNames.favorites);
+    context.push(RouteNames.favorites);
   }
 
   void _openNotifications(BuildContext context) {
@@ -19,7 +19,7 @@ class MainHeader extends ConsumerWidget {
   }
 
   void _openUserProfile(BuildContext context) {
-    context.go(RouteNames.userProfile);
+    context.push(RouteNames.userProfile);
   }
 
   @override
