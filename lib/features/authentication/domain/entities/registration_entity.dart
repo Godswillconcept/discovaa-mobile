@@ -3,14 +3,16 @@ class RegistrationEntity {
   final String email;
   final String password;
   final String? otpCode;
-  final String role;
+  final String accountType;
+  final String? providerType;
   final DateTime? createdAt;
 
   const RegistrationEntity({
     required this.email,
     required this.password,
     this.otpCode,
-    required this.role,
+    required this.accountType,
+    this.providerType,
     this.createdAt,
   });
 
@@ -18,14 +20,16 @@ class RegistrationEntity {
     String? email,
     String? password,
     String? otpCode,
-    String? role,
+    String? accountType,
+    String? providerType,
     DateTime? createdAt,
   }) {
     return RegistrationEntity(
       email: email ?? this.email,
       password: password ?? this.password,
       otpCode: otpCode ?? this.otpCode,
-      role: role ?? this.role,
+      accountType: accountType ?? this.accountType,
+      providerType: providerType ?? this.providerType,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -34,12 +38,21 @@ class RegistrationEntity {
     return {
       'email': email,
       'password': password,
-      'role': role,
+      'account_type': accountType,
+      if (providerType != null) 'provider_type': providerType,
     };
+  }
+
+  /// Legacy compatibility: get role from account_type and provider_type
+  String get role {
+    if (accountType == 'service_provider') {
+      return providerType == 'business' ? 'business' : 'individual';
+    }
+    return 'user';
   }
 
   @override
   String toString() {
-    return 'RegistrationEntity(email: $email, role: $role)';
+    return 'RegistrationEntity(email: $email, accountType: $accountType, providerType: $providerType)';
   }
 }

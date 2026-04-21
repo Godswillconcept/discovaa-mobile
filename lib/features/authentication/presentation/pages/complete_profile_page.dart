@@ -26,6 +26,8 @@ class CompleteProfilePage extends ConsumerStatefulWidget {
 
 class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _displayNameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
@@ -34,8 +36,33 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
       TextEditingController();
   final TextEditingController _countryController = TextEditingController();
   String? _selectedCountry;
+  String? _selectedCountryIso2;
   bool _isLoading = false;
   bool _isInitialized = false;
+  String? _completePhoneNumber;
+
+  /// Determine the effective role based on context
+  /// When fromLogin is true, use the role from auth provider
+  /// Otherwise, use the role from signup provider
+  UserRole get _effectiveRole {
+    if (widget.fromLogin) {
+      // Use role from auth provider when resuming from login
+      final authState = ref.read(authProvider);
+      final user = authState.user;
+      if (user != null) {
+        switch (user.role) {
+          case 'INDIVIDUAL':
+            return UserRole.individualProvider;
+          case 'BUSINESS':
+            return UserRole.businessProvider;
+          default:
+            return UserRole.user;
+        }
+      }
+    }
+    // Use signup provider role for normal registration flow
+    return ref.read(signupProvider).selectedRole;
+  }
 
   @override
   void initState() {
@@ -59,6 +86,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
     if (user != null) {
       _displayNameController.text = user.displayName;
       _phoneController.text = user.phone ?? '';
+      _completePhoneNumber = user.phone; // Store as complete number
       _addressController.text = user.address ?? '';
       _selectedCountry = user.country;
       if (user.country != null) {
@@ -82,6 +110,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
         }
         if (profile.phone != null && profile.phone!.isNotEmpty) {
           _phoneController.text = profile.phone!;
+          _completePhoneNumber = profile.phone; // Store as complete number
         }
         if (profile.country != null) {
           _selectedCountry = profile.country;
@@ -110,18 +139,25 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
       try {
         if (widget.fromLogin) {
           // Resumed registration flow - update profile via API
+          debugPrint('[_CompleteProfilePageState] Calling updateProfile API');
           final success = await ref
               .read(authProvider.notifier)
               .updateProfile(
+                firstName: _firstNameController.text,
+                lastName: _lastNameController.text,
                 displayName: _displayNameController.text,
-                phone: _phoneController.text,
-                address: _addressController.text,
-                country: _selectedCountry,
+                phone: _completePhoneNumber ?? _phoneController.text,
+                countryIso2: _selectedCountryIso2,
                 businessName: _businessNameController.text,
                 businessDescription: _businessDescriptionController.text,
               );
 
+          debugPrint(
+            '[_CompleteProfilePageState] Profile update success: $success',
+          );
+
           if (!success) {
+            debugPrint('[_CompleteProfilePageState] Profile update failed');
             if (mounted) {
               final error = ref.read(authProvider).errorMessage;
               _showErrorSnackBar(
@@ -131,21 +167,40 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
             return;
           }
 
+          debugPrint(
+            '[_CompleteProfilePageState] Refreshing user data from backend',
+          );
+          // Refresh user data from backend to get updated role
+          await ref.read(authProvider.notifier).fetchFullProfile();
+
           // Set up session after profile completion
+          debugPrint(
+            '[_CompleteProfilePageState] Setting up session after profile completion',
+          );
           final authState = ref.read(authProvider);
           final user = authState.user;
+          debugPrint(
+            '[_CompleteProfilePageState] User from authState: ${user?.role}',
+          );
+
           if (user != null) {
+            debugPrint(
+              '[_CompleteProfilePageState] User is not null, proceeding with session setup',
+            );
             UserRole userRole;
             switch (user.role) {
-              case 'provider':
+              case 'INDIVIDUAL':
                 userRole = UserRole.individualProvider;
                 break;
-              case 'business':
+              case 'BUSINESS':
                 userRole = UserRole.businessProvider;
                 break;
               default:
                 userRole = UserRole.user;
             }
+            debugPrint(
+              '[_CompleteProfilePageState] Mapped role: ${user.role} -> $userRole',
+            );
             ref.read(sessionProvider.notifier).signIn(userRole);
 
             // Persist auth state
@@ -166,43 +221,102 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
             // Register device token after successful profile completion
             await _registerDeviceToken();
+          } else {
+            debugPrint(
+              '[_CompleteProfilePageState] User is null after refresh, skipping session setup',
+            );
           }
 
           if (mounted) {
-            // Navigate based on user role from auth provider
-            // (signupProvider role isn't set in resumed flow)
+            debugPrint(
+              '[_CompleteProfilePageState] Widget is mounted, navigating...',
+            );
             final user = ref.read(authProvider).user;
+            debugPrint(
+              '[_CompleteProfilePageState] User for navigation: ${user?.role}',
+            );
             final isProvider =
                 user != null &&
-                (user.role == 'provider' || user.role == 'business');
+                (user.role == 'INDIVIDUAL' || user.role == 'BUSINESS');
+            debugPrint(
+              '[_CompleteProfilePageState] isProvider: $isProvider, user.role: ${user?.role}',
+            );
             if (isProvider) {
+              debugPrint(
+                '[_CompleteProfilePageState] Navigating to identification',
+              );
               context.go(RouteNames.identification);
             } else {
+              debugPrint('[_CompleteProfilePageState] Navigating to home');
               context.go(RouteNames.home);
             }
+          } else {
+            debugPrint(
+              '[_CompleteProfilePageState] Widget is not mounted, skipping navigation',
+            );
           }
         } else {
-          // Normal registration flow - save to local state and navigate to login
+          // Normal registration flow - call API to update profile, then navigate to login
+          // The user should have valid tokens after OTP verification
+          debugPrint(
+            '[_CompleteProfilePageState] Normal registration flow - calling updateProfile API',
+          );
+          final success = await ref
+              .read(authProvider.notifier)
+              .updateProfile(
+                firstName: _firstNameController.text,
+                lastName: _lastNameController.text,
+                displayName: _displayNameController.text,
+                phone: _completePhoneNumber ?? _phoneController.text,
+                countryIso2: _selectedCountryIso2,
+                businessName: _businessNameController.text,
+                businessDescription: _businessDescriptionController.text,
+              );
+
+          debugPrint(
+            '[_CompleteProfilePageState] Profile update success: $success',
+          );
+
+          if (!success) {
+            debugPrint('[_CompleteProfilePageState] Profile update failed');
+            if (mounted) {
+              final error = ref.read(authProvider).errorMessage;
+              _showErrorSnackBar(
+                error ?? 'Failed to save profile. Please try again.',
+              );
+            }
+            return;
+          }
+
+          // Profile updated successfully - save to local state for consistency
+          debugPrint(
+            '[_CompleteProfilePageState] Saving profile to local state',
+          );
           final notifier = ref.read(signupProvider.notifier);
           final state = ref.read(signupProvider);
 
           notifier.updateProfileInfo(
             displayName: _displayNameController.text,
-            phone: _phoneController.text,
+            phone: _completePhoneNumber ?? _phoneController.text,
             address: _addressController.text,
             businessName: _businessNameController.text,
             businessDescription: _businessDescriptionController.text,
             country: _selectedCountry,
           );
+
           // Persist the registered role into session
           ref
               .read(sessionProvider.notifier)
               .completeRegistration(state.selectedRole);
-          // Navigate to login
-          context.push(
-            '/login',
-            extra: {'fromOnboarding': false, 'fromRegistration': true},
-          );
+
+          // Navigate to login to complete the flow
+          if (mounted) {
+            debugPrint('[_CompleteProfilePageState] Navigating to login');
+            context.push(
+              '/login',
+              extra: {'fromOnboarding': false, 'fromRegistration': true},
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -260,6 +374,8 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _displayNameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
@@ -271,8 +387,6 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(signupProvider);
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -311,6 +425,42 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                         ),
                         const Divider(height: 40),
 
+                        // First Name Field
+                        const AuthFieldLabel(label: "First name"),
+                        TextFormField(
+                          controller: _firstNameController,
+                          keyboardType: TextInputType.name,
+                          textCapitalization: TextCapitalization.words,
+                          validator: (value) => value == null || value.isEmpty
+                              ? "First name is required"
+                              : null,
+                          decoration: InputDecoration(
+                            hintText: "Enter your first name",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Last Name Field
+                        const AuthFieldLabel(label: "Last name"),
+                        TextFormField(
+                          controller: _lastNameController,
+                          keyboardType: TextInputType.name,
+                          textCapitalization: TextCapitalization.words,
+                          validator: (value) => value == null || value.isEmpty
+                              ? "Last name is required"
+                              : null,
+                          decoration: InputDecoration(
+                            hintText: "Enter your last name",
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
                         // Display Name Field
                         const AuthFieldLabel(label: "Display name"),
                         TextFormField(
@@ -340,7 +490,9 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                           ),
                           initialCountryCode: 'NG',
                           onChanged: (phone) {
-                            // phone.completeNumber
+                            setState(() {
+                              _completePhoneNumber = phone.completeNumber;
+                            });
                           },
                           dropdownIconPosition: IconPosition.trailing,
                           flagsButtonPadding: const EdgeInsets.only(left: 8),
@@ -364,11 +516,10 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                         ),
 
                         // DYNAMIC FIELDS FOR PROVIDERS
-                        if (state.selectedRole.isProvider) ...[
+                        if (_effectiveRole.isProvider) ...[
                           const SizedBox(height: 20),
                           AuthFieldLabel(
-                            label:
-                                state.selectedRole == UserRole.businessProvider
+                            label: _effectiveRole == UserRole.businessProvider
                                 ? "Business Name"
                                 : "Professional Name",
                           ),
@@ -379,8 +530,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                                 : null,
                             decoration: InputDecoration(
                               hintText:
-                                  state.selectedRole ==
-                                      UserRole.businessProvider
+                                  _effectiveRole == UserRole.businessProvider
                                   ? "Enter business name"
                                   : "Enter your professional name",
                               border: const OutlineInputBorder(),
@@ -388,8 +538,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                           ),
                           const SizedBox(height: 20),
                           AuthFieldLabel(
-                            label:
-                                state.selectedRole == UserRole.businessProvider
+                            label: _effectiveRole == UserRole.businessProvider
                                 ? "Business Description"
                                 : "Service Bio",
                           ),
@@ -401,8 +550,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                             maxLines: 3,
                             decoration: InputDecoration(
                               hintText:
-                                  state.selectedRole ==
-                                      UserRole.businessProvider
+                                  _effectiveRole == UserRole.businessProvider
                                   ? "Enter business description"
                                   : "Enter your service bio/description",
                               border: const OutlineInputBorder(),
@@ -422,6 +570,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                               onSelect: (Country country) {
                                 setState(() {
                                   _selectedCountry = country.name;
+                                  _selectedCountryIso2 = country.countryCode;
                                   _countryController.text = country.name;
                                 });
                               },

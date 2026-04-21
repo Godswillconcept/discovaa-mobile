@@ -66,7 +66,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         // Valid OTP - set success state
         ref.read(signupProvider.notifier).updateOtpState(OtpState.success);
 
-        // Auto-verify after a short delay
         Future.delayed(const Duration(milliseconds: 500), () {
           _verifyOtp();
         });
@@ -82,7 +81,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
   Future<void> _verifyOtp() async {
     final state = ref.read(signupProvider);
-
     if (state.otpState != OtpState.success) return;
 
     // Determine navigation target based on source
@@ -90,6 +88,8 @@ class _OtpPageState extends ConsumerState<OtpPage> {
         GoRouterState.of(context).extra as Map<String, dynamic>?;
     final String type = data?['type'] ?? 'register';
     final bool isForgot = type == 'forgot_password';
+    final bool isLoginVerify =
+        type == 'login_verify'; // came from unverified login
     final String email = data?['email'] ?? '';
 
     setState(() => _isLoading = true);
@@ -102,26 +102,41 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
       if (mounted) {
         if (success) {
-          // Show verification success modal
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => const VerificationSuccessModal(),
-          );
+          // Call config endpoint (best-effort)
+          await ref.read(authProvider.notifier).fetchConfig();
 
-          // Auto-navigate after delay to allow modal to show
-          Future.delayed(const Duration(seconds: 3), () {
-            if (mounted) {
-              Navigator.of(context).pop(); // Close modal
-              // Navigate based on source
-              if (isForgot) {
-                context.push('/reset-password', extra: {'email': email});
-              } else {
-                ref.read(signupProvider.notifier).goToProfile();
-                context.push('/complete-profile');
+          // Register device token (best-effort)
+          // TODO: Integrate with Firebase Messaging to get actual FCM token
+          // const String? fcmToken = null;
+          // if (fcmToken != null && fcmToken.isNotEmpty) {
+          //   await ref.read(authProvider.notifier).registerDeviceToken(token: fcmToken);
+          // }
+
+          // Show verification success modal
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const VerificationSuccessModal(),
+            );
+
+            // Auto-navigate after delay to allow modal to show
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) {
+                Navigator.of(context).pop(); // Close modal
+                // Navigate based on source
+                if (isForgot) {
+                  context.push('/reset-password', extra: {'email': email});
+                } else if (isLoginVerify) {
+                  // User verified from login — go straight to home
+                  context.go('/home');
+                } else {
+                  ref.read(signupProvider.notifier).goToProfile();
+                  context.push('/complete-profile');
+                }
               }
-            }
-          });
+            });
+          }
         } else {
           final error = ref.read(authProvider).errorMessage;
           ref.read(signupProvider.notifier).updateOtpState(OtpState.error);

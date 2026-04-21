@@ -99,14 +99,24 @@ class UserInfoTab extends ConsumerWidget {
                 label: 'Front of ID',
                 hasDocument:
                     profile.identityVerification?.hasFrontImage ?? false,
-                onUpload: () => _UserInfoTabHelper.showUploadDialog(context, ref, 'Front of ID', 'idFront'),
+                onUpload: () => _UserInfoTabHelper.showUploadDialog(
+                  context,
+                  ref,
+                  'Front of ID',
+                  'idFront',
+                ),
               ),
               const SizedBox(height: 12),
               _IdUploadRow(
                 label: 'Back of ID',
                 hasDocument:
                     profile.identityVerification?.hasBackImage ?? false,
-                onUpload: () => _UserInfoTabHelper.showUploadDialog(context, ref, 'Back of ID', 'idBack'),
+                onUpload: () => _UserInfoTabHelper.showUploadDialog(
+                  context,
+                  ref,
+                  'Back of ID',
+                  'idBack',
+                ),
               ),
             ],
           ),
@@ -369,29 +379,55 @@ class _UserInfoTabHelper {
 
     // Check connection
     final connectivityState = ref.read(profileConnectivityProvider);
-    if (connectivityState != ProfileConnectivityState.connected && context.mounted) {
+    if (connectivityState != ProfileConnectivityState.connected &&
+        context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No internet connection. Cannot upload image.')),
+        const SnackBar(
+          content: Text('No internet connection. Cannot upload image.'),
+        ),
       );
       return;
     }
 
     if (type == 'avatar') {
-      await ref.read(userProfileProvider.notifier).uploadAccountProfilePhoto(croppedFile.path);
+      await ref
+          .read(userProfileProvider.notifier)
+          .uploadAccountProfilePhoto(croppedFile.path);
     } else if (type == 'idFront') {
-      await ref.read(userProfileProvider.notifier).updateIdentityVerification(
-            idNumber: ref.read(userProfileProvider).profile?.identityVerification?.idNumber ?? '',
+      await ref
+          .read(userProfileProvider.notifier)
+          .updateIdentityVerification(
+            idNumber:
+                ref
+                    .read(userProfileProvider)
+                    .profile
+                    ?.identityVerification
+                    ?.idNumber ??
+                '',
             idFrontImageUrl: croppedFile.path,
           );
     } else if (type == 'idBack') {
-      await ref.read(userProfileProvider.notifier).updateIdentityVerification(
-            idNumber: ref.read(userProfileProvider).profile?.identityVerification?.idNumber ?? '',
+      await ref
+          .read(userProfileProvider.notifier)
+          .updateIdentityVerification(
+            idNumber:
+                ref
+                    .read(userProfileProvider)
+                    .profile
+                    ?.identityVerification
+                    ?.idNumber ??
+                '',
             idBackImageUrl: croppedFile.path,
           );
     }
   }
 
-  static void showUploadDialog(BuildContext context, WidgetRef ref, String label, String type) {
+  static void showUploadDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String label,
+    String type,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -439,21 +475,45 @@ class _UserInfoTabHelper {
                     allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
                   );
                   if (result != null && result.files.single.path != null) {
-                    final connectivityState = ref.read(profileConnectivityProvider);
-                    if (connectivityState != ProfileConnectivityState.connected && context.mounted) {
+                    final connectivityState = ref.read(
+                      profileConnectivityProvider,
+                    );
+                    if (connectivityState !=
+                            ProfileConnectivityState.connected &&
+                        context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('No internet connection. Cannot upload document.')),
+                        const SnackBar(
+                          content: Text(
+                            'No internet connection. Cannot upload document.',
+                          ),
+                        ),
                       );
                       return;
                     }
                     if (type == 'idFront') {
-                      await ref.read(userProfileProvider.notifier).updateIdentityVerification(
-                            idNumber: ref.read(userProfileProvider).profile?.identityVerification?.idNumber ?? '',
+                      await ref
+                          .read(userProfileProvider.notifier)
+                          .updateIdentityVerification(
+                            idNumber:
+                                ref
+                                    .read(userProfileProvider)
+                                    .profile
+                                    ?.identityVerification
+                                    ?.idNumber ??
+                                '',
                             idFrontImageUrl: result.files.single.path!,
                           );
                     } else if (type == 'idBack') {
-                      await ref.read(userProfileProvider.notifier).updateIdentityVerification(
-                            idNumber: ref.read(userProfileProvider).profile?.identityVerification?.idNumber ?? '',
+                      await ref
+                          .read(userProfileProvider.notifier)
+                          .updateIdentityVerification(
+                            idNumber:
+                                ref
+                                    .read(userProfileProvider)
+                                    .profile
+                                    ?.identityVerification
+                                    ?.idNumber ??
+                                '',
                             idBackImageUrl: result.files.single.path!,
                           );
                     }
@@ -508,7 +568,10 @@ class _ProfileHeaderCard extends ConsumerWidget {
                     children: [
                       const Text(
                         'Update Profile Photo',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 24),
                       ListTile(
@@ -516,7 +579,12 @@ class _ProfileHeaderCard extends ConsumerWidget {
                         title: const Text('Take Photo'),
                         onTap: () {
                           Navigator.pop(context);
-                          _UserInfoTabHelper.pickAndCropImage(context, ref, ImageSource.camera, 'avatar');
+                          _UserInfoTabHelper.pickAndCropImage(
+                            context,
+                            ref,
+                            ImageSource.camera,
+                            'avatar',
+                          );
                         },
                       ),
                       ListTile(
@@ -524,7 +592,12 @@ class _ProfileHeaderCard extends ConsumerWidget {
                         title: const Text('Choose from Gallery'),
                         onTap: () {
                           Navigator.pop(context);
-                          _UserInfoTabHelper.pickAndCropImage(context, ref, ImageSource.gallery, 'avatar');
+                          _UserInfoTabHelper.pickAndCropImage(
+                            context,
+                            ref,
+                            ImageSource.gallery,
+                            'avatar',
+                          );
                         },
                       ),
                     ],
@@ -546,14 +619,19 @@ class _ProfileHeaderCard extends ConsumerWidget {
                       width: 2,
                     ),
                   ),
-                  child: profile.profileImage != null && profile.profileImage!.isNotEmpty
+                  child:
+                      profile.profileImage != null &&
+                          profile.profileImage!.isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: profile.profileImage!,
                           fit: BoxFit.cover,
                           placeholder: (context, url) => const Center(
-                            child: CircularProgressIndicator(color: Colors.white),
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
                           ),
-                          errorWidget: (context, url, error) => _buildInitials(),
+                          errorWidget: (context, url, error) =>
+                              _buildInitials(),
                         )
                       : _buildInitials(),
                 ),
@@ -890,7 +968,7 @@ class ProfileSectionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (action != null) action!,
+              ?action,
             ],
           ),
           const SizedBox(height: 24),

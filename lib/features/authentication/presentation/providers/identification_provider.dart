@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:io';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/features/authentication/domain/entities/identification_entity.dart';
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 
 /// Form validation state for ID number input
 enum IdNumberValidationState { valid, empty, tooLong, invalidCharacters }
@@ -139,9 +142,10 @@ class IdentificationPageState {
 /// Notifier for identification page state management
 class IdentificationNotifier extends StateNotifier<IdentificationPageState> {
   final NetworkInfo? networkInfo;
+  final Ref ref;
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
 
-  IdentificationNotifier({this.networkInfo})
+  IdentificationNotifier({this.networkInfo, required this.ref})
     : super(const IdentificationPageState()) {
     _initConnectivity();
   }
@@ -312,8 +316,33 @@ class IdentificationNotifier extends StateNotifier<IdentificationPageState> {
     setError(null);
 
     try {
-      // Simulate API call - replace with actual implementation
-      await Future.delayed(const Duration(seconds: 2));
+      // Upload front document
+      final frontSuccess = await ref
+          .read(authProvider.notifier)
+          .uploadIdDocumentFront(
+            idNumber: state.idNumberInput!,
+            documentFront: File(state.identification.frontImagePath!),
+          );
+
+      if (!frontSuccess) {
+        setError('Failed to upload front ID document.');
+        setLoading(false);
+        return false;
+      }
+
+      // Upload back document
+      final backSuccess = await ref
+          .read(authProvider.notifier)
+          .uploadIdDocumentBack(
+            idNumber: state.idNumberInput!,
+            documentBack: File(state.identification.backImagePath!),
+          );
+
+      if (!backSuccess) {
+        setError('Failed to upload back ID document.');
+        setLoading(false);
+        return false;
+      }
 
       // Update identification with ID number and submission time
       final updatedIdentification = state.identification.copyWith(
@@ -395,5 +424,5 @@ final identificationProvider =
         networkInfo = null;
       }
 
-      return IdentificationNotifier(networkInfo: networkInfo);
+      return IdentificationNotifier(networkInfo: networkInfo, ref: ref);
     });

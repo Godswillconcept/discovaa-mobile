@@ -101,6 +101,32 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Read role from navigation extra if provided
+      final routerState = GoRouterState.of(context);
+      final roleString = routerState.extra as String?;
+
+      if (roleString != null) {
+        // Parse the role string and update signup provider
+        // Handle both uppercase (API spec) and lowercase (legacy) values
+        UserRole? role;
+        switch (roleString.toUpperCase()) {
+          case 'USER':
+            role = UserRole.user;
+            break;
+          case 'INDIVIDUAL':
+          case 'PROVIDER':
+            role = UserRole.individualProvider;
+            break;
+          case 'BUSINESS':
+            role = UserRole.businessProvider;
+            break;
+        }
+
+        if (role != null) {
+          ref.read(signupProvider.notifier).selectRole(role);
+        }
+      }
+
       ref.read(signupProvider.notifier).goToRegistration();
     });
   }

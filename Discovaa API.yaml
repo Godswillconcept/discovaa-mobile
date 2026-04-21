@@ -78,6 +78,16 @@ paths:
                 - meta
                 - error
           description: ''
+    delete:
+      operationId: api_accounts_me_destroy
+      summary: Delete authenticated user account (soft delete)
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/accounts/me/location/:
     patch:
       operationId: api_accounts_me_location_partial_update
@@ -3676,6 +3686,39 @@ paths:
                 - meta
                 - error
           description: ''
+  /api/payments/payout-account/reset/:
+    post:
+      operationId: api_payments_payout_account_reset_create
+      description: Delete the provider's payout account so they can re-onboard with
+        a new one.
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PayoutAccountResetResponse'
+                  meta:
+                    type: object
+                    nullable: true
+                  error:
+                    type: object
+                    nullable: true
+                required:
+                - success
+                - data
+                - meta
+                - error
+          description: ''
   /api/payments/payout-account/resume-onboarding/:
     post:
       operationId: api_payments_payout_account_resume_onboarding_create
@@ -3724,7 +3767,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProviderPayoutAccountSetup'
-        required: true
       security:
       - tokenAuth: []
       responses:
@@ -4220,6 +4262,26 @@ paths:
                 - meta
                 - error
           description: ''
+  /api/payments/paystack/banks/:
+    get:
+      operationId: api_payments_paystack_banks_retrieve
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/payments/paystack/resolve-account/:
+    get:
+      operationId: api_payments_paystack_resolve_account_retrieve
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: No response body
   /api/payments/refund-requests/:
     get:
       operationId: api_payments_refund_requests_list
@@ -12545,6 +12607,39 @@ paths:
                 - meta
                 - error
           description: ''
+  /mgt/api/payments/payout-account/reset/:
+    post:
+      operationId: mgt_api_payments_payout_account_reset_create
+      description: Delete the provider's payout account so they can re-onboard with
+        a new one.
+      tags:
+      - mgt
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PayoutAccountResetResponse'
+                  meta:
+                    type: object
+                    nullable: true
+                  error:
+                    type: object
+                    nullable: true
+                required:
+                - success
+                - data
+                - meta
+                - error
+          description: ''
   /mgt/api/payments/payout-account/resume-onboarding/:
     post:
       operationId: mgt_api_payments_payout_account_resume_onboarding_create
@@ -12593,7 +12688,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ProviderPayoutAccountSetup'
-        required: true
       security:
       - tokenAuth: []
       responses:
@@ -13089,6 +13183,26 @@ paths:
                 - meta
                 - error
           description: ''
+  /mgt/api/payments/paystack/banks/:
+    get:
+      operationId: mgt_api_payments_paystack_banks_retrieve
+      tags:
+      - mgt
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: No response body
+  /mgt/api/payments/paystack/resolve-account/:
+    get:
+      operationId: mgt_api_payments_paystack_resolve_account_retrieve
+      tags:
+      - mgt
+      security:
+      - tokenAuth: []
+      responses:
+        '200':
+          description: No response body
   /mgt/api/payments/refund-requests/:
     get:
       operationId: mgt_api_payments_refund_requests_list
@@ -18062,9 +18176,9 @@ components:
           type: string
           format: uuid
         user:
-          type: string
-          format: uuid
-          nullable: true
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
         role:
           enum:
           - OWNER
@@ -18102,6 +18216,7 @@ components:
       - display_name
       - id
       - updated_at
+      - user
     BusinessStaffMemberWrite:
       type: object
       properties:
@@ -18142,8 +18257,8 @@ components:
           format: uuid
           readOnly: true
         user:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
         token:
           type: string
@@ -18229,10 +18344,9 @@ components:
           type: string
           format: uuid
         sender:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
-          nullable: true
         kind:
           enum:
           - TEXT
@@ -18401,8 +18515,8 @@ components:
           format: uuid
           readOnly: true
         recipient:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
         type:
           enum:
@@ -19064,8 +19178,8 @@ components:
           format: uuid
           readOnly: true
         user:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
         token:
           type: string
@@ -19116,10 +19230,9 @@ components:
           type: string
           format: uuid
         sender:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
-          nullable: true
         kind:
           enum:
           - TEXT
@@ -19264,8 +19377,8 @@ components:
           format: uuid
           readOnly: true
         recipient:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
         type:
           enum:
@@ -19436,6 +19549,12 @@ components:
         auto_payout_enabled:
           type: boolean
         profile_photo:
+          type: string
+          readOnly: true
+        country:
+          type: string
+          readOnly: true
+        country_iso2:
           type: string
           readOnly: true
         locations:
@@ -19769,10 +19888,9 @@ components:
           x-spec-enum-id: b2ca29060dbb7784
           readOnly: true
         requested_by:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
-          nullable: true
         amount:
           type: string
           format: decimal
@@ -19805,10 +19923,9 @@ components:
           readOnly: true
           nullable: true
         resolved_by:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
-          nullable: true
         resolution_reason:
           type: string
           readOnly: true
@@ -19995,6 +20112,7 @@ components:
           maxLength: 255
         country_iso2:
           type: string
+          writeOnly: true
           maxLength: 2
         phone:
           type: string
@@ -20151,6 +20269,13 @@ components:
           format: uuid
       required:
       - booking
+    PayoutAccountResetResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
     Provider:
       type: object
       properties:
@@ -20195,6 +20320,12 @@ components:
         auto_payout_enabled:
           type: boolean
         profile_photo:
+          type: string
+          readOnly: true
+        country:
+          type: string
+          readOnly: true
+        country_iso2:
           type: string
           readOnly: true
         locations:
@@ -20243,6 +20374,8 @@ components:
       - avg_rating
       - business_profile
       - certifications
+      - country
+      - country_iso2
       - created_at
       - display_name
       - hires_count
@@ -20748,13 +20881,15 @@ components:
       - updated_at
     ProviderPayoutAccountSetup:
       type: object
+      description: |-
+        Setup serializer for payout account onboarding.
+
+        currency and country are NOT accepted here — they are derived server-side from
+        the authenticated user's country_iso2 profile field. Sending them has no effect.
+
+        Paystack (Nigeria / NGN) requires: account_number, bank_code, account_name.
+        Stripe (all other countries) requires: email (optional, falls back to profile email).
       properties:
-        currency:
-          type: string
-          maxLength: 3
-        country:
-          type: string
-          maxLength: 2
         email:
           type: string
           format: email
@@ -20764,8 +20899,6 @@ components:
           type: string
         account_name:
           type: string
-      required:
-      - currency
     ProviderPayoutAccountSetupResponse:
       type: object
       properties:
@@ -20773,12 +20906,15 @@ components:
           type: string
         currency:
           type: string
+        country:
+          type: string
         payout_account:
           $ref: '#/components/schemas/ProviderPayoutAccount'
         onboarding_url:
           type: string
           format: uri
       required:
+      - country
       - currency
       - payout_account
       - provider
@@ -20791,8 +20927,20 @@ components:
           allOf:
           - $ref: '#/components/schemas/ProviderPayoutAccount'
           nullable: true
+        gateway:
+          type: string
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
       required:
+      - country
+      - currency
       - exists
+      - gateway
       - payout_account
     ProviderPublic:
       type: object
@@ -20824,6 +20972,12 @@ components:
         auto_payout_enabled:
           type: boolean
         profile_photo:
+          type: string
+          readOnly: true
+        country:
+          type: string
+          readOnly: true
+        country_iso2:
           type: string
           readOnly: true
         locations:
@@ -20878,6 +21032,8 @@ components:
       - avg_rating
       - business_profile
       - certifications
+      - country
+      - country_iso2
       - created_at
       - display_name
       - distance_km
@@ -20965,10 +21121,9 @@ components:
           x-spec-enum-id: b2ca29060dbb7784
           readOnly: true
         requested_by:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
-          nullable: true
         amount:
           type: string
           format: decimal
@@ -21001,10 +21156,9 @@ components:
           readOnly: true
           nullable: true
         resolved_by:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
-          nullable: true
         resolution_reason:
           type: string
           readOnly: true
@@ -21064,8 +21218,8 @@ components:
           type: string
           format: uuid
         author_user:
-          type: string
-          format: uuid
+          allOf:
+          - $ref: '#/components/schemas/User'
           readOnly: true
         target_type:
           enum:
@@ -21081,9 +21235,9 @@ components:
           format: uuid
           nullable: true
         target_user:
-          type: string
-          format: uuid
-          nullable: true
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
         rating:
           type: string
           format: decimal
@@ -21116,6 +21270,7 @@ components:
       - moderated_at
       - rating
       - target_type
+      - target_user
       - updated_at
     ReviewWrite:
       type: object
@@ -21367,6 +21522,27 @@ components:
           type: boolean
       required:
       - title
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        display_name:
+          type: string
+          readOnly: true
+        profile_photo:
+          type: string
+          readOnly: true
+        is_deleted:
+          type: boolean
+          readOnly: true
+      required:
+      - display_name
+      - id
+      - is_deleted
+      - profile_photo
     UserLastKnownLocation:
       type: object
       properties:
@@ -21419,6 +21595,9 @@ components:
           x-spec-enum-id: 88f20e4b5d4113bb
           readOnly: true
         phone:
+          type: string
+          readOnly: true
+        country:
           type: string
           readOnly: true
         country_iso2:
@@ -21488,6 +21667,7 @@ components:
           readOnly: true
       required:
       - business_profile
+      - country
       - country_iso2
       - display_name
       - email

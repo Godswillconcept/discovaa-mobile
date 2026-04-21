@@ -221,7 +221,6 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
 
   Widget _buildTabSwitcher() {
     return Container(
-      color: Colors.white,
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

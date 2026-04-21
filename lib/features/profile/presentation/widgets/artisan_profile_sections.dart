@@ -1,6 +1,8 @@
 import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/features/messaging/domain/entities/conversation.dart';
 import 'package:discovaa/features/messaging/presentation/providers/messaging_provider.dart';
+import 'package:discovaa/features/profile/domain/repositories/artisan_detail_repository.dart'
+    show ArtisanService;
 import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
 import 'package:discovaa/features/profile/presentation/widgets/booking_flow_widgets.dart';
 import 'package:flutter/material.dart';
@@ -150,9 +152,17 @@ class ArtisanProfileHeader extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '${artisan.location} • ISV${artisan.id}12345',
+                '${artisan.location} • ${artisan.registrationNumber ?? artisan.id}',
                 style: const TextStyle(color: Colors.grey, fontSize: 13),
               ),
+              if (artisan.address != null && artisan.address!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    artisan.address!,
+                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ),
             ],
           ),
         ),
@@ -288,10 +298,13 @@ class ArtisanGallery extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: NetworkImageWithFallback(
-        imageUrl: imagePath.startsWith('http') ? imagePath : null,
-        fallbackAsset: fallbackAsset,
-        fit: BoxFit.cover,
+      child: AspectRatio(
+        aspectRatio: 1.0,
+        child: NetworkImageWithFallback(
+          imageUrl: imagePath,
+          fallbackAsset: fallbackAsset,
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }
@@ -318,17 +331,18 @@ class ArtisanBusinessInfo extends StatelessWidget {
             children: [
               Flexible(
                 child: Text(
-                  'ISV ${artisan.category} Services : ${artisan.name}',
+                  '${artisan.category} : ${artisan.name}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
+                  // maxLines: 1,
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(Icons.verified_user, color: Colors.amber, size: 16),
+              if (artisan.isVerified)
+                const Icon(Icons.verified_user, color: Colors.amber, size: 16),
             ],
           ),
           const SizedBox(height: 8),
@@ -396,20 +410,59 @@ class ArtisanServicesSection extends StatelessWidget {
   }
 }
 
-class ArtisanPricesDropdown extends StatefulWidget {
+class ArtisanPricesDropdown extends ConsumerStatefulWidget {
   final Artisan artisan;
-  const ArtisanPricesDropdown({super.key, required this.artisan});
+  final List<ArtisanService> services;
+  const ArtisanPricesDropdown({
+    super.key,
+    required this.artisan,
+    required this.services,
+  });
 
   @override
-  State<ArtisanPricesDropdown> createState() => _ArtisanPricesDropdownState();
+  ConsumerState<ArtisanPricesDropdown> createState() =>
+      _ArtisanPricesDropdownState();
 }
 
-class _ArtisanPricesDropdownState extends State<ArtisanPricesDropdown> {
+class _ArtisanPricesDropdownState extends ConsumerState<ArtisanPricesDropdown> {
   bool _isExpanded = false;
-  final Set<String> _selectedServices = {'Plumbing', 'Water heater'};
+
+  String _calculatedPriceRange(Set<String> selectedServices) {
+    final selectedServiceObjects = widget.services
+        .where((s) => selectedServices.contains(s.title))
+        .toList();
+
+    if (selectedServiceObjects.isEmpty) return '';
+
+    final ranges = selectedServiceObjects
+        .map((s) => s.priceRange)
+        .where((r) => r.isNotEmpty)
+        .toSet()
+        .toList();
+    if (ranges.length == 1) {
+      return ranges.first;
+    } else if (ranges.length > 1) {
+      return '${ranges.first} - ${ranges.last}';
+    }
+    return '';
+  }
+
+  double _calculatedHourlyRate(Set<String> selectedServices) {
+    final selectedServiceObjects = widget.services
+        .where(
+          (s) => selectedServices.contains(s.title) && s.hourlyRate != null,
+        )
+        .toList();
+
+    if (selectedServiceObjects.isEmpty) return widget.artisan.hourlyRate;
+
+    final rates = selectedServiceObjects.map((s) => s.hourlyRate!).toList();
+    return rates.reduce((a, b) => (a < b ? a : b));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final selectedServices = ref.watch(bookingProvider).selectedServices;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -430,9 +483,9 @@ class _ArtisanPricesDropdownState extends State<ArtisanPricesDropdown> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  _selectedServices.isEmpty
+                  selectedServices.isEmpty
                       ? 'Select services'
-                      : _selectedServices.join(', '),
+                      : selectedServices.join(', '),
                   style: const TextStyle(color: Colors.black87),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -465,16 +518,10 @@ class _ArtisanPricesDropdownState extends State<ArtisanPricesDropdown> {
             ),
             child: Column(
               children: widget.artisan.services.map((service) {
-                final isSelected = _selectedServices.contains(service);
+                final isSelected = selectedServices.contains(service);
                 return InkWell(
                   onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedServices.remove(service);
-                      } else {
-                        _selectedServices.add(service);
-                      }
-                    });
+                    ref.read(bookingProvider.notifier).toggleService(service);
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
@@ -510,30 +557,38 @@ class _ArtisanPricesDropdownState extends State<ArtisanPricesDropdown> {
             ),
           ),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Hourly rate', style: TextStyle(color: Colors.grey)),
-            Text(
-              '€${widget.artisan.hourlyRate.toInt()}/hour',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Price range for a project',
-              style: TextStyle(color: Colors.grey),
-            ),
-            Text(
-              widget.artisan.priceRange,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+        if (selectedServices.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Hourly rate', style: TextStyle(color: Colors.grey)),
+              Text(
+                '₦${_calculatedHourlyRate(selectedServices).toInt()}/hour',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Price range for a project',
+                style: TextStyle(color: Colors.grey),
+              ),
+              Text(
+                _calculatedPriceRange(selectedServices).isNotEmpty
+                    ? _calculatedPriceRange(selectedServices)
+                    : widget.artisan.priceRange,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ] else
+          const Text(
+            'Select services to see pricing',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
         const SizedBox(height: 16),
         const Divider(),
       ],
@@ -560,28 +615,34 @@ class ArtisanQualificationsSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 20,
-          runSpacing: 10,
-          children: artisan.certifications
-              .map(
-                (c) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.circle, size: 6, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(
-                      c,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
+        if (artisan.certifications.isEmpty)
+          const Text(
+            'No certifications listed',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          )
+        else
+          Wrap(
+            spacing: 20,
+            runSpacing: 10,
+            children: artisan.certifications
+                .map(
+                  (c) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.circle, size: 6, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Text(
+                        c,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              )
-              .toList(),
-        ),
+                    ],
+                  ),
+                )
+                .toList(),
+          ),
         const SizedBox(height: 16),
         const Divider(),
       ],
@@ -652,8 +713,6 @@ class _ArtisanReviewsSectionState extends State<ArtisanReviewsSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.artisan.reviews.isEmpty) return const SizedBox.shrink();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -685,25 +744,26 @@ class _ArtisanReviewsSectionState extends State<ArtisanReviewsSection> {
           ],
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 180,
-          child: PageView.builder(
-            controller: _reviewPageController,
-            itemCount: widget.artisan.reviews.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentReviewIndex = index;
-              });
-            },
-            itemBuilder: (context, index) {
-              final review = widget.artisan.reviews[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: _buildReviewCard(context, review),
-              );
-            },
+        if (widget.artisan.reviews.isNotEmpty)
+          SizedBox(
+            height: 180,
+            child: PageView.builder(
+              controller: _reviewPageController,
+              itemCount: widget.artisan.reviews.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentReviewIndex = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                final review = widget.artisan.reviews[index];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: _buildReviewCard(context, review),
+                );
+              },
+            ),
           ),
-        ),
         const SizedBox(height: 16),
         if (widget.artisan.reviews.length > 1)
           Center(
@@ -725,6 +785,11 @@ class _ArtisanReviewsSectionState extends State<ArtisanReviewsSection> {
               ),
             ),
           ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () {},
+          child: Text('See all ${widget.artisan.reviewsCount} Reviews'),
+        ),
       ],
     );
   }

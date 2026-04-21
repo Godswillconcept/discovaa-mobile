@@ -22,13 +22,13 @@ class RouteNames {
   // with the BottomNavBar. Absolute paths must match the router nesting.
   static const String userProfile = '/home/user-profile';
   static const String favorites = '/home/favorites';
-  static const String notifications = '/notifications';
+  static const String artisanProfile = '/home/artisan-profile';
+  static const String notifications = '/home/notifications';
   static const String editProfile = '/profile/edit';
   static const String messages = '/messages';
   static const String chat = '/messages/chat';
   static const String reviews = '/reviews';
   static const String settings = '/settings';
-  static const String artisanProfile = '/artisan-profile';
   static const String booking = '/booking';
   static const String bookings = '/bookings';
   static const String services = '/services';

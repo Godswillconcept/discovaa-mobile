@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:discovaa/app/dependency_injection/service_locator.dart';
 import 'package:discovaa/core/errors/exceptions.dart';
@@ -66,9 +68,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } else {
+      final failure = result.failure;
       state = state.copyWith(
         state: AuthOperationState.error,
-        errorMessage: result.failure?.message ?? 'Login failed',
+        errorMessage: failure?.code == 'VERIFICATION_PENDING'
+            ? 'VERIFICATION_PENDING'
+            : (failure?.message ?? 'Login failed'),
       );
       return false;
     }
@@ -85,10 +90,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
       errorMessage: null,
     );
 
+    // Map UserRole to accountType and providerType
+    String accountType;
+    String? providerType;
+    switch (role) {
+      case UserRole.user:
+        accountType = 'user';
+        providerType = null;
+        break;
+      case UserRole.individualProvider:
+        accountType = 'service_provider';
+        providerType = 'individual';
+        break;
+      case UserRole.businessProvider:
+        accountType = 'service_provider';
+        providerType = 'business';
+        break;
+    }
+
     final registration = RegistrationEntity(
       email: email,
       password: password,
-      role: role.name,
+      accountType: accountType,
+      providerType: providerType,
     );
 
     final result = await _repository.register(registration);
@@ -261,13 +285,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Update user profile after resumed registration
-  /// Returns true if profile update was successful
+  /// Update user profile
   Future<bool> updateProfile({
+    required String firstName,
+    required String lastName,
     required String displayName,
     required String phone,
-    required String address,
-    required String? country,
+    required String? countryIso2,
     String? businessName,
     String? businessDescription,
   }) async {
@@ -278,19 +302,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     try {
       final result = await _repository.updateProfile(
+        firstName: firstName,
+        lastName: lastName,
         displayName: displayName,
         phone: phone,
-        address: address,
-        country: country,
+        countryIso2: countryIso2,
         businessName: businessName,
         businessDescription: businessDescription,
       );
 
       if (result.isSuccess && result.data != null) {
-        state = state.copyWith(
-          state: AuthOperationState.success,
-          user: result.data,
-        );
         return true;
       } else {
         state = state.copyWith(
@@ -323,6 +344,142 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Clear error state
   void clearError() {
     state = state.copyWith(state: AuthOperationState.idle, errorMessage: null);
+  }
+
+  /// Fetch full user profile from accounts/me endpoint
+  /// This returns the complete profile with is_profile_complete field
+  Future<bool> fetchFullProfile() async {
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
+
+    final result = await _repository.fetchFullProfile();
+
+    if (result.isSuccess) {
+      if (result.data != null) {
+        state = state.copyWith(
+          state: AuthOperationState.success,
+          user: result.data,
+          isAuthenticated: true,
+        );
+      }
+      return true;
+    } else {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: result.failure?.message ?? 'Failed to fetch profile',
+      );
+      return false;
+    }
+  }
+
+  /// Upload ID document front
+  Future<bool> uploadIdDocumentFront({
+    required String idNumber,
+    required File documentFront,
+  }) async {
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
+
+    try {
+      final result = await _repository.uploadIdDocumentFront(
+        idNumber: idNumber,
+        documentFront: documentFront,
+      );
+
+      if (result.isSuccess && result.data != null) {
+        state = state.copyWith(
+          state: AuthOperationState.success,
+          user: result.data,
+        );
+        return true;
+      } else {
+        state = state.copyWith(
+          state: AuthOperationState.error,
+          errorMessage:
+              result.failure?.message ?? 'Failed to upload ID document',
+        );
+        return false;
+      }
+    } on NetworkException catch (e) {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: e.message,
+      );
+      return false;
+    } on ServerException catch (e) {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: e.message,
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: 'Unexpected error during ID document upload',
+      );
+      return false;
+    }
+  }
+
+  /// Upload ID document back
+  Future<bool> uploadIdDocumentBack({
+    required String idNumber,
+    required File documentBack,
+  }) async {
+    state = state.copyWith(
+      state: AuthOperationState.loading,
+      errorMessage: null,
+    );
+
+    try {
+      final result = await _repository.uploadIdDocumentBack(
+        idNumber: idNumber,
+        documentBack: documentBack,
+      );
+
+      if (result.isSuccess && result.data != null) {
+        state = state.copyWith(
+          state: AuthOperationState.success,
+          user: result.data,
+        );
+        return true;
+      } else {
+        state = state.copyWith(
+          state: AuthOperationState.error,
+          errorMessage:
+              result.failure?.message ?? 'Failed to upload ID document',
+        );
+        return false;
+      }
+    } on NetworkException catch (e) {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: e.message,
+      );
+      return false;
+    } on ServerException catch (e) {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: e.message,
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        state: AuthOperationState.error,
+        errorMessage: 'Unexpected error during ID document upload',
+      );
+      return false;
+    }
+  }
+
+  /// Fetch auth configuration
+  Future<Map<String, dynamic>?> fetchConfig() async {
+    final result = await _repository.fetchConfig();
+    return result.isSuccess ? result.data : null;
   }
 }
 

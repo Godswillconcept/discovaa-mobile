@@ -41,6 +41,8 @@ class Artisan {
   final int hiresCount;
   final int yearsInBusiness;
   final DateTime? lastSeen;
+  final String? registrationNumber;
+  final String? address;
 
   Artisan({
     required this.id,
@@ -62,5 +64,7 @@ class Artisan {
     this.hiresCount = 0,
     this.yearsInBusiness = 0,
     this.lastSeen,
+    this.registrationNumber,
+    this.address,
   });
 }

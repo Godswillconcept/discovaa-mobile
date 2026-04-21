@@ -161,7 +161,8 @@ class MessagesListPage extends ConsumerWidget {
                             ),
                           )
                         : RefreshIndicator(
-                            onRefresh: () => ref.read(messagingProvider.notifier).refresh(),
+                            onRefresh: () =>
+                                ref.read(messagingProvider.notifier).refresh(),
                             child: ListView.separated(
                               physics: const AlwaysScrollableScrollPhysics(),
                               padding: EdgeInsets.zero,

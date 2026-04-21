@@ -5,14 +5,16 @@ class RegistrationModel {
   final String email;
   final String password;
   final String? otpCode;
-  final String role;
+  final String accountType;
+  final String? providerType;
   final DateTime? createdAt;
 
   const RegistrationModel({
     required this.email,
     required this.password,
     this.otpCode,
-    required this.role,
+    required this.accountType,
+    this.providerType,
     this.createdAt,
   });
 
@@ -22,7 +24,9 @@ class RegistrationModel {
       email: json['email'] as String,
       password: json['password'] as String,
       otpCode: json['otpCode'] as String?,
-      role: json['role'] as String,
+      accountType:
+          json['account_type'] as String? ?? json['role'] as String? ?? 'user',
+      providerType: json['provider_type'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : null,
@@ -35,7 +39,8 @@ class RegistrationModel {
       'email': email,
       'password': password,
       'otpCode': otpCode,
-      'role': role,
+      'account_type': accountType,
+      if (providerType != null) 'provider_type': providerType,
       'createdAt': createdAt?.toIso8601String(),
     };
   }
@@ -46,7 +51,8 @@ class RegistrationModel {
       email: email,
       password: password,
       otpCode: otpCode,
-      role: role,
+      accountType: accountType,
+      providerType: providerType,
       createdAt: createdAt,
     );
   }
@@ -57,23 +63,34 @@ class RegistrationModel {
       email: entity.email,
       password: entity.password,
       otpCode: entity.otpCode,
-      role: entity.role,
+      accountType: entity.accountType,
+      providerType: entity.providerType,
       createdAt: entity.createdAt,
     );
+  }
+
+  /// Legacy compatibility: get role from account_type and provider_type
+  String get role {
+    if (accountType == 'service_provider') {
+      return providerType == 'business' ? 'business' : 'individual';
+    }
+    return 'user';
   }
 
   RegistrationModel copyWith({
     String? email,
     String? password,
     String? otpCode,
-    String? role,
+    String? accountType,
+    String? providerType,
     DateTime? createdAt,
   }) {
     return RegistrationModel(
       email: email ?? this.email,
       password: password ?? this.password,
       otpCode: otpCode ?? this.otpCode,
-      role: role ?? this.role,
+      accountType: accountType ?? this.accountType,
+      providerType: providerType ?? this.providerType,
       createdAt: createdAt ?? this.createdAt,
     );
   }

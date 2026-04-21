@@ -100,6 +100,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
       if (mounted) {
         if (success) {
+          // Fetch full user profile from accounts/me endpoint to get accurate isProfileComplete status
+          await ref.read(authProvider.notifier).fetchFullProfile();
           final user = ref.read(authProvider).user;
           if (user != null) {
             // Check if profile is incomplete - redirect to complete profile
@@ -179,7 +181,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           }
         } else {
           final error = ref.read(authProvider).errorMessage;
-          _showErrorSnackBar(error ?? 'Login failed. Please try again.');
+
+          if (error == 'VERIFICATION_PENDING') {
+            // Redirect to OTP page for unverified account
+            if (mounted) {
+              context.push(
+                RouteNames.otp,
+                extra: {
+                  'email': _emailController.text,
+                  'type':
+                      'login_verify', // Distinct from 'register' — navigates to home after success
+                },
+              );
+            }
+          } else {
+            _showErrorSnackBar(error ?? 'Login failed. Please try again.');
+          }
         }
       }
     } catch (e) {

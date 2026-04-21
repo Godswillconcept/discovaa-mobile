@@ -20,7 +20,7 @@ class MessagingSearchBar extends ConsumerWidget {
             ref.read(messagingProvider.notifier).setSearchQuery(value);
           },
           decoration: const InputDecoration(
-            hintText: 'Search',
+            hintText: 'Search conversations',
             hintStyle: TextStyle(color: Color(0xFF999999), fontSize: 16),
             prefixIcon: Icon(Icons.search, color: Color(0xFF999999), size: 24),
             border: InputBorder.none,

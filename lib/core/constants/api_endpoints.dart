@@ -22,6 +22,9 @@ class ApiEndpoints {
   static const String authEmailVerifyResend =
       '/api/identity/app/v1/auth/email/verify/resend';
 
+  // Config
+  static const String authConfig = '/api/identity/browser/v1/config';
+
   // Password Management
   static const String authPasswordRequest =
       '/api/identity/app/v1/auth/password/request';

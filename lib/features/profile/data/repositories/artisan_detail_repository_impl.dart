@@ -28,13 +28,17 @@ class ArtisanDetailRepositoryImpl implements ArtisanDetailRepository {
       'artisan.availability.$artisanId';
 
   @override
-  Artisan? getCachedArtisanDetail(String artisanId) => _readCachedArtisan(artisanId);
+  Artisan? getCachedArtisanDetail(String artisanId) =>
+      _readCachedArtisan(artisanId);
   @override
-  List<ArtisanService> getCachedArtisanServices(String artisanId) => _readCachedServices(artisanId);
+  List<ArtisanService> getCachedArtisanServices(String artisanId) =>
+      _readCachedServices(artisanId);
   @override
-  List<Review> getCachedArtisanReviews(String artisanId) => _readCachedReviews(artisanId);
+  List<Review> getCachedArtisanReviews(String artisanId) =>
+      _readCachedReviews(artisanId);
   @override
-  Map<String, String> getCachedArtisanAvailability(String artisanId) => _readCachedAvailability(artisanId);
+  Map<String, String> getCachedArtisanAvailability(String artisanId) =>
+      _readCachedAvailability(artisanId);
 
   @override
   Future<Artisan> getArtisanDetail(String artisanId) async {
@@ -200,6 +204,8 @@ class ArtisanDetailRepositoryImpl implements ArtisanDetailRepository {
       hiresCount: dto.hiresCount,
       yearsInBusiness: 0, // Not available in public API
       lastSeen: null,
+      registrationNumber: dto.registrationNumber,
+      address: dto.locations.isNotEmpty ? dto.locations.first.address : null,
     );
   }
 

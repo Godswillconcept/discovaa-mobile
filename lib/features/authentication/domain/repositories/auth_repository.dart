@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../../../../core/errors/failures.dart';
 import '../entities/user_entity.dart';
 import '../entities/registration_entity.dart';
@@ -63,11 +64,31 @@ abstract class AuthRepository {
 
   /// Update user profile (for resumed registration flow)
   Future<Result<UserEntity>> updateProfile({
+    required String firstName,
+    required String lastName,
     required String displayName,
     required String phone,
-    required String address,
-    required String? country,
+    required String? countryIso2,
     String? businessName,
     String? businessDescription,
+  });
+
+  /// Fetch full user profile from accounts/me endpoint
+  /// This returns the complete profile with is_profile_complete field
+  Future<Result<UserEntity?>> fetchFullProfile();
+
+  /// Get auth configuration
+  Future<Result<Map<String, dynamic>?>> fetchConfig();
+
+  /// Upload ID document front
+  Future<Result<UserEntity>> uploadIdDocumentFront({
+    required String idNumber,
+    required File documentFront,
+  });
+
+  /// Upload ID document back
+  Future<Result<UserEntity>> uploadIdDocumentBack({
+    required String idNumber,
+    required File documentBack,
   });
 }

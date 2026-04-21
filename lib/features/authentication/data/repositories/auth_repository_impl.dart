@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../domain/entities/user_entity.dart';
@@ -270,43 +271,50 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<UserEntity>> updateProfile({
+    required String firstName,
+    required String lastName,
     required String displayName,
     required String phone,
-    required String address,
-    required String? country,
+    required String? countryIso2,
     String? businessName,
     String? businessDescription,
   }) async {
     try {
-      // Build the profile update request
-      final Map<String, dynamic> updateData = {
-        'display_name': displayName,
-        'phone': phone,
-        'address': address,
-        'country': country,
-      };
+      // Call the remote data source to update profile
+      final userModel = await _remoteDataSource.updateProfile(
+        firstName: firstName,
+        lastName: lastName,
+        displayName: displayName,
+        phone: phone,
+        countryIso2: countryIso2,
+        businessName: businessName,
+        businessDescription: businessDescription,
+      );
+      return Result.success(userModel.toEntity());
+    } on NetworkException catch (e) {
+      return Result.error(NetworkFailure(message: e.message, code: e.code));
+    } on ServerException catch (e) {
+      return Result.error(ServerFailure(message: e.message, code: e.code));
+    } on ValidationException catch (e) {
+      return Result.error(ValidationFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return Result.error(
+        UnknownFailure(
+          message: 'Unexpected error updating profile',
+          code: 'UNKNOWN_PROFILE_UPDATE_ERROR',
+        ),
+      );
+    }
+  }
 
-      // Add provider-specific fields if present
-      if (businessName != null) {
-        updateData['business_name'] = businessName;
-      }
-      if (businessDescription != null) {
-        updateData['business_description'] = businessDescription;
-      }
-
-      // Make the API call to update profile
-      // For now, we'll use a placeholder that calls getCurrentUser
-      // This should be replaced with actual PATCH /api/accounts/me/ call
-      final userModel = await _remoteDataSource.getCurrentUser();
+  @override
+  Future<Result<UserEntity?>> fetchFullProfile() async {
+    try {
+      final userModel = await _remoteDataSource.fetchFullProfile();
       if (userModel != null) {
         return Result.success(userModel.toEntity());
       }
-      return Result.error(
-        UnknownFailure(
-          message: 'Failed to update profile - user not found',
-          code: 'PROFILE_UPDATE_FAILED',
-        ),
-      );
+      return Result.success(null);
     } on NetworkException catch (e) {
       return Result.error(NetworkFailure(message: e.message, code: e.code));
     } on ServerException catch (e) {
@@ -314,8 +322,77 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       return Result.error(
         UnknownFailure(
-          message: 'Unexpected error updating profile',
-          code: 'UNKNOWN_PROFILE_UPDATE_ERROR',
+          message: 'Unexpected error fetching full profile',
+          code: 'UNKNOWN_FETCH_PROFILE_ERROR',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>?>> fetchConfig() async {
+    try {
+      final config = await _remoteDataSource.fetchConfig();
+      return Result.success(config);
+    } on NetworkException catch (e) {
+      return Result.error(NetworkFailure(message: e.message, code: e.code));
+    } on ServerException catch (e) {
+      return Result.error(ServerFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return Result.error(
+        UnknownFailure(
+          message: 'Unexpected error fetching config',
+          code: 'UNKNOWN_CONFIG_ERROR',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Result<UserEntity>> uploadIdDocumentFront({
+    required String idNumber,
+    required File documentFront,
+  }) async {
+    try {
+      final userModel = await _remoteDataSource.uploadIdDocumentFront(
+        idNumber: idNumber,
+        documentFront: documentFront,
+      );
+      return Result.success(userModel.toEntity());
+    } on NetworkException catch (e) {
+      return Result.error(NetworkFailure(message: e.message, code: e.code));
+    } on ServerException catch (e) {
+      return Result.error(ServerFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return Result.error(
+        UnknownFailure(
+          message: 'Unexpected error uploading ID document front',
+          code: 'UNKNOWN_ID_FRONT_ERROR',
+        ),
+      );
+    }
+  }
+
+  @override
+  Future<Result<UserEntity>> uploadIdDocumentBack({
+    required String idNumber,
+    required File documentBack,
+  }) async {
+    try {
+      final userModel = await _remoteDataSource.uploadIdDocumentBack(
+        idNumber: idNumber,
+        documentBack: documentBack,
+      );
+      return Result.success(userModel.toEntity());
+    } on NetworkException catch (e) {
+      return Result.error(NetworkFailure(message: e.message, code: e.code));
+    } on ServerException catch (e) {
+      return Result.error(ServerFailure(message: e.message, code: e.code));
+    } catch (e) {
+      return Result.error(
+        UnknownFailure(
+          message: 'Unexpected error uploading ID document back',
+          code: 'UNKNOWN_ID_BACK_ERROR',
         ),
       );
     }

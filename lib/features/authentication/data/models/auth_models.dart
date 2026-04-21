@@ -1,6 +1,8 @@
 // OpenAPI Authentication Models
 // Based on Headless API specification
 
+import '../../presentation/providers/signup_provider.dart';
+
 // ============================================================================
 // Request DTOs
 // ============================================================================
@@ -28,31 +30,73 @@ class LoginRequest {
 }
 
 /// Signup request
+/// Uses account_type and provider_type to match web app API
 class SignupRequest {
-  final String username;
   final String email;
   final String password;
+  final String accountType;
+  final String? providerType;
 
   const SignupRequest({
-    required this.username,
     required this.email,
     required this.password,
+    required this.accountType,
+    this.providerType,
   });
 
   Map<String, dynamic> toJson() {
-    return {'username': username, 'email': email, 'password': password};
+    final json = <String, dynamic>{
+      'email': email,
+      'password': password,
+      'account_type': accountType,
+    };
+    if (providerType != null) {
+      json['provider_type'] = providerType;
+    }
+    return json;
+  }
+
+  /// Create from UserRole enum
+  /// Maps UserRole to account_type and provider_type for API
+  factory SignupRequest.fromUserRole(
+    UserRole role, {
+    required String email,
+    required String password,
+  }) {
+    switch (role) {
+      case UserRole.user:
+        return SignupRequest(
+          email: email,
+          password: password,
+          accountType: 'user',
+          providerType: null,
+        );
+      case UserRole.individualProvider:
+        return SignupRequest(
+          email: email,
+          password: password,
+          accountType: 'service_provider',
+          providerType: 'individual',
+        );
+      case UserRole.businessProvider:
+        return SignupRequest(
+          email: email,
+          password: password,
+          accountType: 'service_provider',
+          providerType: 'business',
+        );
+    }
   }
 }
 
 /// Email verification request
 class EmailVerifyRequest {
-  final String email;
-  final String code;
+  final String key;
 
-  const EmailVerifyRequest({required this.email, required this.code});
+  const EmailVerifyRequest({required this.key});
 
   Map<String, dynamic> toJson() {
-    return {'email': email, 'code': code};
+    return {'key': key};
   }
 }
 
@@ -307,6 +351,76 @@ class AuthenticatedResponse {
 
   /// Convenience getter for the user
   AuthUser get user => data.user;
+}
+
+/// Represents a flow in the authentication process
+class AuthFlow {
+  final String id;
+  final bool isPending;
+  final Map<String, dynamic>? provider;
+  final List<String>? types;
+
+  const AuthFlow({
+    required this.id,
+    this.isPending = false,
+    this.provider,
+    this.types,
+  });
+
+  factory AuthFlow.fromJson(Map<String, dynamic> json) {
+    return AuthFlow(
+      id: json['id']?.toString() ?? '',
+      isPending: json['is_pending'] == true,
+      provider: json['provider'] is Map
+          ? Map<String, dynamic>.from(json['provider'] as Map)
+          : null,
+      types: (json['types'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
+    );
+  }
+}
+
+/// Represents an unauthenticated response, often containing pending flows (401)
+class AuthenticationResponse {
+  final int status;
+  final List<AuthFlow> flows;
+  final AuthMeta meta;
+  final AuthUser? user; // Only present in reauthentication responses
+
+  const AuthenticationResponse({
+    required this.status,
+    required this.flows,
+    required this.meta,
+    this.user,
+  });
+
+  factory AuthenticationResponse.fromJson(Map<String, dynamic> json) {
+    final dataJson = json['data'] is Map
+        ? Map<String, dynamic>.from(json['data'] as Map)
+        : <String, dynamic>{};
+    final flowsList = dataJson['flows'] as List<dynamic>?;
+    final userJson = dataJson['user'] as Map<String, dynamic>?;
+    final metaJson = json['meta'] is Map
+        ? Map<String, dynamic>.from(json['meta'] as Map)
+        : <String, dynamic>{};
+
+    return AuthenticationResponse(
+      status: json['status'] as int? ?? 401,
+      flows:
+          flowsList
+              ?.map((e) => AuthFlow.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      meta: AuthMeta.fromJson(metaJson),
+      user: userJson != null ? AuthUser.fromJson(userJson) : null,
+    );
+  }
+
+  /// Check if a specific flow is pending
+  bool isFlowPending(String flowId) {
+    return flows.any((flow) => flow.id == flowId && flow.isPending);
+  }
 }
 
 /// Error item in error response

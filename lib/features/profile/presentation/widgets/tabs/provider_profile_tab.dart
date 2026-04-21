@@ -1641,7 +1641,7 @@ class ProfileSectionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (action != null) action!,
+              ...action != null ? [action!] : [],
             ],
           ),
           const SizedBox(height: 24),

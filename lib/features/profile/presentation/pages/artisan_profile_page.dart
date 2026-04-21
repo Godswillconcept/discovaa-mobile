@@ -41,79 +41,21 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
         backgroundColor: Colors.white,
         body: detailAsync.when(
           data: (detailState) {
-            // Use populated artisan with full data
+            // Use populated artisan data
             final artisan = detailState.populatedArtisan;
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const MainHeader(),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () async {
-                      await ref
-                          .read(artisanDetailProvider(targetArtisanId).notifier)
-                          .refresh();
-                    },
-                    child: SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: Column(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ArtisanProfileHeader(artisan: artisan),
-                                const SizedBox(height: 24),
-                                ArtisanGallery(artisan: artisan),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFF8FBFF),
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(30),
-                                topRight: Radius.circular(30),
-                              ),
-                            ),
-                            child: SingleChildScrollView(
-                              physics: const NeverScrollableScrollPhysics(),
-                              child: Column(
-                                children: [
-                                  ArtisanBusinessInfo(artisan: artisan),
-                                  const SizedBox(height: 24),
-                                  ArtisanServicesSection(artisan: artisan),
-                                  const SizedBox(height: 24),
-                                  ArtisanPricesDropdown(artisan: artisan),
-                                  const SizedBox(height: 24),
-                                  ArtisanQualificationsSection(
-                                    artisan: artisan,
-                                  ),
-                                  const SizedBox(height: 24),
-                                  ArtisanAvailabilitySection(artisan: artisan),
-                                  const SizedBox(height: 24),
-                                  ArtisanReviewsSection(artisan: artisan),
-                                  const SizedBox(height: 40),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            return _buildProfileContent(
+              artisan,
+              services: detailState.services,
             );
           },
           loading: () {
             // Show base artisan data while loading details
             if (baseArtisan != null) {
-              return _buildProfileContent(baseArtisan, isLoading: true);
+              return _buildProfileContent(
+                baseArtisan,
+                isLoading: true,
+                services: const [],
+              );
             }
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
@@ -125,6 +67,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
               return _buildProfileContent(
                 baseArtisan,
                 errorMessage: 'Failed to load full profile. Pull to retry.',
+                services: const [],
               );
             }
             return Scaffold(
@@ -154,6 +97,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
     Artisan artisan, {
     bool isLoading = false,
     String? errorMessage,
+    List<ArtisanService> services = const [],
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +148,10 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
                         const SizedBox(height: 24),
                         ArtisanServicesSection(artisan: artisan),
                         const SizedBox(height: 24),
-                        ArtisanPricesDropdown(artisan: artisan),
+                        ArtisanPricesDropdown(
+                          artisan: artisan,
+                          services: services,
+                        ),
                         const SizedBox(height: 24),
                         ArtisanQualificationsSection(artisan: artisan),
                         const SizedBox(height: 24),

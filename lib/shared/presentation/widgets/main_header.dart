@@ -77,6 +77,7 @@ class MainHeader extends ConsumerWidget {
           // Right-side actions
           Row(
             children: [
+              NotificationBellBadge(onTap: () => _openNotifications(context)),
               // Favorites icon with badge
               Consumer(
                 builder: (context, ref, child) {
@@ -135,7 +136,7 @@ class MainHeader extends ConsumerWidget {
                   );
                 },
               ),
-              NotificationBellBadge(onTap: () => _openNotifications(context)),
+
               InkWell(
                 onTap: () => _openUserProfile(context),
                 borderRadius: BorderRadius.circular(20),

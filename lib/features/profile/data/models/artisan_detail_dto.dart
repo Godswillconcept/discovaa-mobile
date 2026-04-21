@@ -15,6 +15,7 @@ class ProviderDetailDto {
   final List<ProviderCertificationDto> certifications;
   final List<ProviderAvailabilityRuleDto> availabilityRules;
   final String? media;
+  final String? registrationNumber;
 
   const ProviderDetailDto({
     required this.id,
@@ -30,6 +31,7 @@ class ProviderDetailDto {
     required this.certifications,
     required this.availabilityRules,
     this.media,
+    this.registrationNumber,
   });
 
   factory ProviderDetailDto.fromJson(Map<String, dynamic> json) {
@@ -62,6 +64,7 @@ class ProviderDetailDto {
           .map(ProviderAvailabilityRuleDto.fromJson)
           .toList(),
       media: json['media']?.toString(),
+      registrationNumber: json['registration_number']?.toString(),
     );
   }
 

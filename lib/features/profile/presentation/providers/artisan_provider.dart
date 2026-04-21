@@ -50,7 +50,7 @@ class CategoriesNotifier extends StateNotifier<List<ArtisanCategory>> {
     if (cached.isNotEmpty) {
       state = cached;
     }
-    
+
     try {
       final response = await _dio.get(
         ApiEndpoints.serviceCategories,
@@ -183,6 +183,7 @@ class BookingState {
   final bool isConfirming;
   final bool isConfirmed;
   final Artisan? selectedArtisan;
+  final Set<String> selectedServices;
 
   BookingState({
     this.selectedDate,
@@ -190,6 +191,7 @@ class BookingState {
     this.isConfirming = false,
     this.isConfirmed = false,
     this.selectedArtisan,
+    this.selectedServices = const {},
   });
 
   BookingState copyWith({
@@ -198,6 +200,7 @@ class BookingState {
     bool? isConfirming,
     bool? isConfirmed,
     Artisan? selectedArtisan,
+    Set<String>? selectedServices,
   }) {
     return BookingState(
       selectedDate: selectedDate ?? this.selectedDate,
@@ -205,6 +208,7 @@ class BookingState {
       isConfirming: isConfirming ?? this.isConfirming,
       isConfirmed: isConfirmed ?? this.isConfirmed,
       selectedArtisan: selectedArtisan ?? this.selectedArtisan,
+      selectedServices: selectedServices ?? this.selectedServices,
     );
   }
 }
@@ -216,6 +220,18 @@ class BookingNotifier extends StateNotifier<BookingState> {
       state = state.copyWith(selectedArtisan: artisan);
   void selectDate(DateTime date) => state = state.copyWith(selectedDate: date);
   void selectTime(String time) => state = state.copyWith(selectedTime: time);
+
+  void toggleService(String service) {
+    final currentServices = Set<String>.from(state.selectedServices);
+    if (currentServices.contains(service)) {
+      currentServices.remove(service);
+    } else {
+      currentServices.add(service);
+    }
+    state = state.copyWith(selectedServices: currentServices);
+  }
+
+  void clearServices() => state = state.copyWith(selectedServices: const {});
 
   Future<void> confirmBooking() async {
     state = state.copyWith(isConfirming: true);
@@ -273,9 +289,10 @@ class FilteredArtisansNotifier extends AsyncNotifier<List<Artisan>> {
   }
 }
 
-final filteredArtisansProvider = AsyncNotifierProvider<FilteredArtisansNotifier, List<Artisan>>(() {
-  return FilteredArtisansNotifier();
-});
+final filteredArtisansProvider =
+    AsyncNotifierProvider<FilteredArtisansNotifier, List<Artisan>>(() {
+      return FilteredArtisansNotifier();
+    });
 
 class _CategoryLite {
   final String id;

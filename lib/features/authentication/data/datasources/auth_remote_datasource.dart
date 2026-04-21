@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
@@ -7,6 +9,7 @@ import '../../../../core/storage/secure_token_storage.dart';
 import '../models/auth_models.dart';
 import '../models/user_model.dart';
 import '../models/registration_model.dart';
+import '../../presentation/providers/signup_provider.dart';
 
 /// Abstract remote data source for authentication using OpenAPI
 abstract class AuthRemoteDataSource {
@@ -39,6 +42,36 @@ abstract class AuthRemoteDataSource {
 
   /// Refresh access token
   Future<String?> refreshToken();
+
+  /// Update user profile
+  Future<UserModel> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String displayName,
+    required String phone,
+    required String? countryIso2,
+    String? businessName,
+    String? businessDescription,
+  });
+
+  /// Fetch full user profile from accounts/me endpoint
+  /// This returns the complete profile with is_profile_complete field
+  Future<UserModel?> fetchFullProfile();
+
+  /// Get auth configuration
+  Future<Map<String, dynamic>?> fetchConfig();
+
+  /// Upload ID document front
+  Future<UserModel> uploadIdDocumentFront({
+    required String idNumber,
+    required File documentFront,
+  });
+
+  /// Upload ID document back
+  Future<UserModel> uploadIdDocumentBack({
+    required String idNumber,
+    required File documentBack,
+  });
 }
 
 /// Implementation using OpenAPI endpoints
@@ -150,11 +183,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> register(RegistrationModel registration) async {
     try {
-      // Generate username from email if not provided
-      final username = registration.email.split('@').first;
+      // Map role string to UserRole enum
+      UserRole userRole;
+      switch (registration.role.toLowerCase()) {
+        case 'user':
+          userRole = UserRole.user;
+          break;
+        case 'individual':
+        case 'individual_provider':
+          userRole = UserRole.individualProvider;
+          break;
+        case 'business':
+        case 'business_provider':
+          userRole = UserRole.businessProvider;
+          break;
+        default:
+          userRole = UserRole.user;
+      }
 
-      final request = SignupRequest(
-        username: username,
+      final request = SignupRequest.fromUserRole(
+        userRole,
         email: registration.email,
         password: registration.password,
       );
@@ -310,7 +358,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String code,
   }) async {
     try {
-      final request = EmailVerifyRequest(email: email, code: code);
+      final sessionToken = await _tokenStorage.getSessionToken();
+      final request = EmailVerifyRequest(key: code);
+
+      debugPrint('Verifying email: $email with code: $code');
+      debugPrint('Using Session Token: $sessionToken');
 
       // Use direct Dio call to allow 409 status code (already verified)
       final dio = Dio(
@@ -322,8 +374,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
+            ...sessionToken != null ? {'X-Session-Token': sessionToken} : {},
           },
-          validateStatus: (status) => status == 200 || status == 409,
+          validateStatus: (status) =>
+              status == 200 || status == 401 || status == 409,
         ),
       );
 
@@ -335,8 +389,33 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       debugPrint('VerifyEmail response status: ${response.statusCode}');
       debugPrint('VerifyEmail response data: ${response.data}');
 
-      // 200 = verified successfully
+      // 200 = verified and authenticated — extract and store tokens
       if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic>) {
+          if (responseData.containsKey('meta')) {
+            final metaJson = Map<String, dynamic>.from(
+              responseData['meta'] as Map,
+            );
+            final dataJson = responseData.containsKey('data')
+                ? Map<String, dynamic>.from(responseData['data'] as Map)
+                : <String, dynamic>{};
+            final meta = AuthMeta.fromJsonWithFallback(metaJson, dataJson);
+            await _storeTokens(meta, dataJson);
+            debugPrint(
+              '[verifyEmail] Tokens stored after successful verification.',
+            );
+          }
+        }
+        return true;
+      }
+
+      // 401 = email verified but auto-login is disabled server-side (ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION=False)
+      // Per OpenAPI spec: "a 401 is returned when verifying as part of login/signup" — still a success
+      if (response.statusCode == 401) {
+        debugPrint(
+          '[verifyEmail] 401: Email verified, auto-login not enabled.',
+        );
         return true;
       }
 
@@ -391,62 +470,74 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final response = await _dioClient.post(
         ApiEndpoints.authLogin,
         data: request.toJson(),
+        options: Options(
+          validateStatus: (status) => status == 200 || status == 401,
+        ),
       );
 
       // Debug: print the actual response for debugging
       debugPrint('Login response status: ${response.statusCode}');
       debugPrint('Login response data: ${response.data}');
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 401) {
         final responseData = response.data;
 
-        // Check if response has the expected envelope format
         if (responseData is Map<String, dynamic>) {
-          // Normalize to Map<String, dynamic> to avoid type cast issues
           final normalizedData = Map<String, dynamic>.from(responseData);
 
-          // Check if it's the envelope format: {status, data, meta}
-          if (normalizedData.containsKey('data') &&
-              normalizedData.containsKey('meta')) {
-            final authResponse = AuthenticatedResponse.fromJson(normalizedData);
-            final dataJson = normalizedData['data'] as Map<String, dynamic>?;
-            // Store tokens with fallback from data
-            await _storeTokens(authResponse.meta, dataJson);
-            return _mapAuthUserToUserModel(authResponse.user);
+          // Both 200 and 401 may contain meta with session_token
+          if (normalizedData.containsKey('meta')) {
+            final metaJson = Map<String, dynamic>.from(normalizedData['meta']);
+            final meta = AuthMeta.fromJsonWithFallback(
+              metaJson,
+              normalizedData,
+            );
+
+            // Extract tokens and data for storage
+            final dataJson = normalizedData.containsKey('data')
+                ? Map<String, dynamic>.from(normalizedData['data'])
+                : normalizedData;
+
+            await _storeTokens(meta, dataJson);
           }
-          // Check if it's a direct user object (no envelope)
-          else if (normalizedData.containsKey('id') &&
-              normalizedData.containsKey('email')) {
-            // Direct user response - create UserModel from it
-            final user = UserModel.fromJson(normalizedData);
-            // Try to get tokens from meta if available
-            if (normalizedData.containsKey('meta')) {
-              final metaJson = normalizedData['meta'] is Map
-                  ? Map<String, dynamic>.from(normalizedData['meta'] as Map)
-                  : <String, dynamic>{};
-              // Use fromJsonWithFallback to parse refresh_token from both meta and root
-              final meta = AuthMeta.fromJsonWithFallback(
-                metaJson,
+
+          // Case 1: Success (200)
+          if (response.statusCode == 200) {
+            if (normalizedData.containsKey('data')) {
+              final authResponse = AuthenticatedResponse.fromJson(
                 normalizedData,
               );
-              await _storeTokens(meta, normalizedData);
+              return _mapAuthUserToUserModel(authResponse.user);
+            } else if (normalizedData.containsKey('id')) {
+              return UserModel.fromJson(normalizedData);
             }
-            return user;
+          }
+
+          // Case 2: Verification Pending (401)
+          if (response.statusCode == 401) {
+            final authResponse = AuthenticationResponse.fromJson(
+              normalizedData,
+            );
+
+            if (authResponse.isFlowPending('verify_email')) {
+              throw const AuthenticationException(
+                message: 'Your email is not verified. Please check your inbox.',
+                code: 'VERIFICATION_PENDING',
+              );
+            }
           }
         }
-
-        throw ServerException(
-          message: 'Unexpected response format from server',
-          code: 'INVALID_RESPONSE_FORMAT',
-        );
       }
 
       throw _handleError(response.data, 'Login failed');
     } on NetworkException {
       rethrow;
+    } on AuthenticationException {
+      rethrow;
     } on ServerException {
       rethrow;
     } catch (e) {
+      if (e is AuthenticationException) rethrow;
       throw UnknownException(
         message: 'Unexpected error during login',
         code: 'UNKNOWN_LOGIN_ERROR',
@@ -472,8 +563,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
       } catch (e) {
         // Ignore API errors during logout - we still want to clear local data
-        debugPrint('[AuthRemoteDataSource] Logout API call failed or timed out: $e');
-        debugPrint('[AuthRemoteDataSource] Proceeding with local data clearance...');
+        debugPrint(
+          '[AuthRemoteDataSource] Logout API call failed or timed out: $e',
+        );
+        debugPrint(
+          '[AuthRemoteDataSource] Proceeding with local data clearance...',
+        );
       }
 
       // Clear all auth data from local storage
@@ -589,11 +684,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<void> resendEmailVerification(String email) async {
     try {
-      final request = PasswordRequest(email: email);
+      final sessionToken = await _tokenStorage.getSessionToken();
 
       final response = await _dioClient.post(
         ApiEndpoints.authEmailVerifyResend,
-        data: request.toJson(),
+        options: Options(
+          headers: {
+            ...sessionToken != null ? {'X-Session-Token': sessionToken} : {},
+          },
+        ),
       );
 
       if (response.statusCode != 200) {
@@ -662,6 +761,254 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw UnknownException(
         message: 'Unexpected error refreshing token',
         code: 'UNKNOWN_TOKEN_REFRESH_ERROR',
+        details: e,
+      );
+    }
+  }
+
+  @override
+  Future<UserModel> updateProfile({
+    required String firstName,
+    required String lastName,
+    required String displayName,
+    required String phone,
+    required String? countryIso2,
+    String? businessName,
+    String? businessDescription,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'first_name': firstName,
+        'last_name': lastName,
+        'display_name': displayName,
+        'phone': phone,
+        ...countryIso2 != null ? {'country_iso2': countryIso2} : {},
+        ...businessName != null ? {'business_name': businessName} : {},
+        ...businessDescription != null
+            ? {'business_description': businessDescription}
+            : {},
+      });
+
+      final response = await _dioClient.patch(
+        ApiEndpoints.accountsMe,
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic>) {
+          // Check if response has the expected envelope format
+          if (responseData.containsKey('data')) {
+            final data = responseData['data'] as Map<String, dynamic>;
+            return _mapAccountsMeToUserModel(data);
+          }
+          // Direct user object response
+          else if (responseData.containsKey('id')) {
+            return _mapAccountsMeToUserModel(responseData);
+          }
+        }
+        throw ServerException(
+          message: 'Invalid response format from server',
+          code: 'INVALID_RESPONSE_FORMAT',
+        );
+      }
+
+      throw _handleError(response.data, 'Failed to update profile');
+    } on NetworkException {
+      rethrow;
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Unexpected error during profile update',
+        code: 'UNKNOWN_PROFILE_UPDATE_ERROR',
+        details: e,
+      );
+    }
+  }
+
+  @override
+  Future<UserModel?> fetchFullProfile() async {
+    try {
+      final response = await _dioClient.get(ApiEndpoints.accountsMe);
+
+      debugPrint('FetchFullProfile response status: ${response.statusCode}');
+      debugPrint('FetchFullProfile response data: ${response.data}');
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+
+        if (responseData is Map<String, dynamic>) {
+          // Handle the accounts/me response format: {success, data, meta, error}
+          if (responseData.containsKey('data')) {
+            final data = responseData['data'] as Map<String, dynamic>;
+            return _mapAccountsMeToUserModel(data);
+          }
+          // Direct user object response
+          else if (responseData.containsKey('id')) {
+            return _mapAccountsMeToUserModel(responseData);
+          }
+        }
+      }
+
+      return null;
+    } on NetworkException {
+      return null;
+    } on ServerException {
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching full profile: $e');
+      return null;
+    }
+  }
+
+  /// Map accounts/me response to UserModel
+  /// The accounts/me endpoint uses snake_case field names
+  UserModel _mapAccountsMeToUserModel(Map<String, dynamic> data) {
+    // Check if profile is complete based on required fields
+    final displayName = data['display_name'] as String? ?? '';
+    final phone = data['phone'] as String? ?? '';
+
+    // Handle country field - it can be either a String or an object with iso2 field
+    String? country;
+    final countryData = data['country'];
+    if (countryData is String) {
+      country = countryData;
+    } else if (countryData is Map<String, dynamic>) {
+      country =
+          countryData['iso2'] as String? ?? countryData['name'] as String?;
+    }
+
+    final verificationStatus = data['verification_status'] as String?;
+
+    // Profile is considered complete if display_name and phone are filled
+    final isProfileComplete = displayName.isNotEmpty && phone.isNotEmpty;
+
+    return UserModel(
+      id: data['id'] as String,
+      email: data['email'] as String,
+      displayName: displayName,
+      phone: phone,
+      address: null, // accounts/me doesn't return address
+      country: country,
+      photoUrl: data['profile_photo'] as String?,
+      role: data['role'] as String? ?? 'USER',
+      isEmailVerified: verificationStatus == 'VERIFIED',
+      isProfileComplete: isProfileComplete,
+      createdAt: null,
+      updatedAt: null,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>?> fetchConfig() async {
+    try {
+      final response = await _dioClient.get(ApiEndpoints.authConfig);
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic>) {
+          // Handle the config response format: {status, data, meta}
+          if (responseData.containsKey('data')) {
+            return responseData['data'] as Map<String, dynamic>;
+          }
+          // Direct response
+          return responseData;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      debugPrint('[AuthRemoteDataSource] Error fetching config: $e');
+      return null;
+    }
+  }
+
+  @override
+  Future<UserModel> uploadIdDocumentFront({
+    required String idNumber,
+    required File documentFront,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'id_number': idNumber,
+        'id_document_front': await MultipartFile.fromFile(documentFront.path),
+      });
+
+      final response = await _dioClient.patch(
+        ApiEndpoints.accountsMe,
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic>) {
+          if (responseData.containsKey('data')) {
+            final data = responseData['data'] as Map<String, dynamic>;
+            return _mapAccountsMeToUserModel(data);
+          } else if (responseData.containsKey('id')) {
+            return _mapAccountsMeToUserModel(responseData);
+          }
+        }
+      }
+
+      throw ServerException(
+        message: 'Failed to upload ID document front',
+        code: 'ID_DOCUMENT_FRONT_UPLOAD_FAILED',
+      );
+    } on NetworkException {
+      rethrow;
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Unexpected error uploading ID document front',
+        code: 'UNKNOWN_ID_FRONT_UPLOAD_ERROR',
+        details: e,
+      );
+    }
+  }
+
+  @override
+  Future<UserModel> uploadIdDocumentBack({
+    required String idNumber,
+    required File documentBack,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'id_number': idNumber,
+        'id_document_back': await MultipartFile.fromFile(documentBack.path),
+      });
+
+      final response = await _dioClient.patch(
+        ApiEndpoints.accountsMe,
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic>) {
+          if (responseData.containsKey('data')) {
+            final data = responseData['data'] as Map<String, dynamic>;
+            return _mapAccountsMeToUserModel(data);
+          } else if (responseData.containsKey('id')) {
+            return _mapAccountsMeToUserModel(responseData);
+          }
+        }
+      }
+
+      throw ServerException(
+        message: 'Failed to upload ID document back',
+        code: 'ID_DOCUMENT_BACK_UPLOAD_FAILED',
+      );
+    } on NetworkException {
+      rethrow;
+    } on ServerException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException(
+        message: 'Unexpected error uploading ID document back',
+        code: 'UNKNOWN_ID_BACK_UPLOAD_ERROR',
         details: e,
       );
     }

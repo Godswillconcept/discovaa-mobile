@@ -20,6 +20,17 @@ extension UserRoleX on UserRole {
     }
   }
 
+  String get name {
+    switch (this) {
+      case UserRole.user:
+        return "USER";
+      case UserRole.individualProvider:
+        return "INDIVIDUAL";
+      case UserRole.businessProvider:
+        return "BUSINESS";
+    }
+  }
+
   bool get isProvider => this != UserRole.user;
 }
 
