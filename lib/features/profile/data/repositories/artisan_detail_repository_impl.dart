@@ -21,11 +21,17 @@ class ArtisanDetailRepositoryImpl implements ArtisanDetailRepository {
        _hiveService = hiveService,
        _networkInfo = networkInfo;
 
-  String _cacheKey(String artisanId) => 'artisan.detail.$artisanId';
-  String _servicesCacheKey(String artisanId) => 'artisan.services.$artisanId';
-  String _reviewsCacheKey(String artisanId) => 'artisan.reviews.$artisanId';
+  // Cache version to bust stale data when model changes
+  static const _cacheVersion = 'v2';
+
+  String _cacheKey(String artisanId) =>
+      'artisan.detail.$artisanId.$_cacheVersion';
+  String _servicesCacheKey(String artisanId) =>
+      'artisan.services.$artisanId.$_cacheVersion';
+  String _reviewsCacheKey(String artisanId) =>
+      'artisan.reviews.$artisanId.$_cacheVersion';
   String _availabilityCacheKey(String artisanId) =>
-      'artisan.availability.$artisanId';
+      'artisan.availability.$artisanId.$_cacheVersion';
 
   @override
   Artisan? getCachedArtisanDetail(String artisanId) =>
@@ -178,6 +184,7 @@ class ArtisanDetailRepositoryImpl implements ArtisanDetailRepository {
       availability[rule.weekdayName] = rule.displayTimeRange;
     }
 
+    // Use provider detail media for gallery (has URLs) instead of services media (has UUIDs only)
     final galleryImages = dto.galleryUrls.isNotEmpty
         ? dto.galleryUrls
         : _getPlaceholderGallery(dto.id);

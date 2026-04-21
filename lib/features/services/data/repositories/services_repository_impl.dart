@@ -53,7 +53,9 @@ class ServicesRepositoryImpl implements ServicesRepository {
   Future<List<ServiceModel>> listOwnServices() async {
     try {
       final categories = await _categoryMap();
-      final response = await _dioClient.get(ApiEndpoints.mgtServices);
+      // Use public API endpoint with provider filtering
+      // The backend should filter by the authenticated user's provider ID
+      final response = await _dioClient.get(ApiEndpoints.services);
       final envelope = decodeListEnvelope(
         response,
         (item) => ServiceDto.fromJson(item),
@@ -61,7 +63,7 @@ class ServicesRepositoryImpl implements ServicesRepository {
       final services = envelope.data
           .map((dto) => mapServiceDto(dto, categories))
           .toList(growable: false);
-      // We don't necessarily want to overwrite the main cache with own services, 
+      // We don't necessarily want to overwrite the main cache with own services,
       // or maybe we do if the main cache should only show own services for providers.
       // For now, let's keep it separate or just return.
       return services;
@@ -81,7 +83,7 @@ class ServicesRepositoryImpl implements ServicesRepository {
     final categories = await _categoryMap();
     final categoryId = _resolveCategoryId(categories, service.category);
     final response = await _dioClient.post(
-      ApiEndpoints.mgtServices,
+      ApiEndpoints.services,
       data: mapServiceWriteDto(service, categoryId: categoryId).toJson(),
     );
     final dto = decodeEnvelope(
@@ -98,7 +100,7 @@ class ServicesRepositoryImpl implements ServicesRepository {
     final categories = await _categoryMap();
     final categoryId = _resolveCategoryId(categories, service.category);
     final response = await _dioClient.patch(
-      ApiEndpoints.mgtServiceDetail(service.id),
+      '${ApiEndpoints.services}${service.id}/',
       data: mapServiceWriteDto(service, categoryId: categoryId).toJson(),
     );
     final dto = decodeEnvelope(
@@ -112,7 +114,7 @@ class ServicesRepositoryImpl implements ServicesRepository {
 
   @override
   Future<void> deleteService(String id) async {
-    await _dioClient.delete(ApiEndpoints.mgtServiceDetail(id));
+    await _dioClient.delete('${ApiEndpoints.services}$id/');
     await _removeCachedService(id);
   }
 
@@ -193,7 +195,7 @@ class ServicesRepositoryImpl implements ServicesRepository {
     if (_inMemoryCategories != null) {
       return _inMemoryCategories!;
     }
-    
+
     final cached = _readCachedCategories();
     if (cached.isNotEmpty) {
       _inMemoryCategories = cached;
@@ -201,7 +203,7 @@ class ServicesRepositoryImpl implements ServicesRepository {
       _fetchCategoriesSilent();
       return cached;
     }
-    
+
     return await _fetchCategoriesSilent();
   }
 

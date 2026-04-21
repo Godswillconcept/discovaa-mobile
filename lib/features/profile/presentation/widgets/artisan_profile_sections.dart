@@ -8,7 +8,6 @@ import 'package:discovaa/features/profile/presentation/widgets/booking_flow_widg
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:go_router/go_router.dart';
 
 /// Helper widget to display an image from URL with asset fallback
@@ -242,53 +241,47 @@ class ArtisanGallery extends StatelessWidget {
     if (images.isEmpty) return const SizedBox.shrink();
 
     final imageCount = images.length;
-    final crossAxisCount = imageCount == 1
-        ? 1
-        : imageCount == 2
-        ? 2
-        : 3;
 
-    return StaggeredGrid.count(
-      crossAxisCount: crossAxisCount,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
+    // Single image: display full width
+    if (imageCount == 1) {
+      return _buildGalleryImage(images[0]);
+    }
+
+    // Multiple images: 50/50 split layout
+    final remainingImages = images.skip(1).toList();
+    return Row(
       children: [
-        if (imageCount == 1)
-          StaggeredGridTile.count(
-            crossAxisCellCount: 1,
-            mainAxisCellCount: 1,
-            child: _buildGalleryImage(images[0]),
-          )
-        else if (imageCount == 2) ...[
-          StaggeredGridTile.count(
-            crossAxisCellCount: 1,
-            mainAxisCellCount: 1,
-            child: _buildGalleryImage(images[0]),
-          ),
-          StaggeredGridTile.count(
-            crossAxisCellCount: 1,
-            mainAxisCellCount: 1,
-            child: _buildGalleryImage(images[1]),
-          ),
-        ] else ...[
-          // 3 or more images: 2x2 for the first, 1x1 for the rest
-          StaggeredGridTile.count(
-            crossAxisCellCount: 2,
-            mainAxisCellCount: 2,
-            child: _buildGalleryImage(images[0]),
-          ),
-          ...images
-              .skip(1)
-              .map(
-                (image) => StaggeredGridTile.count(
-                  crossAxisCellCount: 1,
-                  mainAxisCellCount: 1,
-                  child: _buildGalleryImage(image),
-                ),
-              ),
-        ],
+        // Left side: First image (50% width)
+        Expanded(child: _buildGalleryImage(images[0])),
+        const SizedBox(width: 10),
+        // Right side: Grid of remaining images (50% width)
+        Expanded(child: _buildRemainingImagesGrid(remainingImages)),
       ],
     );
+  }
+
+  Widget _buildRemainingImagesGrid(List<String> images) {
+    final count = images.length;
+    final columns = _calculateGridColumns(count);
+
+    return GridView.count(
+      crossAxisCount: columns,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      childAspectRatio: 1.0,
+      children: images.map((image) => _buildGalleryImage(image)).toList(),
+    );
+  }
+
+  int _calculateGridColumns(int imageCount) {
+    if (imageCount <= 1) return 1;
+    if (imageCount <= 2) return 2;
+    if (imageCount <= 4) return 2;
+    // For 5+ images, calculate dynamically to fit all
+    // Aim for roughly square aspect ratio
+    return ((imageCount + 1) / 2).ceil();
   }
 
   Widget _buildGalleryImage(String imagePath) {

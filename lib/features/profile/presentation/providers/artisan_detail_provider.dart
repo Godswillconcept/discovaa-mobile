@@ -135,13 +135,17 @@ class ArtisanDetailNotifier
     if (cachedArtisan != null) {
       final cachedServices = repository.getCachedArtisanServices(artisanId);
       final cachedReviews = repository.getCachedArtisanReviews(artisanId);
-      final cachedAvailability = repository.getCachedArtisanAvailability(artisanId);
-      state = AsyncData(ArtisanDetailState(
-        artisan: cachedArtisan,
-        services: cachedServices,
-        reviews: cachedReviews,
-        availability: cachedAvailability,
-      ));
+      final cachedAvailability = repository.getCachedArtisanAvailability(
+        artisanId,
+      );
+      state = AsyncData(
+        ArtisanDetailState(
+          artisan: cachedArtisan,
+          services: cachedServices,
+          reviews: cachedReviews,
+          availability: cachedAvailability,
+        ),
+      );
     }
 
     // 2. Fetch fresh main artisan detail

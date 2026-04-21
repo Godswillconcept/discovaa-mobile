@@ -14,7 +14,7 @@ class ProviderDetailDto {
   final List<ProviderLocationDto> locations;
   final List<ProviderCertificationDto> certifications;
   final List<ProviderAvailabilityRuleDto> availabilityRules;
-  final String? media;
+  final List<dynamic> media;
   final String? registrationNumber;
 
   const ProviderDetailDto({
@@ -30,7 +30,7 @@ class ProviderDetailDto {
     required this.locations,
     required this.certifications,
     required this.availabilityRules,
-    this.media,
+    required this.media,
     this.registrationNumber,
   });
 
@@ -40,6 +40,7 @@ class ProviderDetailDto {
         json['certifications'] as List<dynamic>? ?? const [];
     final availabilityRulesRaw =
         json['availability_rules'] as List<dynamic>? ?? const [];
+    final mediaRaw = json['media'] as List<dynamic>? ?? const [];
 
     return ProviderDetailDto(
       id: json['id']?.toString() ?? '',
@@ -63,19 +64,22 @@ class ProviderDetailDto {
           .whereType<Map<String, dynamic>>()
           .map(ProviderAvailabilityRuleDto.fromJson)
           .toList(),
-      media: json['media']?.toString(),
+      media: mediaRaw,
       registrationNumber: json['registration_number']?.toString(),
     );
   }
 
   /// Parse gallery media URLs from the media field
+  /// Media is returned as an array of objects with 'url' fields
   List<String> get galleryUrls {
-    if (media == null || media!.isEmpty) return const [];
+    if (media.isEmpty) return const [];
     try {
-      final decoded = jsonDecode(media!);
-      if (decoded is List) {
-        return decoded.whereType<String>().toList();
-      }
+      return media
+          .whereType<Map<String, dynamic>>()
+          .map((m) => m['url']?.toString())
+          .where((url) => url != null && url.isNotEmpty)
+          .cast<String>()
+          .toList();
     } catch (_) {}
     return const [];
   }
@@ -123,11 +127,13 @@ class ProviderCertificationDto {
   final String id;
   final String title;
   final String? issuer;
+  final String? document;
 
   const ProviderCertificationDto({
     required this.id,
     required this.title,
     this.issuer,
+    this.document,
   });
 
   factory ProviderCertificationDto.fromJson(Map<String, dynamic> json) {
@@ -135,6 +141,7 @@ class ProviderCertificationDto {
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       issuer: json['issuer']?.toString(),
+      document: json['document']?.toString(),
     );
   }
 

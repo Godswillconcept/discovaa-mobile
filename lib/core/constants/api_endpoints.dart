@@ -82,9 +82,19 @@ class ApiEndpoints {
   static const String serviceMedia = '/api/service-media/';
 
   // Provider Management (Own Services)
+  // DEPRECATED: Use /api/services/ endpoints instead for provider service CRUD operations
+  // /mgt/api/ endpoints are for admin-only operations
+  @Deprecated(
+    'Use ApiEndpoints.services instead for provider service management',
+  )
   static const String mgtServices = '/mgt/api/services/';
+  @Deprecated(
+    'Use ApiEndpoints.services with ID instead for provider service management',
+  )
   static String mgtServiceDetail(String id) => '/mgt/api/services/$id/';
+  @Deprecated('Use ApiEndpoints.servicesFeatured instead')
   static const String mgtServicesFeatured = '/mgt/api/services/featured/';
+  @Deprecated('Use ApiEndpoints.serviceMedia instead')
   static const String mgtServiceMedia = '/mgt/api/service-media/';
 
   static const String bookings = '/api/bookings/';
