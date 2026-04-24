@@ -126,6 +126,8 @@ final artisanPageProvider = StateProvider<int>((ref) => 1);
 enum ArtisanSort { categories, popularity, ratings, proximity }
 
 class ArtisanFilterState {
+  static const Object _unset = Object();
+
   final ArtisanSort sortBy;
   final String? selectedCategory;
   final String searchQuery;
@@ -137,14 +139,18 @@ class ArtisanFilterState {
   });
 
   ArtisanFilterState copyWith({
-    ArtisanSort? sortBy,
-    String? selectedCategory,
-    String? searchQuery,
+    Object? sortBy = _unset,
+    Object? selectedCategory = _unset,
+    Object? searchQuery = _unset,
   }) {
     return ArtisanFilterState(
-      sortBy: sortBy ?? this.sortBy,
-      selectedCategory: selectedCategory ?? this.selectedCategory,
-      searchQuery: searchQuery ?? this.searchQuery,
+      sortBy: identical(sortBy, _unset) ? this.sortBy : sortBy as ArtisanSort,
+      selectedCategory: identical(selectedCategory, _unset)
+          ? this.selectedCategory
+          : selectedCategory as String?,
+      searchQuery: identical(searchQuery, _unset)
+          ? this.searchQuery
+          : searchQuery as String,
     );
   }
 }

@@ -24,6 +24,41 @@ class MainHeader extends ConsumerWidget {
     context.push(RouteNames.userProfile);
   }
 
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final success = await ref.read(authProvider.notifier).logout();
+
+      if (success && context.mounted) {
+        context.go(RouteNames.login);
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to logout'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
@@ -141,6 +176,15 @@ class MainHeader extends ConsumerWidget {
                     ],
                   );
                 },
+              ),
+
+              // Logout icon
+              InkWell(
+                onTap: () => _handleLogout(context, ref),
+                child: const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Icon(Icons.logout, color: Colors.white, size: 26),
+                ),
               ),
 
               Consumer(
