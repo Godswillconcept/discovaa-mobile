@@ -74,8 +74,14 @@ class UserInfoTab extends ConsumerWidget {
                 label: 'Account type',
                 value: profile.accountType.displayName,
                 isEditable: false,
-                showDivider: false,
               ),
+              if (profile.providerTypeRaw != null)
+                ProfileFieldRow(
+                  label: 'Provider type',
+                  value: profile.providerTypeRaw!,
+                  isEditable: false,
+                  showDivider: false,
+                ),
             ],
           ),
 

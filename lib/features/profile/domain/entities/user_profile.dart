@@ -19,6 +19,10 @@ class UserProfile {
   // Account Type
   final AccountType accountType;
   final VerificationStatus verificationStatus;
+  final String?
+  providerTypeRaw; // Raw provider type from API (INDIVIDUAL/BUSINESS)
+  final String?
+  providerId; // Provider ID for filtering services by the authenticated provider
 
   // Contact Info
   final String? phone;
@@ -64,6 +68,8 @@ class UserProfile {
     this.profileImage,
     this.accountType = AccountType.user,
     this.verificationStatus = VerificationStatus.unverified,
+    this.providerTypeRaw,
+    this.providerId,
     this.phone,
     this.country,
     this.countryCode,
@@ -146,6 +152,8 @@ class UserProfile {
     String? profileImage,
     AccountType? accountType,
     VerificationStatus? verificationStatus,
+    String? providerTypeRaw,
+    String? providerId,
     String? phone,
     String? country,
     String? countryCode,
@@ -179,6 +187,8 @@ class UserProfile {
       profileImage: profileImage ?? this.profileImage,
       accountType: accountType ?? this.accountType,
       verificationStatus: verificationStatus ?? this.verificationStatus,
+      providerTypeRaw: providerTypeRaw ?? this.providerTypeRaw,
+      providerId: providerId ?? this.providerId,
       phone: phone ?? this.phone,
       country: country ?? this.country,
       countryCode: countryCode ?? this.countryCode,
@@ -215,6 +225,8 @@ class UserProfile {
       'profileImage': profileImage,
       'accountType': accountType.name,
       'verificationStatus': verificationStatus.name,
+      'providerTypeRaw': providerTypeRaw,
+      'providerId': providerId,
       'phone': phone,
       'country': country,
       'countryCode': countryCode,
@@ -257,6 +269,8 @@ class UserProfile {
         (e) => e.name == json['verificationStatus'],
         orElse: () => VerificationStatus.unverified,
       ),
+      providerTypeRaw: json['providerTypeRaw'],
+      providerId: json['providerId'],
       phone: json['phone'],
       country: json['country'],
       countryCode: json['countryCode'],

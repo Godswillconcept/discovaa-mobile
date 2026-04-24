@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onTap;
+  final bool showServicesTab;
 
   const BottomNavBar({
     super.key,
     required this.selectedIndex,
     required this.onTap,
+    this.showServicesTab = true,
   });
 
   @override
@@ -50,12 +52,13 @@ class BottomNavBar extends StatelessWidget {
             iconData: Icons.mail_outline,
             selectedIconData: Icons.mail,
           ),
-          _buildNavItem(
-            4,
-            'Services',
-            iconData: Icons.work_outline,
-            selectedIconData: Icons.work,
-          ),
+          if (showServicesTab)
+            _buildNavItem(
+              4,
+              'Services',
+              iconData: Icons.work_outline,
+              selectedIconData: Icons.work,
+            ),
         ],
       ),
     );

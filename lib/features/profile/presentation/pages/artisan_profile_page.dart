@@ -124,7 +124,10 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ArtisanProfileHeader(artisan: artisan),
+                      ArtisanProfileHeader(
+                        artisan: artisan,
+                        services: services,
+                      ),
                       const SizedBox(height: 24),
                       ArtisanGallery(artisan: artisan),
                     ],

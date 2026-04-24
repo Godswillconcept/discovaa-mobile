@@ -99,8 +99,13 @@ String getArtisanPlaceholder(String seed) {
 
 class ArtisanProfileHeader extends ConsumerWidget {
   final Artisan artisan;
+  final List<ArtisanService> services;
 
-  const ArtisanProfileHeader({super.key, required this.artisan});
+  const ArtisanProfileHeader({
+    super.key,
+    required this.artisan,
+    this.services = const [],
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -168,7 +173,7 @@ class ArtisanProfileHeader extends ConsumerWidget {
         Column(
           children: [
             ElevatedButton(
-              onPressed: () => _showBookingModal(context),
+              onPressed: () => _showBookingModal(context, ref),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
@@ -219,7 +224,23 @@ class ArtisanProfileHeader extends ConsumerWidget {
     );
   }
 
-  void _showBookingModal(BuildContext context) {
+  void _showBookingModal(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(bookingProvider.notifier);
+    notifier.selectArtisan(artisan);
+
+    // Convert ArtisanService to BookingService and set in state
+    final bookingServices = services
+        .map(
+          (s) => BookingService(
+            id: s.id,
+            title: s.title,
+            hourlyRate: s.hourlyRate,
+            priceRange: s.priceRange,
+          ),
+        )
+        .toList();
+    notifier.setAvailableServices(bookingServices);
+
     showDialog(
       context: context,
       builder: (context) => const Dialog(

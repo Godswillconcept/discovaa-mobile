@@ -509,12 +509,18 @@ UserProfile mapProfileAggregate({
   return UserProfile(
     id: user.id,
     email: user.email,
-    displayName: provider?.displayName ?? user.displayName,
+    displayName: _smartDisplayName(
+      user.displayName,
+      provider?.displayName,
+      user.email,
+    ),
     firstName: user.firstName,
     lastName: user.lastName,
     profileImage: provider?.profilePhoto ?? user.profilePhoto,
     accountType: accountType,
     verificationStatus: verificationStatus,
+    providerTypeRaw: provider?.providerType ?? user.providerType,
+    providerId: user.providerId,
     phone: provider?.phone ?? user.phone,
     country: user.countryIso2,
     countryCode: user.countryIso2,
@@ -716,4 +722,22 @@ List<T> _mapList<T>(
 ) {
   if (source is! List) return const [];
   return source.whereType<Map<String, dynamic>>().map(mapper).toList();
+}
+
+/// Smart display name detection
+/// Prefers user's display_name unless provider's display_name is a meaningful business name
+/// (i.e., not just a username fallback matching the email username)
+String? _smartDisplayName(
+  String? userDisplayName,
+  String? providerDisplayName,
+  String email,
+) {
+  // If provider name is different from email username, use it (likely a business name)
+  if (providerDisplayName != null &&
+      providerDisplayName.isNotEmpty &&
+      !providerDisplayName.contains(email.split('@').first)) {
+    return providerDisplayName;
+  }
+  // Otherwise prefer user's display_name
+  return userDisplayName;
 }

@@ -2,6 +2,7 @@ import 'package:discovaa/app/dependency_injection/service_locator.dart';
 import 'package:discovaa/core/network/dio_client.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
+import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:discovaa/features/services/data/models/service_api_models.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/services/data/repositories/services_repository_impl.dart';
@@ -99,9 +100,10 @@ class ServicesState {
 // ---------------------------------------------------------------------------
 
 class ServicesNotifier extends StateNotifier<ServicesState> {
-  ServicesNotifier(this._repository) : super(const ServicesState());
+  ServicesNotifier(this._repository, this._ref) : super(const ServicesState());
 
   final ServicesRepository _repository;
+  final Ref _ref;
 
   static const _uuid = Uuid();
 
@@ -146,12 +148,14 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
     );
     try {
       final created = await _repository.createService(service);
-      
+
       // Update services list
       final updatedServices = [...state.services];
-      final sIndex = updatedServices.indexWhere((item) => item.id == service.id);
+      final sIndex = updatedServices.indexWhere(
+        (item) => item.id == service.id,
+      );
       if (sIndex != -1) updatedServices[sIndex] = created;
-      
+
       // Update ownServices list
       final updatedOwn = [...state.ownServices];
       final oIndex = updatedOwn.indexWhere((item) => item.id == service.id);
@@ -176,9 +180,11 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
     state = state.copyWith(status: ServicesStatus.loading);
     try {
       final updated = await _repository.updateService(service);
-      
+
       final updatedServices = [...state.services];
-      final sIndex = updatedServices.indexWhere((item) => item.id == service.id);
+      final sIndex = updatedServices.indexWhere(
+        (item) => item.id == service.id,
+      );
       if (sIndex != -1) updatedServices[sIndex] = updated;
 
       final updatedOwn = [...state.ownServices];
@@ -205,9 +211,11 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
     final updated = service.copyWith(isActive: !service.isActive);
     try {
       final saved = await _repository.updateService(updated);
-      
+
       final updatedServices = [...state.services];
-      final sIndex = updatedServices.indexWhere((item) => item.id == service.id);
+      final sIndex = updatedServices.indexWhere(
+        (item) => item.id == service.id,
+      );
       if (sIndex != -1) updatedServices[sIndex] = saved;
 
       final updatedOwn = [...state.ownServices];
@@ -374,7 +382,12 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
     if (!forceRefresh && state.ownServices.isNotEmpty) return;
     state = state.copyWith(status: ServicesStatus.loading);
     try {
-      final data = await _repository.listOwnServices();
+      // Get the authenticated user's profile to retrieve providerId
+      final profile = _ref.read(userProfileProvider).profile;
+      final providerId =
+          profile?.providerId; // Use the providerId field from profile
+
+      final data = await _repository.listOwnServices(providerId: providerId);
       state = state.copyWith(ownServices: data, status: ServicesStatus.success);
     } catch (e) {
       state = state.copyWith(
@@ -399,7 +412,7 @@ final servicesRepositoryProvider = Provider<ServicesRepository>((ref) {
 });
 
 final servicesProvider = StateNotifierProvider<ServicesNotifier, ServicesState>(
-  (ref) => ServicesNotifier(ref.watch(servicesRepositoryProvider)),
+  (ref) => ServicesNotifier(ref.watch(servicesRepositoryProvider), ref),
 );
 
 /// Convenience provider for the list of filtered services

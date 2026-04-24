@@ -9,9 +9,9 @@ enum AccountType {
       case AccountType.user:
         return 'User';
       case AccountType.provider:
-        return 'Provider';
+        return 'Individual Artisan';
       case AccountType.business:
-        return 'Business';
+        return 'Business Provider';
     }
   }
 

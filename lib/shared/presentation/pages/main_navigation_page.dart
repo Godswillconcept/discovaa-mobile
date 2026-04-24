@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:discovaa/shared/presentation/widgets/bottom_nav_bar.dart';
+import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 
 class MainNavigationPage extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -22,6 +23,9 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final profileState = ref.watch(userProfileProvider);
+    final isProvider = profileState.profile?.isProvider ?? false;
+
     return Scaffold(
       body: widget.navigationShell,
       bottomNavigationBar: BottomNavBar(
@@ -32,6 +36,7 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
             initialLocation: index == widget.navigationShell.currentIndex,
           );
         },
+        showServicesTab: isProvider,
       ),
     );
   }

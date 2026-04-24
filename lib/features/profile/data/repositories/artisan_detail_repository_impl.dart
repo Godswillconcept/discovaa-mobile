@@ -217,13 +217,19 @@ class ArtisanDetailRepositoryImpl implements ArtisanDetailRepository {
   }
 
   ArtisanService _mapServiceDtoToArtisanService(ServiceDto dto) {
+    // Filter out non-URL media entries (API returns UUIDs instead of URLs)
+    // Only include valid HTTP/HTTPS URLs that can be rendered as images
+    final validMediaUrls = dto.media
+        .where((url) => url.startsWith('http://') || url.startsWith('https://'))
+        .toList();
+
     return ArtisanService(
       id: dto.id,
       title: dto.title,
       description: dto.description,
       hourlyRate: dto.isHourly ? dto.priceAmount : null,
       priceRange: dto.displayPrice,
-      mediaUrls: dto.media,
+      mediaUrls: validMediaUrls,
     );
   }
 

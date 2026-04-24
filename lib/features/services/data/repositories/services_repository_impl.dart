@@ -50,12 +50,15 @@ class ServicesRepositoryImpl implements ServicesRepository {
   }
 
   @override
-  Future<List<ServiceModel>> listOwnServices() async {
+  Future<List<ServiceModel>> listOwnServices({String? providerId}) async {
     try {
       final categories = await _categoryMap();
       // Use public API endpoint with provider filtering
-      // The backend should filter by the authenticated user's provider ID
-      final response = await _dioClient.get(ApiEndpoints.services);
+      // Pass providerId as query parameter to filter by the authenticated user's provider ID
+      final response = await _dioClient.get(
+        ApiEndpoints.services,
+        queryParameters: providerId != null ? {'provider': providerId} : null,
+      );
       final envelope = decodeListEnvelope(
         response,
         (item) => ServiceDto.fromJson(item),
