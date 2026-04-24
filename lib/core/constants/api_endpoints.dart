@@ -105,6 +105,11 @@ class ApiEndpoints {
   static String bookingCancel(String id) => '/api/bookings/$id/cancel/';
   static String bookingComplete(String id) => '/api/bookings/$id/complete/';
   static String bookingCharge(String id) => '/api/bookings/$id/charge/';
+  static String bookingReschedule(String id) => '/api/bookings/$id/';
+  static String bookingUpdatePrice(String id) => '/api/bookings/$id/';
+
+  static String providerAvailabilityCheck(String id) =>
+      '/api/providers/$id/availability/check/';
 
   static const String messageThreads = '/api/message-threads/';
   static const String messagesV1 = '/api/messages/';

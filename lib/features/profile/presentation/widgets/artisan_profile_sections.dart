@@ -383,11 +383,28 @@ class ArtisanBusinessInfo extends StatelessWidget {
 
 class ArtisanServicesSection extends StatelessWidget {
   final Artisan artisan;
+  final List<ArtisanService> services;
 
-  const ArtisanServicesSection({super.key, required this.artisan});
+  const ArtisanServicesSection({
+    super.key,
+    required this.artisan,
+    this.services = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Use API services if available, otherwise fall back to base artisan services.
+    final serviceTitles = services.isNotEmpty
+        ? services.map((s) => s.title).toList()
+        : artisan.services;
+
+    if (serviceTitles.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Text('No services listed', style: TextStyle(color: Colors.grey)),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -399,7 +416,7 @@ class ArtisanServicesSection extends StatelessWidget {
         Wrap(
           spacing: 30,
           runSpacing: 10,
-          children: artisan.services
+          children: serviceTitles
               .map(
                 (s) => Row(
                   mainAxisSize: MainAxisSize.min,
@@ -427,6 +444,7 @@ class ArtisanServicesSection extends StatelessWidget {
 class ArtisanPricesDropdown extends ConsumerStatefulWidget {
   final Artisan artisan;
   final List<ArtisanService> services;
+
   const ArtisanPricesDropdown({
     super.key,
     required this.artisan,
@@ -434,8 +452,7 @@ class ArtisanPricesDropdown extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ArtisanPricesDropdown> createState() =>
-      _ArtisanPricesDropdownState();
+  ConsumerState<ArtisanPricesDropdown> createState() => _ArtisanPricesDropdownState();
 }
 
 class _ArtisanPricesDropdownState extends ConsumerState<ArtisanPricesDropdown> {
@@ -463,9 +480,7 @@ class _ArtisanPricesDropdownState extends ConsumerState<ArtisanPricesDropdown> {
 
   double _calculatedHourlyRate(Set<String> selectedServices) {
     final selectedServiceObjects = widget.services
-        .where(
-          (s) => selectedServices.contains(s.title) && s.hourlyRate != null,
-        )
+        .where((s) => selectedServices.contains(s.title) && s.hourlyRate != null)
         .toList();
 
     if (selectedServiceObjects.isEmpty) return widget.artisan.hourlyRate;
@@ -496,18 +511,18 @@ class _ArtisanPricesDropdownState extends ConsumerState<ArtisanPricesDropdown> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  selectedServices.isEmpty
-                      ? 'Select services'
-                      : selectedServices.join(', '),
-                  style: const TextStyle(color: Colors.black87),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                Expanded(
+                  child: Text(
+                    selectedServices.isEmpty
+                        ? 'Select services'
+                        : selectedServices.join(', '),
+                    style: const TextStyle(color: Colors.black87),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 Icon(
-                  _isExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
+                  _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                   color: Colors.black,
                 ),
               ],
@@ -531,17 +546,17 @@ class _ArtisanPricesDropdownState extends ConsumerState<ArtisanPricesDropdown> {
               ],
             ),
             child: Column(
-              children: widget.artisan.services.map((service) {
+              children: (widget.services.isNotEmpty
+                      ? widget.services.map((s) => s.title).toList()
+                      : widget.artisan.services)
+                  .map((service) {
                 final isSelected = selectedServices.contains(service);
                 return InkWell(
                   onTap: () {
                     ref.read(bookingProvider.notifier).toggleService(service);
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
                       children: [
                         Container(
@@ -554,15 +569,14 @@ class _ArtisanPricesDropdownState extends ConsumerState<ArtisanPricesDropdown> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: isSelected
-                              ? const Icon(
-                                  Icons.check,
-                                  size: 14,
-                                  color: Colors.black,
-                                )
+                              ? const Icon(Icons.check, size: 14, color: Colors.black)
                               : null,
                         ),
                         const SizedBox(width: 12),
-                        Text(service, style: const TextStyle(fontSize: 14)),
+                        Text(
+                          service,
+                          style: const TextStyle(fontSize: 14),
+                        ),
                       ],
                     ),
                   ),
@@ -586,10 +600,7 @@ class _ArtisanPricesDropdownState extends ConsumerState<ArtisanPricesDropdown> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Price range for a project',
-                style: TextStyle(color: Colors.grey),
-              ),
+              const Text('Price range for a project', style: TextStyle(color: Colors.grey)),
               Text(
                 _calculatedPriceRange(selectedServices).isNotEmpty
                     ? _calculatedPriceRange(selectedServices)

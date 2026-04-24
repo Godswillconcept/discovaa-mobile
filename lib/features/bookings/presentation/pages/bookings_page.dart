@@ -1,4 +1,6 @@
 import 'package:discovaa/core/constants/app_constants.dart';
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:discovaa/features/bookings/data/models/booking_api_models.dart';
 import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/presentation/pages/booking_detail_page.dart';
 import 'package:discovaa/features/bookings/presentation/providers/bookings_provider.dart';
@@ -29,6 +31,11 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final userRole = authState.user?.role;
+    final isProvider = isProviderRole(userRole);
+    final pageTitle = isProvider ? 'My Bookings' : 'Booking History';
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -51,10 +58,10 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                       padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                       child: Row(
                         children: [
-                          const Expanded(
+                          Expanded(
                             child: Text(
-                              'Booking History',
-                              style: TextStyle(
+                              pageTitle,
+                              style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: -0.5,
@@ -345,7 +352,7 @@ class _BookingCard extends ConsumerWidget {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white70,
+                            color: Colors.grey,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -354,7 +361,7 @@ class _BookingCard extends ConsumerWidget {
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.black87,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -420,181 +427,6 @@ class _BookingCard extends ConsumerWidget {
                 ],
               ),
             ),
-
-            // ── Client row ────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.only(left: 14, right: 14, bottom: 10),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: Colors.white.withValues(alpha: 0.1),
-                    backgroundImage: booking.clientAvatarPath != null
-                        ? AssetImage(booking.clientAvatarPath!)
-                        : null,
-                    child: booking.clientAvatarPath == null
-                        ? Text(
-                            booking.clientName.isNotEmpty
-                                ? booking.clientName[0].toUpperCase()
-                                : '?',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black54,
-                            ),
-                          )
-                        : null,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    booking.clientName,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-                  ),
-                  if (booking.rating != null) ...[
-                    const Spacer(),
-                    const Icon(
-                      Icons.star_rounded,
-                      size: 14,
-                      color: Color(0xFFF59E0B),
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
-                      '${booking.rating}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // ── Actions ───────────────────────────────────────────────
-            if (status.isActive) ...[
-              Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => ref
-                            .read(bookingsProvider.notifier)
-                            .cancelBooking(booking.id),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => BookingDetailPage(booking: booking),
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        child: const Text(
-                          'View details',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ] else if (status == BookingStatus.completed) ...[
-              Divider(height: 1, color: Colors.white.withValues(alpha: 0.1)),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => BookingDetailPage(booking: booking),
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: AppColors.primaryRed),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        child: const Text(
-                          'View details',
-                          style: TextStyle(
-                            color: AppColors.primaryRed,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (booking.rating == null) ...[
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  BookingDetailPage(booking: booking),
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFF59E0B),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                          child: const Text(
-                            'Leave review',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
           ],
         ),
       ),

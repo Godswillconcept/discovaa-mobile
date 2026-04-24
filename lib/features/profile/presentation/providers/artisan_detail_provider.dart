@@ -130,7 +130,7 @@ class ArtisanDetailNotifier
   Future<ArtisanDetailState> build(String artisanId) async {
     final repository = ref.read(artisanDetailRepositoryProvider);
 
-    // 1. Instantly hydrate state from local cache before networking
+    // Hydrate from cache and return early if present to avoid redundant network calls
     final cachedArtisan = repository.getCachedArtisanDetail(artisanId);
     if (cachedArtisan != null) {
       final cachedServices = repository.getCachedArtisanServices(artisanId);
@@ -146,9 +146,15 @@ class ArtisanDetailNotifier
           availability: cachedAvailability,
         ),
       );
+      // No need to refetch; return early
+      return ArtisanDetailState(
+        artisan: cachedArtisan,
+        services: cachedServices,
+        reviews: cachedReviews,
+        availability: cachedAvailability,
+      );
     }
-
-    // 2. Fetch fresh main artisan detail
+    // If no cache, proceed to fetch fresh data
     final artisan = await repository.getArtisanDetail(artisanId);
 
     // Initialize AsyncValue state with base data before loading extras

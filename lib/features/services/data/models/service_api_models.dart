@@ -103,6 +103,27 @@ String? _extractImagePath(Map<String, dynamic> json) {
       return candidate;
     }
   }
+
+  // Check media array for renderable URLs
+  // The API returns media as UUID strings, but provider objects may have actual URLs
+  final media = json['media'];
+  if (media is List<dynamic> && media.isNotEmpty) {
+    for (final mediaItem in media) {
+      if (mediaItem is Map<String, dynamic>) {
+        // Provider media objects have 'url' field
+        final url = mediaItem['url']?.toString();
+        if (_isRenderableImagePath(url)) {
+          return url;
+        }
+      } else if (mediaItem is String) {
+        // Service media is just UUID strings, validate if it's a URL
+        if (_isRenderableImagePath(mediaItem)) {
+          return mediaItem;
+        }
+      }
+    }
+  }
+
   return null;
 }
 

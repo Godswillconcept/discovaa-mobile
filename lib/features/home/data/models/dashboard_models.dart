@@ -5,10 +5,7 @@ class SpendingTrendDataPointDto {
   final DateTime date;
   final double amount;
 
-  const SpendingTrendDataPointDto({
-    required this.date,
-    required this.amount,
-  });
+  const SpendingTrendDataPointDto({required this.date, required this.amount});
 
   factory SpendingTrendDataPointDto.fromJson(Map<String, dynamic> json) {
     return SpendingTrendDataPointDto(
@@ -39,10 +36,18 @@ class SpendingTrendDto {
 
   factory SpendingTrendDto.fromJson(Map<String, dynamic> json) {
     final pointsList = (json['points'] as List<dynamic>? ?? []);
+    final points = <SpendingTrendDataPointDto>[];
+    for (final e in pointsList) {
+      if (e is Map<String, dynamic>) {
+        try {
+          points.add(SpendingTrendDataPointDto.fromJson(e));
+        } catch (_) {
+          // Skip malformed data points
+        }
+      }
+    }
     return SpendingTrendDto(
-      points: pointsList
-          .map((e) => SpendingTrendDataPointDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      points: points,
       totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0,
       percentageChange: (json['percentage_change'] as num?)?.toDouble(),
       periodLabel: json['period_label'] as String? ?? 'Last 30 days',
@@ -115,6 +120,12 @@ class DashboardKpiDto {
   final int unreadMessages;
   final int pendingMessages;
   final String? currency;
+  // Provider-specific fields
+  final double grossRevenue;
+  final double netPayout;
+  final int threadsCreated;
+  final int messagesSent;
+  final int uniqueCustomers;
 
   const DashboardKpiDto({
     this.totalRevenue = 0.0,
@@ -128,6 +139,11 @@ class DashboardKpiDto {
     this.unreadMessages = 0,
     this.pendingMessages = 0,
     this.currency,
+    this.grossRevenue = 0.0,
+    this.netPayout = 0.0,
+    this.threadsCreated = 0,
+    this.messagesSent = 0,
+    this.uniqueCustomers = 0,
   });
 
   factory DashboardKpiDto.fromJson(Map<String, dynamic> json) {
@@ -143,6 +159,12 @@ class DashboardKpiDto {
       unreadMessages: (json['unread_messages'] as num?)?.toInt() ?? 0,
       pendingMessages: (json['pending_messages'] as num?)?.toInt() ?? 0,
       currency: json['currency'] as String?,
+      // Provider-specific fields
+      grossRevenue: (json['gross_revenue'] as num?)?.toDouble() ?? 0.0,
+      netPayout: (json['net_payout'] as num?)?.toDouble() ?? 0.0,
+      threadsCreated: (json['threads_created'] as num?)?.toInt() ?? 0,
+      messagesSent: (json['messages_sent'] as num?)?.toInt() ?? 0,
+      uniqueCustomers: (json['unique_customers'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -158,6 +180,12 @@ class DashboardKpiDto {
     'unread_messages': unreadMessages,
     'pending_messages': pendingMessages,
     'currency': currency,
+    // Provider-specific fields
+    'gross_revenue': grossRevenue,
+    'net_payout': netPayout,
+    'threads_created': threadsCreated,
+    'messages_sent': messagesSent,
+    'unique_customers': uniqueCustomers,
   };
 }
 
@@ -347,23 +375,36 @@ class DashboardDto {
   factory DashboardDto.fromJson(Map<String, dynamic> json) {
     return DashboardDto(
       spendingTrend: json['spending_trend'] != null
-          ? SpendingTrendDto.fromJson(json['spending_trend'] as Map<String, dynamic>)
+          ? SpendingTrendDto.fromJson(
+              (json['spending_trend'] as Map).cast<String, dynamic>(),
+            )
           : null,
       bookingMix: json['booking_mix'] != null
-          ? BookingMixDto.fromJson(json['booking_mix'] as Map<String, dynamic>)
+          ? BookingMixDto.fromJson(
+              (json['booking_mix'] as Map).cast<String, dynamic>(),
+            )
           : null,
       kpis: json['kpis'] != null
-          ? DashboardKpiDto.fromJson(json['kpis'] as Map<String, dynamic>)
+          ? DashboardKpiDto.fromJson(
+              (json['kpis'] as Map).cast<String, dynamic>(),
+            )
           : null,
       insights: (json['insights'] as List<dynamic>? ?? [])
-          .map((e) => InsightDto.fromJson(e as Map<String, dynamic>))
+          .map((e) => InsightDto.fromJson((e as Map).cast<String, dynamic>()))
           .toList(),
       recentBookings: (json['recent_bookings'] as List<dynamic>? ?? [])
-          .map((e) => RecentBookingDto.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) =>
+                RecentBookingDto.fromJson((e as Map).cast<String, dynamic>()),
+          )
           .toList(),
-      upcomingAppointments: (json['upcoming_appointments'] as List<dynamic>? ?? [])
-          .map((e) => AppointmentDto.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      upcomingAppointments:
+          (json['upcoming_appointments'] as List<dynamic>? ?? [])
+              .map(
+                (e) =>
+                    AppointmentDto.fromJson((e as Map).cast<String, dynamic>()),
+              )
+              .toList(),
       role: json['role'] as String?,
       generatedAt: json['generated_at'] != null
           ? DateTime.parse(json['generated_at'] as String)
@@ -377,7 +418,9 @@ class DashboardDto {
     'kpis': kpis?.toJson(),
     'insights': insights.map((e) => e.toJson()).toList(),
     'recent_bookings': recentBookings.map((e) => e.toJson()).toList(),
-    'upcoming_appointments': upcomingAppointments.map((e) => e.toJson()).toList(),
+    'upcoming_appointments': upcomingAppointments
+        .map((e) => e.toJson())
+        .toList(),
     'role': role,
     'generated_at': generatedAt?.toIso8601String(),
   };
@@ -390,12 +433,7 @@ class DashboardFilterDto {
   final DateTime? to;
   final String? role;
 
-  const DashboardFilterDto({
-    this.range,
-    this.from,
-    this.to,
-    this.role,
-  });
+  const DashboardFilterDto({this.range, this.from, this.to, this.role});
 
   Map<String, dynamic> toQueryParams() {
     final params = <String, dynamic>{};

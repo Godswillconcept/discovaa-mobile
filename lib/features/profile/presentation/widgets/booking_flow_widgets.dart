@@ -1425,7 +1425,7 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
             onPressed: () {
               ref.read(bookingProvider.notifier).reset();
               Navigator.pop(context);
-              context.go('/home');
+              context.go('/bookings');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
@@ -1436,7 +1436,7 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
               elevation: 0,
             ),
             child: const Text(
-              'Back to Home Page',
+              'View My Bookings',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,

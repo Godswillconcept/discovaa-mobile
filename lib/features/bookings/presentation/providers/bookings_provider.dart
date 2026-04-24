@@ -2,12 +2,11 @@ import 'package:discovaa/app/dependency_injection/service_locator.dart';
 import 'package:discovaa/core/network/dio_client.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/data/repositories/bookings_repository_impl.dart';
 import 'package:discovaa/features/bookings/domain/repositories/bookings_repository.dart';
-import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/services/presentation/providers/services_provider.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // ---------------------------------------------------------------------------
@@ -51,7 +50,8 @@ class BookingsState {
             final q = searchQuery.toLowerCase();
             return b.service.title.toLowerCase().contains(q) ||
                 b.service.category.toLowerCase().contains(q) ||
-                b.clientName.toLowerCase().contains(q);
+                b.clientName.toLowerCase().contains(q) ||
+                (b.providerName?.toLowerCase().contains(q) ?? false);
           }).toList();
     return filtered.where((b) => b.status == s).toList();
   }
@@ -65,22 +65,36 @@ class BookingsState {
 // ---------------------------------------------------------------------------
 
 class BookingsNotifier extends StateNotifier<BookingsState> {
-  BookingsNotifier(this._repository) : super(const BookingsState());
+  BookingsNotifier(this._repository, this._ref) : super(const BookingsState());
 
   final BookingsRepository _repository;
+  final Ref _ref;
 
   Future<void> loadBookings() async {
     if (state.bookings.isNotEmpty) return;
-    
-    final cached = _repository.getCachedBookings();
+
+    final authState = _ref.read(authProvider);
+    final user = authState.user;
+    final userRole = user?.role;
+
+    final cached = _repository.getCachedBookings(userRole: userRole);
     if (cached.isNotEmpty) {
-      state = state.copyWith(bookings: cached, status: BookingsLoadStatus.success);
+      state = state.copyWith(
+        bookings: cached,
+        status: BookingsLoadStatus.success,
+      );
     } else {
       state = state.copyWith(status: BookingsLoadStatus.loading);
     }
-    
+
     try {
-      final data = await _repository.listBookings();
+      final providerId =
+          user?.id; // For providers, the user ID is the provider ID
+
+      final data = await _repository.listBookings(
+        userRole: userRole,
+        providerId: providerId,
+      );
       if (mounted) {
         state = state.copyWith(
           bookings: data,
@@ -101,7 +115,16 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
   Future<void> refreshBookings() async {
     state = state.copyWith(status: BookingsLoadStatus.loading);
     try {
-      final data = await _repository.listBookings();
+      final authState = _ref.read(authProvider);
+      final user = authState.user;
+      final userRole = user?.role;
+      final providerId =
+          user?.id; // For providers, the user ID is the provider ID
+
+      final data = await _repository.listBookings(
+        userRole: userRole,
+        providerId: providerId,
+      );
       state = state.copyWith(
         bookings: data,
         status: BookingsLoadStatus.success,
@@ -114,20 +137,26 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     }
   }
 
-  /// Create a new booking from a [ServiceModel] and scheduled date/time.
+  /// Create a new booking matching the web app API contract.
   Future<BookingModel> placeBooking({
-    required ServiceModel service,
-    required DateTime scheduledDate,
-    required TimeOfDay scheduledTime,
-    String clientName = 'You',
-    String? note,
+    required String providerId,
+    required DateTime scheduledStart,
+    required DateTime scheduledEnd,
+    required String serviceType,
+    required String currency,
+    String? addressText,
+    String? notes,
+    required List<Map<String, dynamic>> items,
   }) async {
     final booking = await _repository.placeBooking(
-      service: service,
-      scheduledDate: scheduledDate,
-      scheduledTime: scheduledTime,
-      clientName: clientName,
-      note: note,
+      providerId: providerId,
+      scheduledStart: scheduledStart,
+      scheduledEnd: scheduledEnd,
+      serviceType: serviceType,
+      currency: currency,
+      addressText: addressText,
+      notes: notes,
+      items: items,
     );
     state = state.copyWith(
       bookings: [booking, ...state.bookings],
@@ -192,6 +221,38 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     _replaceBooking(updatedBooking);
   }
 
+  /// Reschedule a booking by updating start and end times.
+  Future<void> rescheduleBooking(
+    String id, {
+    required DateTime newStart,
+    DateTime? newEnd,
+  }) async {
+    final matches = state.bookings.where((b) => b.id == id);
+    final current = matches.isEmpty ? null : matches.first;
+    if (current == null) return;
+    final updated = await _repository.rescheduleBooking(
+      current,
+      newStart: newStart,
+      newEnd: newEnd,
+    );
+    _replaceBooking(updated);
+  }
+
+  /// Update the concluded unit price for a variable-price booking.
+  Future<void> updateConcludedPrice(
+    String id, {
+    required String unitPriceAmount,
+  }) async {
+    final matches = state.bookings.where((b) => b.id == id);
+    final current = matches.isEmpty ? null : matches.first;
+    if (current == null) return;
+    final updated = await _repository.updateConcludedPrice(
+      current,
+      unitPriceAmount: unitPriceAmount,
+    );
+    _replaceBooking(updated);
+  }
+
   void _replaceBooking(BookingModel updatedBooking) {
     final idx = state.bookings.indexWhere((b) => b.id == updatedBooking.id);
     if (idx == -1) return;
@@ -221,7 +282,7 @@ final bookingsRepositoryProvider = Provider<BookingsRepository>((ref) {
 });
 
 final bookingsProvider = StateNotifierProvider<BookingsNotifier, BookingsState>(
-  (ref) => BookingsNotifier(ref.watch(bookingsRepositoryProvider)),
+  (ref) => BookingsNotifier(ref.watch(bookingsRepositoryProvider), ref),
 );
 
 /// Convenience: bookings for a specific status

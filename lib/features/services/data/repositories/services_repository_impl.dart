@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
+import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/network/api_helpers.dart';
 import 'package:discovaa/core/network/dio_client.dart';
@@ -247,8 +248,30 @@ class ServicesRepositoryImpl implements ServicesRepository {
     final cached = _hiveService.getList<dynamic>(key) ?? const [];
     return cached
         .whereType<Map>()
-        .map((item) => ServiceModel.fromJson(item.cast<String, dynamic>()))
+        .map((item) {
+          final service = ServiceModel.fromJson(item.cast<String, dynamic>());
+          // Validate cached imagePath - reject stale non-renderable paths (UUIDs)
+          if (service.imagePath != null &&
+              !_isRenderableImagePath(service.imagePath)) {
+            // Replace with placeholder using service ID
+            return service.copyWith(
+              imagePath: AppAssets.servicePlaceholder(service.id),
+            );
+          }
+          return service;
+        })
         .toList(growable: false);
+  }
+
+  /// Validates that a string is a renderable image path (URL or asset path)
+  /// Rejects UUIDs and other non-renderable strings
+  bool _isRenderableImagePath(String? value) {
+    if (value == null || value.isEmpty) {
+      return false;
+    }
+    return value.startsWith('http://') ||
+        value.startsWith('https://') ||
+        value.startsWith('assets/');
   }
 
   Map<String, ServiceCategoryDto> _readCachedCategories() {

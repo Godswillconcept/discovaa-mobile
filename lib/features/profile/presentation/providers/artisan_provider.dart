@@ -8,7 +8,6 @@ import 'package:discovaa/core/network/dio_client.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/features/bookings/domain/repositories/bookings_repository.dart';
-import 'package:discovaa/features/services/data/models/service_model.dart';
 import '../../domain/entities/artisan_entity.dart';
 import '../../domain/repositories/artisan_repository.dart';
 import '../../data/repositories/api_artisan_repository.dart';
@@ -428,37 +427,78 @@ class BookingNotifier extends StateNotifier<BookingState> {
 
     try {
       final bookingsRepository = sl<BookingsRepository>();
+      final artisan = state.selectedArtisan;
 
-      // Create a ServiceModel from the selected artisan and services
-      // For now, we'll create a basic ServiceModel with the available data
-      // In a real implementation, you would fetch the actual service details from the API
-      final service = ServiceModel(
-        id: state.selectedArtisan?.id ?? 'unknown',
-        title: state.selectedArtisan?.name ?? 'Service',
-        category: state.selectedArtisan?.category,
-        description: 'Booking service',
-        pricingModel: PricingModel.fixed,
-        priceType: PriceType.fixed,
-        currency: 'NGN',
-        amount: 0.0,
-        providerId: state.selectedArtisan?.id ?? 'unknown',
-        weeklySchedule: {},
-        isActive: true,
+      if (artisan == null ||
+          state.selectedDate == null ||
+          state.startTime == null ||
+          state.endTime == null) {
+        state = state.copyWith(isConfirming: false);
+        return;
+      }
+
+      // Build full ISO datetime objects from date + time selections
+      final scheduledStart = DateTime(
+        state.selectedDate!.year,
+        state.selectedDate!.month,
+        state.selectedDate!.day,
+        state.startTime!.hour,
+        state.startTime!.minute,
+      );
+      final scheduledEnd = DateTime(
+        state.selectedDate!.year,
+        state.selectedDate!.month,
+        state.selectedDate!.day,
+        state.endTime!.hour,
+        state.endTime!.minute,
       );
 
+      // 1. Check provider availability first (web app approach)
+      final availability = await bookingsRepository.checkAvailability(
+        providerId: artisan.id,
+        start: scheduledStart,
+        end: scheduledEnd,
+      );
+
+      if (!availability.available) {
+        state = state.copyWith(isConfirming: false, isConfirmed: false);
+        return;
+      }
+
+      // 2. Map selected services to items using their UUIDs
+      final serviceDataMap = <String, BookingService>{};
+      for (final s in state.availableServices) {
+        serviceDataMap[s.title] = s;
+      }
+
+      final items = state.selectedServices
+          .where((name) => serviceDataMap.containsKey(name))
+          .map((name) => {'service': serviceDataMap[name]!.id, 'quantity': 1})
+          .toList(growable: true);
+
+      // If no matching service IDs found, fall back to using artisan id
+      // (legacy fallback until all services have proper IDs)
+      if (items.isEmpty) {
+        items.add({'service': artisan.id, 'quantity': 1});
+      }
+
+      // 3. Create the booking matching the web app payload shape
       await bookingsRepository.placeBooking(
-        service: service,
-        scheduledDate: state.selectedDate ?? DateTime.now(),
-        scheduledTime: state.startTime ?? const TimeOfDay(hour: 9, minute: 0),
-        note: state.notes,
+        providerId: artisan.id,
+        scheduledStart: scheduledStart,
+        scheduledEnd: scheduledEnd,
+        serviceType: state.bookingType.name.toUpperCase(),
+        currency: 'NGN',
+        addressText: state.bookingType == BookingType.onsite
+            ? state.address
+            : null,
+        notes: state.notes,
+        items: items,
       );
 
       state = state.copyWith(isConfirming: false, isConfirmed: true);
     } catch (e) {
-      state = state.copyWith(isConfirming: false);
-      // In a real app, you would handle the error appropriately
-      // For now, we'll just set isConfirmed to true for testing
-      state = state.copyWith(isConfirmed: true);
+      state = state.copyWith(isConfirming: false, isConfirmed: false);
     }
   }
 

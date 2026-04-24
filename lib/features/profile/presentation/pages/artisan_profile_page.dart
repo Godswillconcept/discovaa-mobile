@@ -18,8 +18,8 @@ class ArtisanProfilePage extends ConsumerStatefulWidget {
 class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
   @override
   Widget build(BuildContext context) {
-    final bookingState = ref.watch(bookingProvider);
-    final baseArtisan = bookingState.selectedArtisan;
+    // Read booking provider once to get base artisan ID (no continuous watch)
+    final baseArtisan = ref.read(bookingProvider).selectedArtisan;
 
     // Determine which artisan ID to use
     final String? targetArtisanId = widget.artisanId ?? baseArtisan?.id;
@@ -149,7 +149,10 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
                       children: [
                         ArtisanBusinessInfo(artisan: artisan),
                         const SizedBox(height: 24),
-                        ArtisanServicesSection(artisan: artisan),
+                        ArtisanServicesSection(
+                          artisan: artisan,
+                          services: services,
+                        ),
                         const SizedBox(height: 24),
                         ArtisanPricesDropdown(
                           artisan: artisan,

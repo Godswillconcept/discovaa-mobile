@@ -139,6 +139,8 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       queryParameters: {
         ...params,
         'limit': 100, // Get enough data to calculate stats
+        'expand':
+            'items.service', // Expand service details to get title and media
       },
     );
 
@@ -306,14 +308,16 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
   String _extractServiceName(Map<String, dynamic> booking) {
     final items = booking['items'] as List<dynamic>?;
     if (items != null && items.isNotEmpty) {
-      final firstItem = items.first as Map<String, dynamic>?;
-      final service = firstItem?['service_snapshot'] as Map<String, dynamic>?;
-      if (service != null) {
-        return service['title']?.toString() ?? 'Service';
-      }
-      final itemService = firstItem?['service'] as Map<String, dynamic>?;
-      if (itemService != null) {
-        return itemService['title']?.toString() ?? 'Service';
+      final firstItem = items.first;
+      if (firstItem is Map<String, dynamic>) {
+        final service = firstItem['service_snapshot'];
+        if (service is Map<String, dynamic>) {
+          return service['title']?.toString() ?? 'Service';
+        }
+        final itemService = firstItem['service'];
+        if (itemService is Map<String, dynamic>) {
+          return itemService['title']?.toString() ?? 'Service';
+        }
       }
     }
     return 'Service';
@@ -435,7 +439,14 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       }
     }
 
-    final client = booking['client'] as Map<String, dynamic>?;
+    // Handle client field - it can be a Map or a String (UUID)
+    final clientRaw = booking['client'];
+    Map<String, dynamic>? client;
+    if (clientRaw is Map<String, dynamic>) {
+      client = clientRaw;
+    }
+    // If client is a String (UUID), we don't have client details available
+
     final items = booking['items'] as List<dynamic>?;
     String serviceName = 'Service';
 
@@ -485,25 +496,26 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
     String serviceId = '';
 
     if (items != null && items.isNotEmpty) {
-      final firstItem = items.first as Map<String, dynamic>;
-      final serviceSnapshot =
-          firstItem['service_snapshot'] as Map<String, dynamic>?;
-      if (serviceSnapshot != null) {
-        serviceName = serviceSnapshot['title']?.toString() ?? 'Service';
-        serviceId = serviceSnapshot['id']?.toString() ?? '';
-        // Get first media item if available - validate it's a renderable URL
-        final media = serviceSnapshot['media'] as List<dynamic>?;
-        if (media != null && media.isNotEmpty) {
-          final firstMedia = media.first;
-          if (firstMedia is Map<String, dynamic>) {
-            final fileUrl = firstMedia['file']?.toString();
-            if (_isRenderableImagePath(fileUrl)) {
-              serviceImage = fileUrl;
-            }
-          } else if (firstMedia is String) {
-            // Handle case where media is just a string (UUID or URL)
-            if (_isRenderableImagePath(firstMedia)) {
-              serviceImage = firstMedia;
+      final firstItem = items.first;
+      if (firstItem is Map<String, dynamic>) {
+        final serviceSnapshot = firstItem['service_snapshot'];
+        if (serviceSnapshot is Map<String, dynamic>) {
+          serviceName = serviceSnapshot['title']?.toString() ?? 'Service';
+          serviceId = serviceSnapshot['id']?.toString() ?? '';
+          // Get first media item if available - validate it's a renderable URL
+          final media = serviceSnapshot['media'];
+          if (media is List<dynamic> && media.isNotEmpty) {
+            final firstMedia = media.first;
+            if (firstMedia is Map<String, dynamic>) {
+              final fileUrl = firstMedia['file']?.toString();
+              if (_isRenderableImagePath(fileUrl)) {
+                serviceImage = fileUrl;
+              }
+            } else if (firstMedia is String) {
+              // Handle case where media is just a string (UUID or URL)
+              if (_isRenderableImagePath(firstMedia)) {
+                serviceImage = firstMedia;
+              }
             }
           }
         }
@@ -515,13 +527,22 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
       serviceId.isNotEmpty ? serviceId : 'booking',
     );
 
-    final provider = booking['provider'] as Map<String, dynamic>?;
+    // Handle provider field - it can be a Map or a String (UUID)
+    final providerRaw = booking['provider'];
+    Map<String, dynamic>? provider;
+    if (providerRaw is Map<String, dynamic>) {
+      provider = providerRaw;
+    }
+    // If provider is a String (UUID), we don't have provider details available
 
     return {
       'id': booking['id']?.toString() ?? '',
       'service_name': serviceName,
       'service_image': serviceImage,
-      'provider_name': provider?['display_name']?.toString() ?? 'Provider',
+      'provider_name':
+          provider?['display_name']?.toString() ??
+          provider?['business_name']?.toString() ??
+          'Provider',
       'date': booking['created_at']?.toString(),
       'status': booking['status']?.toString() ?? 'unknown',
       'amount': (booking['total'] as num?)?.toDouble(),
@@ -679,10 +700,56 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
   }
 
   Map<String, dynamic> _parseDashboardData(dynamic raw) {
-    if (raw is Map<String, dynamic>) {
-      return raw;
+    if (raw is! Map<String, dynamic>) {
+      return {};
     }
-    return {};
+
+    // Check if this is the nested provider dashboard structure
+    final data = raw['data'];
+    if (data is Map<String, dynamic>) {
+      final kpis = data['kpis'];
+      if (kpis is Map<String, dynamic>) {
+        return _transformProviderKpis(kpis);
+      }
+    }
+
+    // Return as-is for client dashboard or other structures
+    return raw;
+  }
+
+  /// Transforms nested provider dashboard KPIs into flat structure
+  /// expected by DashboardKpiDto
+  Map<String, dynamic> _transformProviderKpis(Map<String, dynamic> kpis) {
+    final bookings = kpis['bookings'] as Map<String, dynamic>?;
+    final revenue = kpis['revenue'] as Map<String, dynamic>?;
+    final reviews = kpis['reviews'] as Map<String, dynamic>?;
+    final messaging = kpis['messaging'] as Map<String, dynamic>?;
+
+    final byStatus = bookings?['by_status'] as Map<String, dynamic>?;
+
+    final requestedCount = (byStatus?['REQUESTED'] as num?)?.toInt() ?? 0;
+    final confirmedCount = (byStatus?['CONFIRMED'] as num?)?.toInt() ?? 0;
+
+    return {
+      'total_revenue': (revenue?['gross_captured'] as num?)?.toDouble() ?? 0.0,
+      'total_spend': 0.0, // Providers don't have spend
+      'completed_bookings': (byStatus?['COMPLETED'] as num?)?.toInt() ?? 0,
+      'cancelled_bookings': (byStatus?['CANCELLED'] as num?)?.toInt() ?? 0,
+      'upcoming_count': requestedCount + confirmedCount,
+      'active_requests': requestedCount,
+      'avg_rating': (reviews?['avg_rating'] as num?)?.toDouble() ?? 0.0,
+      'review_count': (reviews?['count'] as num?)?.toInt() ?? 0,
+      'unread_messages': 0, // Not in provider dashboard
+      'pending_messages': 0, // Not in provider dashboard
+      'currency': 'NGN', // Default currency
+      // Provider-specific fields
+      'gross_revenue': (revenue?['gross_captured'] as num?)?.toDouble() ?? 0.0,
+      'net_payout':
+          (revenue?['net_payout_captured'] as num?)?.toDouble() ?? 0.0,
+      'threads_created': (messaging?['threads_created'] as num?)?.toInt() ?? 0,
+      'messages_sent': (messaging?['messages_sent'] as num?)?.toInt() ?? 0,
+      'unique_customers': (bookings?['unique_customers'] as num?)?.toInt() ?? 0,
+    };
   }
 
   /// Returns empty bookings data structure for error fallback
