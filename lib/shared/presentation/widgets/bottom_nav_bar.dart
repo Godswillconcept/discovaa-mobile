@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:discovaa/core/constants/feature_flags.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -14,6 +15,9 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Build nav items based on feature flags
+    final navItems = _buildNavItems();
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: const BoxDecoration(
@@ -32,36 +36,72 @@ class BottomNavBar extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, 'Home', customIconPath: 'assets/icons/home.png'),
-          _buildNavItem(
-            1,
-            'Dashboard',
-            iconData: Icons.grid_view,
-            selectedIconData: Icons.grid_view,
-          ),
-          _buildNavItem(
-            2,
-            'Bookings',
-            iconData: Icons.event_outlined,
-            selectedIconData: Icons.event,
-          ),
-          _buildNavItem(
-            3,
-            'Messages',
-            iconData: Icons.mail_outline,
-            selectedIconData: Icons.mail,
-          ),
-          if (showServicesTab)
-            _buildNavItem(
-              4,
-              'Services',
-              iconData: Icons.work_outline,
-              selectedIconData: Icons.work,
-            ),
-        ],
+        children: navItems.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          return _buildNavItem(
+            index,
+            item.label,
+            iconData: item.iconData,
+            selectedIconData: item.selectedIconData,
+            customIconPath: item.customIconPath,
+          );
+        }).toList(),
       ),
     );
+  }
+
+  List<_NavItemData> _buildNavItems() {
+    final items = <_NavItemData>[];
+
+    // Home (Milestone 1 - always available)
+    items.add(
+      _NavItemData(label: 'Home', customIconPath: 'assets/icons/home.png'),
+    );
+
+    // Dashboard (Milestone 3)
+    if (FeatureFlags.enableDashboard) {
+      items.add(
+        _NavItemData(
+          label: 'Dashboard',
+          iconData: Icons.grid_view,
+          selectedIconData: Icons.grid_view,
+        ),
+      );
+    }
+
+    // Bookings (Milestone 1 - always available)
+    items.add(
+      _NavItemData(
+        label: 'Bookings',
+        iconData: Icons.event_outlined,
+        selectedIconData: Icons.event,
+      ),
+    );
+
+    // Messages (Milestone 2)
+    if (FeatureFlags.enableMessaging) {
+      items.add(
+        _NavItemData(
+          label: 'Messages',
+          iconData: Icons.mail_outline,
+          selectedIconData: Icons.mail,
+        ),
+      );
+    }
+
+    // Services (Milestone 1 - provider only)
+    if (showServicesTab) {
+      items.add(
+        _NavItemData(
+          label: 'Services',
+          iconData: Icons.work_outline,
+          selectedIconData: Icons.work,
+        ),
+      );
+    }
+
+    return items;
   }
 
   Widget _buildNavItem(
@@ -112,4 +152,19 @@ class BottomNavBar extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Helper class for navigation item data
+class _NavItemData {
+  final String label;
+  final IconData? iconData;
+  final IconData? selectedIconData;
+  final String? customIconPath;
+
+  _NavItemData({
+    required this.label,
+    this.iconData,
+    this.selectedIconData,
+    this.customIconPath,
+  });
 }

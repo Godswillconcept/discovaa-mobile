@@ -17,6 +17,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:discovaa/core/storage/secure_token_storage.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
+import 'package:discovaa/core/constants/feature_flags.dart';
 import 'package:discovaa/features/authentication/presentation/pages/complete_profile_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/forgot_password_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/login_page.dart';
@@ -193,85 +194,7 @@ class AppRouter {
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
             MainNavigationPage(navigationShell: navigationShell),
-        branches: [
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RouteNames.home,
-                builder: (context, state) => const HomePage(),
-                routes: [
-                  // Favorites, UserProfile, ArtisanProfile, and Notifications are nested here so they render
-                  // inside the shell (with BottomNavBar) and back-navigation
-                  // works correctly (pop instead of app exit).
-                  GoRoute(
-                    path: 'favorites',
-                    builder: (context, state) => const FavoritesPage(),
-                  ),
-                  GoRoute(
-                    path: 'user-profile',
-                    builder: (context, state) => const UserProfilePage(),
-                  ),
-                  GoRoute(
-                    path: 'artisan-profile',
-                    builder: (context, state) => const ArtisanProfilePage(),
-                  ),
-                  GoRoute(
-                    path: 'notifications',
-                    builder: (context, state) => const NotificationsPage(),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RouteNames.dashboard,
-                builder: (context, state) => const DashboardPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RouteNames.bookings,
-                builder: (context, state) => const BookingsPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RouteNames.messages,
-                builder: (context, state) => const MessagesListPage(),
-                routes: [
-                  GoRoute(
-                    path: 'chat',
-                    builder: (context, state) {
-                      final conversation = state.extra as Conversation;
-                      return ChatPage(conversation: conversation);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: RouteNames.services,
-                redirect: (context, state) {
-                  // Redirect non-providers away from Services route
-                  if (!_isUserProvider()) {
-                    return RouteNames.home;
-                  }
-                  return null;
-                },
-                builder: (context, state) => const ServicesPage(),
-              ),
-            ],
-          ),
-        ],
+        branches: _buildShellBranches(),
       ),
     ],
     errorBuilder: (context, state) => ErrorPage(error: state.error),
@@ -297,4 +220,110 @@ class ErrorPage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Build shell branches based on feature flags
+/// This allows milestone-based feature visibility
+List<StatefulShellBranch> _buildShellBranches() {
+  final branches = <StatefulShellBranch>[];
+
+  // Home branch (Milestone 1 - always available)
+  branches.add(
+    StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RouteNames.home,
+          builder: (context, state) => const HomePage(),
+          routes: [
+            GoRoute(
+              path: 'favorites',
+              builder: (context, state) => const FavoritesPage(),
+            ),
+            GoRoute(
+              path: 'user-profile',
+              builder: (context, state) => const UserProfilePage(),
+            ),
+            GoRoute(
+              path: 'artisan-profile',
+              builder: (context, state) => const ArtisanProfilePage(),
+            ),
+            GoRoute(
+              path: 'notifications',
+              builder: (context, state) => const NotificationsPage(),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  // Dashboard branch (Milestone 3)
+  if (FeatureFlags.enableDashboard) {
+    branches.add(
+      StatefulShellBranch(
+        routes: [
+          GoRoute(
+            path: RouteNames.dashboard,
+            builder: (context, state) => const DashboardPage(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Bookings branch (Milestone 1 - always available)
+  branches.add(
+    StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RouteNames.bookings,
+          builder: (context, state) => const BookingsPage(),
+        ),
+      ],
+    ),
+  );
+
+  // Messages branch (Milestone 2)
+  if (FeatureFlags.enableMessaging) {
+    branches.add(
+      StatefulShellBranch(
+        routes: [
+          GoRoute(
+            path: RouteNames.messages,
+            builder: (context, state) => const MessagesListPage(),
+            routes: [
+              GoRoute(
+                path: 'chat',
+                builder: (context, state) {
+                  final conversation = state.extra as Conversation;
+                  return ChatPage(conversation: conversation);
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Services branch (Milestone 1 - always available for providers)
+  branches.add(
+    StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RouteNames.services,
+          redirect: (context, state) {
+            // Redirect non-providers away from Services route
+            if (!_isUserProvider()) {
+              return RouteNames.home;
+            }
+            return null;
+          },
+          builder: (context, state) => const ServicesPage(),
+        ),
+      ],
+    ),
+  );
+
+  return branches;
 }
