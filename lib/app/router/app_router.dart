@@ -11,6 +11,7 @@ import 'package:discovaa/features/bookings/presentation/pages/bookings_page.dart
 import 'package:discovaa/features/services/presentation/pages/services_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/identification_page.dart';
 import 'package:discovaa/shared/presentation/pages/main_navigation_page.dart';
+import 'package:discovaa/shared/presentation/pages/coming_soon_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
@@ -222,12 +223,12 @@ class ErrorPage extends StatelessWidget {
   }
 }
 
-/// Build shell branches based on feature flags
-/// This allows milestone-based feature visibility
+/// Build shell branches - all branches always created
+/// Feature flags control whether actual pages or Coming Soon pages are shown
 List<StatefulShellBranch> _buildShellBranches() {
   final branches = <StatefulShellBranch>[];
 
-  // Home branch (Milestone 1 - always available)
+  // Home branch (always available)
   branches.add(
     StatefulShellBranch(
       routes: [
@@ -257,21 +258,24 @@ List<StatefulShellBranch> _buildShellBranches() {
     ),
   );
 
-  // Dashboard branch (Milestone 3)
-  if (FeatureFlags.enableDashboard) {
-    branches.add(
-      StatefulShellBranch(
-        routes: [
-          GoRoute(
-            path: RouteNames.dashboard,
-            builder: (context, state) => const DashboardPage(),
-          ),
-        ],
-      ),
-    );
-  }
+  // Dashboard branch (always visible, shows Coming Soon if disabled)
+  branches.add(
+    StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RouteNames.dashboard,
+          builder: (context, state) {
+            if (FeatureFlags.enableDashboard) {
+              return const DashboardPage();
+            }
+            return const ComingSoonPage(featureName: 'Dashboard');
+          },
+        ),
+      ],
+    ),
+  );
 
-  // Bookings branch (Milestone 1 - always available)
+  // Bookings branch (always available)
   branches.add(
     StatefulShellBranch(
       routes: [
@@ -283,30 +287,36 @@ List<StatefulShellBranch> _buildShellBranches() {
     ),
   );
 
-  // Messages branch (Milestone 2)
-  if (FeatureFlags.enableMessaging) {
-    branches.add(
-      StatefulShellBranch(
-        routes: [
-          GoRoute(
-            path: RouteNames.messages,
-            builder: (context, state) => const MessagesListPage(),
-            routes: [
-              GoRoute(
-                path: 'chat',
-                builder: (context, state) {
+  // Messages branch (always visible, shows Coming Soon if disabled)
+  branches.add(
+    StatefulShellBranch(
+      routes: [
+        GoRoute(
+          path: RouteNames.messages,
+          builder: (context, state) {
+            if (FeatureFlags.enableMessaging) {
+              return const MessagesListPage();
+            }
+            return const ComingSoonPage(featureName: 'Messages');
+          },
+          routes: [
+            GoRoute(
+              path: 'chat',
+              builder: (context, state) {
+                if (FeatureFlags.enableMessaging) {
                   final conversation = state.extra as Conversation;
                   return ChatPage(conversation: conversation);
-                },
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+                }
+                return const ComingSoonPage(featureName: 'Messages');
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
 
-  // Services branch (Milestone 1 - always available for providers)
+  // Services branch (always available for providers)
   branches.add(
     StatefulShellBranch(
       routes: [
