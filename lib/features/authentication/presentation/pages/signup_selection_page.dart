@@ -141,11 +141,8 @@ class SignupSelectionPage extends ConsumerWidget {
                               "Service provider but don't have a registered business? This is for you.",
                           onTap: () {
                             if (isInitialLevel) {
-                              notifier.goToRegistration();
-                              context.push(
-                                '/register',
-                                extra: UserRole.user.name,
-                              );
+                              // Just select the role, arrow handles navigation
+                              notifier.selectRole(UserRole.user);
                             } else {
                               if (state.selectedRole ==
                                   UserRole.individualProvider) {
@@ -162,20 +159,23 @@ class SignupSelectionPage extends ConsumerWidget {
                             }
                           },
                           onArrowTap: () {
-                            notifier.selectRole(
-                              isInitialLevel
-                                  ? UserRole.user
-                                  : UserRole.individualProvider,
-                            );
-                            notifier.goToRegistration();
-                            context.push(
-                              '/register',
-                              extra:
-                                  (isInitialLevel
-                                          ? UserRole.user
-                                          : UserRole.individualProvider)
-                                      .name,
-                            );
+                            if (isInitialLevel) {
+                              // User selected → navigate directly to register
+                              // Don't call goToRegistration() here to avoid
+                              // flashing provider sub-options during rebuild
+                              notifier.selectRole(UserRole.user);
+                              context.push(
+                                '/register',
+                                extra: UserRole.user.name,
+                              );
+                            } else {
+                              notifier.selectRole(UserRole.individualProvider);
+                              notifier.goToRegistration();
+                              context.push(
+                                '/register',
+                                extra: UserRole.individualProvider.name,
+                              );
+                            }
                           },
                         ),
 
@@ -201,7 +201,8 @@ class SignupSelectionPage extends ConsumerWidget {
                               "Own or belong to a company? This is for you.",
                           onTap: () {
                             if (isInitialLevel) {
-                              notifier.goToProviderSelection();
+                              // Just select the role, arrow handles navigation
+                              notifier.selectRole(UserRole.individualProvider);
                             } else {
                               if (state.selectedRole ==
                                   UserRole.businessProvider) {
@@ -217,6 +218,8 @@ class SignupSelectionPage extends ConsumerWidget {
                           },
                           onArrowTap: () {
                             if (isInitialLevel) {
+                              // Service Provider selected → navigate to provider sub-selection
+                              notifier.selectRole(UserRole.individualProvider);
                               notifier.goToProviderSelection();
                             } else {
                               notifier.selectRole(UserRole.businessProvider);
