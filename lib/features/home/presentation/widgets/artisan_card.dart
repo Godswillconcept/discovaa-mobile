@@ -84,9 +84,26 @@ class ArtisanCard extends ConsumerWidget {
                         .contains(artisan.id);
                     return GestureDetector(
                       onTap: () {
+                        final isFavorite = ref
+                            .read(favoriteArtisansProvider)
+                            .contains(artisan.id);
                         ref
                             .read(favoriteArtisansProvider.notifier)
                             .toggleFavorite(artisan.id);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              isFavorite
+                                  ? 'Removed from favorites'
+                                  : 'Added to favorites',
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: isFavorite
+                                ? Colors.red
+                                : Colors.green,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
                       },
                       child: Container(
                         padding: const EdgeInsets.all(4),

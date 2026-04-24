@@ -1,5 +1,4 @@
 import 'package:discovaa/core/constants/app_constants.dart';
-import 'package:discovaa/features/profile/presentation/providers/saved_services_provider.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +21,6 @@ class _ServiceDetailPageState extends ConsumerState<ServiceDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isSaved = ref.watch(isServiceSavedProvider(_s.id));
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -67,14 +65,13 @@ class _ServiceDetailPageState extends ConsumerState<ServiceDetailPage> {
                       // ── Meta info chips ────────────────────────────
                       _SectionHeader('Details'),
                       _MetaSection(service: _s),
-
                     ],
                   ),
                 ),
               ],
             ),
 
-            // ── Floating back + favourite buttons (over hero) ──────────
+            // ── Floating back button (over hero) ──────────
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -88,35 +85,13 @@ class _ServiceDetailPageState extends ConsumerState<ServiceDetailPage> {
                       icon: Icons.arrow_back_ios_new_rounded,
                       onTap: () => Navigator.of(context).pop(),
                     ),
-                    _CircleIconButton(
-                      icon: isSaved
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      iconColor: isSaved
-                          ? AppColors.primaryRed
-                          : Colors.black87,
-                      onTap: () {
-                        final nowSaved = ref
-                            .read(savedServicesProvider.notifier)
-                            .toggle(_s);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              nowSaved
-                                  ? 'Saved to your list'
-                                  : 'Removed from saved',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                    ),
+                    const SizedBox(
+                      width: 48,
+                    ), // Spacer to balance with back button
                   ],
                 ),
               ),
             ),
-
           ],
         ),
       ),
@@ -735,7 +710,6 @@ class _MetaChip extends StatelessWidget {
 // Booking sheet helper — date + time picker bottom sheet
 // ─────────────────────────────────────────────────────────────────────────────
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Status badge
 // ─────────────────────────────────────────────────────────────────────────────
@@ -845,13 +819,8 @@ class _Chip extends StatelessWidget {
 class _CircleIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  final Color? iconColor;
 
-  const _CircleIconButton({
-    required this.icon,
-    required this.onTap,
-    this.iconColor,
-  });
+  const _CircleIconButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -860,7 +829,7 @@ class _CircleIconButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.92),
+          color: Colors.white,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
@@ -870,7 +839,7 @@ class _CircleIconButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(icon, size: 18, color: iconColor ?? Colors.black87),
+        child: Icon(icon, color: Colors.black87, size: 20),
       ),
     );
   }

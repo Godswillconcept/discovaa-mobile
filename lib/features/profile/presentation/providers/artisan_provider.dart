@@ -511,8 +511,32 @@ final bookingProvider = StateNotifierProvider<BookingNotifier, BookingState>((
   return BookingNotifier();
 });
 
+/// Hive key for persisting favorite artisan IDs.
+const _favoriteArtisansHiveKey = 'favorites.artisan_ids';
+
+/// Manages the set of favorite artisan/provider IDs with Hive persistence.
+/// - Loads saved IDs from Hive on construction.
+/// - Persists changes to Hive on every toggle.
+/// - Provides [clearAll] to wipe favorites and Hive cache.
 class FavoriteArtisansNotifier extends StateNotifier<Set<String>> {
-  FavoriteArtisansNotifier() : super(const {});
+  final HiveService _hiveService;
+
+  FavoriteArtisansNotifier({required HiveService hiveService})
+    : _hiveService = hiveService,
+      super(const {}) {
+    _loadFromHive();
+  }
+
+  void _loadFromHive() {
+    final cached = _hiveService.getList<String>(_favoriteArtisansHiveKey);
+    if (cached != null && cached.isNotEmpty) {
+      state = cached.toSet();
+    }
+  }
+
+  void _saveToHive() {
+    _hiveService.setList<String>(_favoriteArtisansHiveKey, state.toList());
+  }
 
   void toggleFavorite(String artisanId) {
     final current = Set<String>.from(state);
@@ -522,14 +546,20 @@ class FavoriteArtisansNotifier extends StateNotifier<Set<String>> {
       current.add(artisanId);
     }
     state = current;
+    _saveToHive();
   }
 
   bool isFavorite(String artisanId) => state.contains(artisanId);
+
+  void clearAll() {
+    state = const {};
+    _hiveService.remove(_favoriteArtisansHiveKey);
+  }
 }
 
 final favoriteArtisansProvider =
     StateNotifierProvider<FavoriteArtisansNotifier, Set<String>>((ref) {
-      return FavoriteArtisansNotifier();
+      return FavoriteArtisansNotifier(hiveService: sl<HiveService>());
     });
 
 class FilteredArtisansNotifier extends AsyncNotifier<List<Artisan>> {

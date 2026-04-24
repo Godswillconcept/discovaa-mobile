@@ -1,7 +1,9 @@
 import 'package:discovaa/core/constants/app_constants.dart';
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/notifications/presentation/widgets/notification_bottom_sheet.dart';
 import 'package:discovaa/features/notifications/presentation/widgets/notification_badge.dart';
-import 'package:discovaa/features/profile/presentation/providers/saved_services_provider.dart';
+import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
+import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -81,8 +83,10 @@ class MainHeader extends ConsumerWidget {
               // Favorites icon with badge
               Consumer(
                 builder: (context, ref, child) {
-                  final savedCount = ref.watch(savedServicesCountProvider);
-                  final hasSavedItems = savedCount > 0;
+                  final favoriteCount = ref
+                      .watch(favoriteArtisansProvider)
+                      .length;
+                  final hasFavorites = favoriteCount > 0;
 
                   return Stack(
                     clipBehavior: Clip.none,
@@ -98,21 +102,21 @@ class MainHeader extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      if (hasSavedItems)
+                      if (hasFavorites)
                         Positioned(
                           top: -2,
                           right: 2,
                           child: Container(
                             height: 18,
-                            width: savedCount > 99 ? 28 : 18,
+                            width: favoriteCount > 99 ? 28 : 18,
                             decoration: BoxDecoration(
                               color: const Color(
                                 0xFFE91E63,
                               ), // Pink/red for favorites
-                              shape: savedCount > 99
+                              shape: favoriteCount > 99
                                   ? BoxShape.rectangle
                                   : BoxShape.circle,
-                              borderRadius: savedCount > 99
+                              borderRadius: favoriteCount > 99
                                   ? BorderRadius.circular(9)
                                   : null,
                               border: Border.all(
@@ -122,10 +126,12 @@ class MainHeader extends ConsumerWidget {
                             ),
                             child: Center(
                               child: Text(
-                                savedCount > 99 ? '99+' : savedCount.toString(),
+                                favoriteCount > 99
+                                    ? '99+'
+                                    : favoriteCount.toString(),
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: savedCount > 99 ? 9 : 10,
+                                  fontSize: favoriteCount > 99 ? 9 : 10,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -137,16 +143,71 @@ class MainHeader extends ConsumerWidget {
                 },
               ),
 
-              InkWell(
-                onTap: () => _openUserProfile(context),
-                borderRadius: BorderRadius.circular(20),
-                child: const CircleAvatar(
-                  radius: 20,
-                  backgroundColor: Colors.white24,
-                  backgroundImage: AssetImage(
-                    'assets/images/placeholders/user_avatar.png',
-                  ),
-                ),
+              Consumer(
+                builder: (context, ref, child) {
+                  // Try to get UserProfile first (priority), fall back to UserEntity
+                  final profileState = ref.watch(userProfileProvider);
+                  final userEntity = ref.watch(currentUserProvider);
+
+                  // Determine profile image URL
+                  String? profileImageUrl;
+                  String? initials;
+
+                  if (profileState.profile != null) {
+                    // Use UserProfile data (priority)
+                    profileImageUrl = profileState.profile!.profileImage;
+                    initials = profileState.profile!.initials;
+                  } else if (userEntity != null) {
+                    // Fall back to UserEntity
+                    profileImageUrl = userEntity.photoUrl;
+                    // Extract initials from displayName
+                    final displayName = userEntity.displayName;
+                    if (displayName.isNotEmpty) {
+                      final parts = displayName.trim().split(RegExp(r'\s+'));
+                      if (parts.length > 1 &&
+                          parts[0].isNotEmpty &&
+                          parts[1].isNotEmpty) {
+                        initials = '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+                      } else if (parts.isNotEmpty && parts[0].isNotEmpty) {
+                        initials = parts[0][0].toUpperCase();
+                      }
+                    }
+                    // If still no initials, use email first character
+                    if (initials == null || initials.isEmpty) {
+                      initials = userEntity.email.isNotEmpty
+                          ? userEntity.email[0].toUpperCase()
+                          : '?';
+                    }
+                  }
+
+                  // Show profile image if available, otherwise show initials
+                  final hasProfileImage =
+                      profileImageUrl != null &&
+                      profileImageUrl.isNotEmpty &&
+                      profileImageUrl != 'null';
+
+                  return InkWell(
+                    onTap: () => _openUserProfile(context),
+                    borderRadius: BorderRadius.circular(20),
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.white24,
+                      backgroundImage: hasProfileImage
+                          ? NetworkImage(profileImageUrl)
+                          : null,
+                      child: hasProfileImage
+                          ? null
+                          : Text(
+                              initials ?? '?',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

@@ -1,6 +1,5 @@
 import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
-import 'package:discovaa/features/profile/presentation/providers/saved_services_provider.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/services/presentation/providers/services_provider.dart';
 import 'package:discovaa/features/services/presentation/widgets/add_service_sheet.dart';
@@ -55,7 +54,8 @@ class _ServicesPageState extends ConsumerState<ServicesPage> {
     super.initState();
     // Trigger API fetch asynchronously
     Future.microtask(() {
-      final isProvider = ref.read(userProfileProvider).profile?.isProvider ?? false;
+      final isProvider =
+          ref.read(userProfileProvider).profile?.isProvider ?? false;
       if (isProvider) {
         ref.read(servicesProvider.notifier).loadOwnServices();
       } else {
@@ -346,7 +346,9 @@ class _ProviderServiceList extends ConsumerWidget {
         const SizedBox(height: 16),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: () => ref.read(servicesProvider.notifier).loadOwnServices(forceRefresh: true),
+            onRefresh: () => ref
+                .read(servicesProvider.notifier)
+                .loadOwnServices(forceRefresh: true),
             child: GridView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -424,17 +426,12 @@ class _UserServicesView extends ConsumerStatefulWidget {
 
 class _UserServicesViewState extends ConsumerState<_UserServicesView> {
   int _selectedTab = 0;
-  static const _filterLabels = ['All', 'Saved', 'Recent'];
+  static const _filterLabels = ['All', 'Recent'];
 
   /// Derives the visible list based on the selected tab.
-  List<ServiceModel> _tabServices(
-    List<ServiceModel> all,
-    List<ServiceModel> saved,
-  ) {
+  List<ServiceModel> _tabServices(List<ServiceModel> all) {
     switch (_selectedTab) {
-      case 1: // Saved — from savedServicesProvider
-        return saved;
-      case 2: // Recent — last 5 services by createdAt
+      case 1: // Recent — last 5 services by createdAt
         final sorted = [...all]
           ..sort(
             (a, b) => (b.createdAt ?? DateTime.now()).compareTo(
@@ -451,9 +448,8 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
   Widget build(BuildContext context) {
     final servicesState = ref.watch(servicesProvider);
     final allServices = ref.watch(filteredServicesProvider);
-    final savedServices = ref.watch(savedServicesProvider).savedServices;
 
-    final visibleServices = _tabServices(allServices, savedServices);
+    final visibleServices = _tabServices(allServices);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -490,12 +486,8 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
                   separatorBuilder: (context, index) =>
                       const SizedBox(width: 8),
                   itemBuilder: (_, i) {
-                    // Show count badge on Saved pill when > 0
-                    final label = i == 1 && savedServices.isNotEmpty
-                        ? 'Saved (${savedServices.length})'
-                        : _filterLabels[i];
                     return _CategoryPill(
-                      label: label,
+                      label: _filterLabels[i],
                       isSelected: _selectedTab == i,
                       onTap: () => setState(() => _selectedTab = i),
                     );
@@ -552,26 +544,30 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
                   ),
                 )
               : RefreshIndicator(
-                  onRefresh: () => ref.read(servicesProvider.notifier).loadServices(),
+                  onRefresh: () =>
+                      ref.read(servicesProvider.notifier).loadServices(),
                   child: visibleServices.isEmpty
                       ? SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           child: Container(
                             height: MediaQuery.of(context).size.height * 0.5,
                             alignment: Alignment.center,
-                            child: _UserEmptyState(tab: _filterLabels[_selectedTab]),
+                            child: _UserEmptyState(
+                              tab: _filterLabels[_selectedTab],
+                            ),
                           ),
                         )
                       : GridView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           itemCount: visibleServices.length,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 14,
-                            mainAxisSpacing: 14,
-                            childAspectRatio: 0.74,
-                          ),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 14,
+                                mainAxisSpacing: 14,
+                                childAspectRatio: 0.74,
+                              ),
                           itemBuilder: (context, index) => ServiceCard(
                             service: visibleServices[index],
                             isProvider: false,

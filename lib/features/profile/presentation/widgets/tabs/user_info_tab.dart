@@ -364,22 +364,35 @@ class _UserInfoTabHelper {
     final pickedFile = await picker.pickImage(source: source);
     if (pickedFile == null) return;
 
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: pickedFile.path,
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: 'Crop Image',
-          toolbarColor: const Color(0xFF111827),
-          toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.square,
-          lockAspectRatio: type == 'avatar',
-        ),
-        IOSUiSettings(
-          title: 'Crop Image',
-          aspectRatioLockEnabled: type == 'avatar',
-        ),
-      ],
-    );
+    CroppedFile? croppedFile;
+    try {
+      croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Image',
+            toolbarColor: const Color(0xFF111827),
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: type == 'avatar',
+          ),
+          IOSUiSettings(
+            title: 'Crop Image',
+            aspectRatioLockEnabled: type == 'avatar',
+          ),
+        ],
+      );
+    } on PlatformException catch (e) {
+      debugPrint('Image cropper platform error: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image cropping is not available on this device.'),
+          ),
+        );
+      }
+      return;
+    }
 
     if (croppedFile == null) return;
 
