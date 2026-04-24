@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:discovaa/core/constants/feature_flags.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -15,7 +14,7 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Build nav items based on feature flags
+    // Build nav items - all tabs always visible
     final navItems = _buildNavItems();
 
     return Container(
@@ -54,23 +53,21 @@ class BottomNavBar extends StatelessWidget {
   List<_NavItemData> _buildNavItems() {
     final items = <_NavItemData>[];
 
-    // Home (Milestone 1 - always available)
+    // Home (always available)
     items.add(
       _NavItemData(label: 'Home', customIconPath: 'assets/icons/home.png'),
     );
 
-    // Dashboard (Milestone 3)
-    if (FeatureFlags.enableDashboard) {
-      items.add(
-        _NavItemData(
-          label: 'Dashboard',
-          iconData: Icons.grid_view,
-          selectedIconData: Icons.grid_view,
-        ),
-      );
-    }
+    // Dashboard (always visible, shows Coming Soon if disabled)
+    items.add(
+      _NavItemData(
+        label: 'Dashboard',
+        iconData: Icons.grid_view,
+        selectedIconData: Icons.grid_view,
+      ),
+    );
 
-    // Bookings (Milestone 1 - always available)
+    // Bookings (always available)
     items.add(
       _NavItemData(
         label: 'Bookings',
@@ -79,18 +76,16 @@ class BottomNavBar extends StatelessWidget {
       ),
     );
 
-    // Messages (Milestone 2)
-    if (FeatureFlags.enableMessaging) {
-      items.add(
-        _NavItemData(
-          label: 'Messages',
-          iconData: Icons.mail_outline,
-          selectedIconData: Icons.mail,
-        ),
-      );
-    }
+    // Messages (always visible, shows Coming Soon if disabled)
+    items.add(
+      _NavItemData(
+        label: 'Messages',
+        iconData: Icons.mail_outline,
+        selectedIconData: Icons.mail,
+      ),
+    );
 
-    // Services (Milestone 1 - provider only)
+    // Services (provider only)
     if (showServicesTab) {
       items.add(
         _NavItemData(
