@@ -60,7 +60,7 @@ class ArtisanCard extends ConsumerWidget {
               if (artisan.isVerified)
                 Positioned(
                   top: 8,
-                  right: 8,
+                  left: 8,
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
@@ -74,6 +74,36 @@ class ArtisanCard extends ConsumerWidget {
                     ),
                   ),
                 ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final isFavorite = ref
+                        .watch(favoriteArtisansProvider)
+                        .contains(artisan.id);
+                    return GestureDetector(
+                      onTap: () {
+                        ref
+                            .read(favoriteArtisansProvider.notifier)
+                            .toggleFavorite(artisan.id);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: isFavorite ? Colors.red : Colors.grey,
+                          size: 16,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
           Padding(

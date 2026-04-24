@@ -686,6 +686,7 @@ class ProviderProfileTab extends ConsumerWidget {
       text: existingLocation?.serviceRadius?.toString() ?? '50',
     );
     bool isPrimary = existingLocation?.isPrimary ?? false;
+    bool isLoading = false;
 
     showModalBottomSheet(
       context: context,
@@ -819,62 +820,76 @@ class ProviderProfileTab extends ConsumerWidget {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () async {
-                          final name = nameController.text.trim();
-                          final address = addressController.text.trim();
-                          final city = cityController.text.trim();
-                          final radius =
-                              int.tryParse(radiusController.text.trim()) ?? 50;
+                        onPressed: isLoading
+                            ? null
+                            : () async {
+                                final name = nameController.text.trim();
+                                final address = addressController.text.trim();
+                                final city = cityController.text.trim();
+                                final radius =
+                                    int.tryParse(
+                                      radiusController.text.trim(),
+                                    ) ??
+                                    50;
 
-                          if (name.isEmpty || address.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter name and address'),
-                              ),
-                            );
-                            return;
-                          }
+                                if (name.isEmpty || address.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please enter name and address',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
 
-                          final profile = ref.read(userProfileProvider).profile;
-                          if (profile == null) return;
+                                final profile = ref
+                                    .read(userProfileProvider)
+                                    .profile;
+                                if (profile == null) return;
 
-                          final newLocation = ServiceLocation(
-                            id:
-                                existingLocation?.id ??
-                                'loc_${DateTime.now().millisecondsSinceEpoch}',
-                            name: name,
-                            address: address,
-                            city: city,
-                            country: profile.country,
-                            isPrimary: isPrimary,
-                            serviceRadius: radius.toDouble(),
-                          );
+                                setState(() => isLoading = true);
 
-                          final success = await ref
-                              .read(userProfileProvider.notifier)
-                              .saveLocation(newLocation);
+                                final newLocation = ServiceLocation(
+                                  id:
+                                      existingLocation?.id ??
+                                      'loc_${DateTime.now().millisecondsSinceEpoch}',
+                                  name: name,
+                                  address: address,
+                                  city: city,
+                                  country: profile.country,
+                                  isPrimary: isPrimary,
+                                  serviceRadius: radius.toDouble(),
+                                );
 
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            if (success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    isEditing
-                                        ? 'Location updated'
-                                        : 'Location added',
-                                  ),
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Failed to save location'),
-                                ),
-                              );
-                            }
-                          }
-                        },
+                                final success = await ref
+                                    .read(userProfileProvider.notifier)
+                                    .saveLocation(newLocation);
+
+                                if (context.mounted) {
+                                  setState(() => isLoading = false);
+                                  if (success) {
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          isEditing
+                                              ? 'Location updated'
+                                              : 'Location added',
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Failed to save location',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF111827),
                           foregroundColor: Colors.white,
@@ -883,7 +898,16 @@ class ProviderProfileTab extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text(isEditing ? 'Update' : 'Add'),
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(isEditing ? 'Update' : 'Add'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -925,6 +949,7 @@ class ProviderProfileTab extends ConsumerWidget {
       text: existingCert?.issueDate?.year.toString() ?? '',
     );
     String? selectedDocumentPath;
+    bool isLoading = false;
 
     showModalBottomSheet(
       context: context,
@@ -1146,57 +1171,78 @@ class ProviderProfileTab extends ConsumerWidget {
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            onPressed: () async {
-                              final title = nameController.text.trim();
-                              if (title.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Please enter a certification title',
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
+                            onPressed: isLoading
+                                ? null
+                                : () async {
+                                    final title = nameController.text.trim();
+                                    if (title.isEmpty) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Please enter a certification title',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
 
-                              final year = int.tryParse(
-                                yearController.text.trim(),
-                              );
-                              final cert = Certification(
-                                id:
-                                    existingCert?.id ??
-                                    'cert_${DateTime.now().millisecondsSinceEpoch}',
-                                name: title,
-                                issuingOrganization: issuerController.text
-                                    .trim(),
-                                issueDate: year != null ? DateTime(year) : null,
-                                verificationStatus:
-                                    existingCert?.verificationStatus ??
-                                    VerificationStatus.unverified,
-                              );
+                                    setState(() => isLoading = true);
 
-                              final success = await ref
-                                  .read(userProfileProvider.notifier)
-                                  .saveCertification(
-                                    cert,
-                                    documentPath: selectedDocumentPath,
-                                  );
+                                    final year = int.tryParse(
+                                      yearController.text.trim(),
+                                    );
+                                    final cert = Certification(
+                                      id:
+                                          existingCert?.id ??
+                                          'cert_${DateTime.now().millisecondsSinceEpoch}',
+                                      name: title,
+                                      issuingOrganization: issuerController.text
+                                          .trim(),
+                                      issueDate: year != null
+                                          ? DateTime(year)
+                                          : null,
+                                      verificationStatus:
+                                          existingCert?.verificationStatus ??
+                                          VerificationStatus.unverified,
+                                    );
 
-                              if (context.mounted) {
-                                Navigator.pop(context);
-                                if (success) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        isEditing
-                                            ? 'Certification updated'
-                                            : 'Certification added',
-                                      ),
-                                    ),
-                                  );
-                                }
-                              }
-                            },
+                                    final success = await ref
+                                        .read(userProfileProvider.notifier)
+                                        .saveCertification(
+                                          cert,
+                                          documentPath: selectedDocumentPath,
+                                        );
+
+                                    if (context.mounted) {
+                                      setState(() => isLoading = false);
+                                      if (success) {
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              isEditing
+                                                  ? 'Certification updated'
+                                                  : 'Certification added',
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Failed to save certification',
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF111827),
                               foregroundColor: Colors.white,
@@ -1205,7 +1251,16 @@ class ProviderProfileTab extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: Text(isEditing ? 'Update' : 'Add'),
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(isEditing ? 'Update' : 'Add'),
                           ),
                         ),
                       ],

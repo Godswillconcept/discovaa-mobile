@@ -15,6 +15,7 @@ class AvailabilityTab extends ConsumerStatefulWidget {
 class _AvailabilityTabState extends ConsumerState<AvailabilityTab> {
   late List<DayAvailability> _days;
   bool _hasChanges = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -66,9 +67,22 @@ class _AvailabilityTabState extends ConsumerState<AvailabilityTab> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: ElevatedButton.icon(
-                    onPressed: _hasChanges ? _saveChanges : null,
-                    icon: const Icon(Icons.save, size: 18),
-                    label: const Text('Save Changes'),
+                    onPressed: (_hasChanges && !_isSaving)
+                        ? _saveChanges
+                        : null,
+                    icon: _isSaving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.save, size: 18),
+                    label: _isSaving
+                        ? const Text('Saving...')
+                        : const Text('Save Changes'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFEF4444),
                       foregroundColor: Colors.white,
@@ -397,19 +411,31 @@ class _AvailabilityTabState extends ConsumerState<AvailabilityTab> {
   }
 
   Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+
     final availability = Availability(days: _days);
     final success = await ref
         .read(userProfileProvider.notifier)
         .updateAvailability(availability);
 
-    if (success && mounted) {
-      setState(() => _hasChanges = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Availability updated successfully'),
-          backgroundColor: Color(0xFF10B981),
-        ),
-      );
+    if (mounted) {
+      setState(() => _isSaving = false);
+      if (success) {
+        setState(() => _hasChanges = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Availability updated successfully'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update availability'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+      }
     }
   }
 }

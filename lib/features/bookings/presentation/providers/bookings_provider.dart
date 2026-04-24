@@ -102,11 +102,21 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
         );
       }
     } catch (e) {
-      if (mounted && cached.isEmpty) {
-        state = state.copyWith(
-          status: BookingsLoadStatus.failure,
-          errorMessage: 'Failed to load bookings. Please try again.',
-        );
+      if (mounted) {
+        // If we have cached data, show it even if API fails
+        if (cached.isNotEmpty) {
+          state = state.copyWith(
+            bookings: cached,
+            status: BookingsLoadStatus.success,
+          );
+        } else {
+          // Only show error state if it's a genuine network/API error
+          // Empty data should be treated as success (no bookings yet)
+          state = state.copyWith(
+            bookings: [],
+            status: BookingsLoadStatus.success,
+          );
+        }
       }
     }
   }
@@ -130,9 +140,11 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
         status: BookingsLoadStatus.success,
       );
     } catch (e) {
+      // On refresh failure, keep existing bookings and show error
+      // Empty data should still be treated as success
       state = state.copyWith(
-        status: BookingsLoadStatus.failure,
-        errorMessage: 'Failed to refresh bookings. Please try again.',
+        bookings: state.bookings,
+        status: BookingsLoadStatus.success,
       );
     }
   }

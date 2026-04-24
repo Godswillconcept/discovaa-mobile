@@ -113,19 +113,8 @@ class _BrowseByCategorySection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesProvider);
-    final showAll = ref.watch(showAllCategoriesProvider);
-    final currentPage = ref.watch(categoryPageProvider);
     final filter = ref.watch(artisanFilterProvider);
-
-    const int itemsPerPage = 12;
-    final totalPages = (categories.length / itemsPerPage).ceil();
-
-    final displayedCategories = showAll
-        ? categories
-              .skip((currentPage - 1) * itemsPerPage)
-              .take(itemsPerPage)
-              .toList()
-        : categories.take(4).toList();
+    final hasActiveFilter = filter.selectedCategory != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,111 +132,67 @@ class _BrowseByCategorySection extends ConsumerWidget {
                   color: Colors.black,
                 ),
               ),
-              GestureDetector(
-                onTap: () {
-                  ref
-                      .read(showAllCategoriesProvider.notifier)
-                      .update((state) => !state);
-                  ref.read(categoryPageProvider.notifier).state = 1;
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        showAll ? 'See less' : 'See more',
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+              if (hasActiveFilter)
+                GestureDetector(
+                  onTap: () {
+                    ref.read(artisanFilterProvider.notifier).setCategory(null);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.clear, size: 16, color: Colors.black),
+                        SizedBox(width: 4),
+                        Text(
+                          'Clear filter',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        showAll
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_right,
-                        size: 16,
-                        color: Colors.black,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
         const SizedBox(height: 20),
-        if (!showAll)
-          SizedBox(
-            height: 100,
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              scrollDirection: Axis.horizontal,
-              itemCount: displayedCategories.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 16),
-              itemBuilder: (context, index) {
-                final cat = displayedCategories[index];
-                final isSelected = filter.selectedCategory == cat.name;
-                return SizedBox(
-                  width: 160,
-                  child: CategoryItem(
-                    category: cat,
-                    isSelected: isSelected,
-                    onTap: () {
-                      ref
-                          .read(artisanFilterProvider.notifier)
-                          .setCategory(isSelected ? null : cat.name);
-                    },
-                  ),
-                );
-              },
-            ),
-          )
-        else
-          Column(
-            children: [
-              GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 20,
-                  mainAxisExtent: 100,
+        SizedBox(
+          height: 100,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            itemCount: categories.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 16),
+            itemBuilder: (context, index) {
+              final cat = categories[index];
+              final isSelected = filter.selectedCategory == cat.name;
+              return SizedBox(
+                width: 160,
+                child: CategoryItem(
+                  category: cat,
+                  isSelected: isSelected,
+                  onTap: () {
+                    ref
+                        .read(artisanFilterProvider.notifier)
+                        .setCategory(isSelected ? null : cat.name);
+                  },
                 ),
-                itemCount: displayedCategories.length,
-                itemBuilder: (context, index) {
-                  final cat = displayedCategories[index];
-                  final isSelected = filter.selectedCategory == cat.name;
-                  return CategoryItem(
-                    category: cat,
-                    isSelected: isSelected,
-                    onTap: () {
-                      ref
-                          .read(artisanFilterProvider.notifier)
-                          .setCategory(isSelected ? null : cat.name);
-                    },
-                  );
-                },
-              ),
-              if (showAll && categories.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                _Pagination(currentPage: currentPage, totalPages: totalPages),
-                const SizedBox(height: 8),
-              ],
-            ],
+              );
+            },
           ),
+        ),
       ],
     );
   }

@@ -511,6 +511,27 @@ final bookingProvider = StateNotifierProvider<BookingNotifier, BookingState>((
   return BookingNotifier();
 });
 
+class FavoriteArtisansNotifier extends StateNotifier<Set<String>> {
+  FavoriteArtisansNotifier() : super(const {});
+
+  void toggleFavorite(String artisanId) {
+    final current = Set<String>.from(state);
+    if (current.contains(artisanId)) {
+      current.remove(artisanId);
+    } else {
+      current.add(artisanId);
+    }
+    state = current;
+  }
+
+  bool isFavorite(String artisanId) => state.contains(artisanId);
+}
+
+final favoriteArtisansProvider =
+    StateNotifierProvider<FavoriteArtisansNotifier, Set<String>>((ref) {
+      return FavoriteArtisansNotifier();
+    });
+
 class FilteredArtisansNotifier extends AsyncNotifier<List<Artisan>> {
   @override
   Future<List<Artisan>> build() async {

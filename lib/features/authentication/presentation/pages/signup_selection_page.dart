@@ -141,15 +141,11 @@ class SignupSelectionPage extends ConsumerWidget {
                               "Service provider but don't have a registered business? This is for you.",
                           onTap: () {
                             if (isInitialLevel) {
-                              if (state.selectedRole == UserRole.user) {
-                                notifier.goToRegistration();
-                                context.push(
-                                  '/register',
-                                  extra: UserRole.user.name,
-                                );
-                              } else {
-                                notifier.selectRole(UserRole.user);
-                              }
+                              notifier.goToRegistration();
+                              context.push(
+                                '/register',
+                                extra: UserRole.user.name,
+                              );
                             } else {
                               if (state.selectedRole ==
                                   UserRole.individualProvider) {
