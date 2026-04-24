@@ -12,8 +12,8 @@ Future<void> main() async {
 
   // Set feature flags based on current milestone
   // Modify this call when creating milestone branches
-  // Current: Milestone 1 (Board Presentation)
-  FeatureFlags.setMilestone1();
+  // Current: Full app (Milestone 3)
+  FeatureFlags.setMilestone3();
 
   runApp(const ProviderScope(child: DiscovaaApp()));
 }
