@@ -121,6 +121,8 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
 
   /// Update profile with optimistic updates and error handling
   Future<bool> updateProfile(UserProfile updatedProfile) async {
+    if (state.profile == null) return false;
+
     state = state.copyWith(
       profile: updatedProfile,
       updateState: ProfileOperationState.loading,
@@ -129,8 +131,21 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
     );
 
     try {
-      // Success
+      // Persist changes to API via repository
+      final persistedProfile = await _repository.updateFields(
+        state.profile!,
+        displayName: updatedProfile.displayName,
+        firstName: updatedProfile.firstName,
+        lastName: updatedProfile.lastName,
+        phone: updatedProfile.phone,
+        country: updatedProfile.country,
+        gender: updatedProfile.gender,
+        bio: updatedProfile.bio,
+      );
+
+      // Success - update state with persisted profile
       state = state.copyWith(
+        profile: persistedProfile,
         updateState: ProfileOperationState.success,
         hasPendingChanges: false,
         errorMessage: null,
@@ -326,10 +341,16 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
   }
 
   /// Add or update a certification
-  Future<bool> saveCertification(Certification certification, {String? documentPath}) async {
+  Future<bool> saveCertification(
+    Certification certification, {
+    String? documentPath,
+  }) async {
     if (state.profile == null) return false;
     try {
-      final updatedProfile = await _repository.saveCertification(certification, documentPath: documentPath);
+      final updatedProfile = await _repository.saveCertification(
+        certification,
+        documentPath: documentPath,
+      );
       return await updateProfile(updatedProfile);
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to save certification.');
@@ -386,7 +407,12 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
   }
 
   /// Start payout onboarding and return the onboarding URL if available.
-  Future<String?> startPayoutOnboarding({String? currency}) async {
+  Future<String?> startPayoutOnboarding({
+    String? currency,
+    String? accountNumber,
+    String? bankCode,
+    String? accountName,
+  }) async {
     final profile = state.profile;
     if (profile == null) return null;
     try {
@@ -394,6 +420,9 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
         currency: currency ?? profile.payoutAccount?.currency ?? 'NGN',
         country: profile.countryCode ?? profile.country,
         email: profile.email,
+        accountNumber: accountNumber,
+        bankCode: bankCode,
+        accountName: accountName,
       );
       await _fetchProfile();
       return onboardingUrl;
@@ -446,6 +475,32 @@ class UserProfileNotifier extends StateNotifier<ProfileState> {
   /// Refresh profile from server
   Future<void> refreshProfile() async {
     await _fetchProfile();
+  }
+
+  /// Fetch list of Paystack banks
+  Future<List<dynamic>> fetchPaystackBanks() async {
+    try {
+      return await _repository.fetchPaystackBanks();
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to fetch banks.');
+      return [];
+    }
+  }
+
+  /// Resolve Paystack account name from account number and bank code
+  Future<String?> resolvePaystackAccount({
+    required String accountNumber,
+    required String bankCode,
+  }) async {
+    try {
+      return await _repository.resolvePaystackAccount(
+        accountNumber: accountNumber,
+        bankCode: bankCode,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to resolve account.');
+      return null;
+    }
   }
 
   /// Deactivate account (temporarily disable)

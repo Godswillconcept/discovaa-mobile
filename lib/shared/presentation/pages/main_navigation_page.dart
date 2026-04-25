@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:discovaa/shared/presentation/widgets/bottom_nav_bar.dart';
-import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
+import 'package:discovaa/features/authentication/presentation/providers/session_provider.dart';
 
 class MainNavigationPage extends ConsumerStatefulWidget {
   final StatefulNavigationShell navigationShell;
@@ -23,8 +23,20 @@ class _MainNavigationPageState extends ConsumerState<MainNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
-    final profileState = ref.watch(userProfileProvider);
-    final isProvider = profileState.profile?.isProvider ?? false;
+    // Use the effective user role provider to ensure consistent role state
+    // This prevents race conditions between session state and user entity
+    final isProvider = ref.watch(isServiceProvider);
+    final session = ref.watch(sessionProvider);
+
+    // If session isn't initialized yet (during auth check), show loading indicator
+    // to prevent UI flicker before role is determined
+    if (!session.isInitialized) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
     return Scaffold(
       body: widget.navigationShell,

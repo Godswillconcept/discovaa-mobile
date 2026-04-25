@@ -95,8 +95,11 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
         (bookingsData['cancelled_count'] as num?)?.toInt() ?? 0;
     final spendingTrend = bookingsData['spending_trend'] as SpendingTrendDto;
     final bookingMix = bookingsData['booking_mix'] as BookingMixDto;
-    final recentBookings =
-        bookingsData['recent_bookings'] as List<RecentBookingDto>;
+    final recentBookingsRaw = bookingsData['recent_bookings'] as List<dynamic>;
+    final recentBookings = recentBookingsRaw
+        .whereType<Map<String, dynamic>>()
+        .map((e) => RecentBookingDto.fromJson(e))
+        .toList();
 
     final kpis = DashboardKpiDto(
       totalSpend: totalSpend,
@@ -785,7 +788,7 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
         cancelled: 0,
         total: 0,
       ),
-      'recent_bookings': <RecentBookingDto>[],
+      'recent_bookings': <Map<String, dynamic>>[],
     };
   }
 

@@ -29,6 +29,14 @@ class PayoutsTab extends ConsumerWidget {
     final account = profile.payoutAccount;
 
     if (account == null) {
+      // Detect country to determine gateway
+      final countryCode =
+          profile.countryCode?.toUpperCase() ??
+          profile.country?.toUpperCase() ??
+          '';
+      final isNigeria =
+          countryCode == 'NG' || profile.country?.toLowerCase() == 'nigeria';
+
       return SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -66,33 +74,41 @@ class PayoutsTab extends ConsumerWidget {
             const SizedBox(height: 16),
             const _PayoutSummarySection(account: null),
             const SizedBox(height: 20),
-            _StartOnboardingCard(
-              initialCurrency: 'USD',
-              country: profile.countryCode ?? profile.country,
-              email: profile.email,
-              onStart: (currency) async {
-                final notifier = ref.read(userProfileProvider.notifier);
-                final onboardingUrl = await notifier.startPayoutOnboarding(
-                  currency: currency,
-                );
-                if (!context.mounted) return;
-                if (onboardingUrl == null || onboardingUrl.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Unable to start onboarding right now.'),
-                    ),
+            if (isNigeria)
+              _PaystackOnboardingCard(
+                country: profile.countryCode ?? profile.country,
+                email: profile.email,
+                onRefresh: () =>
+                    ref.read(userProfileProvider.notifier).refreshProfile(),
+              )
+            else
+              _StartOnboardingCard(
+                initialCurrency: 'USD',
+                country: profile.countryCode ?? profile.country,
+                email: profile.email,
+                onStart: (currency) async {
+                  final notifier = ref.read(userProfileProvider.notifier);
+                  final onboardingUrl = await notifier.startPayoutOnboarding(
+                    currency: currency,
                   );
-                  return;
-                }
-                final uri = Uri.tryParse(onboardingUrl);
-                if (uri != null) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              },
-              onRefresh: () =>
-                  ref.read(userProfileProvider.notifier).refreshProfile(),
-              onResume: null,
-            ),
+                  if (!context.mounted) return;
+                  if (onboardingUrl == null || onboardingUrl.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Unable to start onboarding right now.'),
+                      ),
+                    );
+                    return;
+                  }
+                  final uri = Uri.tryParse(onboardingUrl);
+                  if (uri != null) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                onRefresh: () =>
+                    ref.read(userProfileProvider.notifier).refreshProfile(),
+                onResume: null,
+              ),
           ],
         ),
       );
@@ -378,9 +394,9 @@ class _PayoutAccountCard extends StatelessWidget {
                   color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text(
-                  'S',
-                  style: TextStyle(
+                child: Text(
+                  account.gateway == PayoutGateway.paystack ? 'P' : 'S',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -392,8 +408,8 @@ class _PayoutAccountCard extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             account.connectedAccountId != null
-                ? 'Stripe Account Connected'
-                : 'Connect Stripe',
+                ? '${account.gateway?.displayName ?? 'Stripe'} Account Connected'
+                : 'Connect ${account.gateway?.displayName ?? 'Stripe'}',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -412,6 +428,27 @@ class _PayoutAccountCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          if (account.gateway == PayoutGateway.paystack &&
+              account.bankName != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.business, size: 16, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text(
+                    account.bankName!,
+                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (account.chargesEnabled) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -1107,6 +1144,294 @@ class _TransactionHistorySection extends StatelessWidget {
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: accentColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Paystack Onboarding Card for Nigerian users
+class _PaystackOnboardingCard extends ConsumerStatefulWidget {
+  final String? country;
+  final String? email;
+  final VoidCallback onRefresh;
+
+  const _PaystackOnboardingCard({
+    required this.country,
+    required this.email,
+    required this.onRefresh,
+  });
+
+  @override
+  ConsumerState<_PaystackOnboardingCard> createState() =>
+      _PaystackOnboardingCardState();
+}
+
+class _PaystackOnboardingCardState
+    extends ConsumerState<_PaystackOnboardingCard> {
+  final _accountNumberController = TextEditingController();
+  String? _selectedBankCode;
+  String? _resolvedAccountName;
+  List<dynamic> _banks = [];
+  bool _isLoadingBanks = false;
+  bool _isResolvingAccount = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBanks();
+  }
+
+  @override
+  void dispose() {
+    _accountNumberController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchBanks() async {
+    setState(() => _isLoadingBanks = true);
+    final banks = await ref
+        .read(userProfileProvider.notifier)
+        .fetchPaystackBanks();
+    setState(() {
+      _banks = banks;
+      _isLoadingBanks = false;
+    });
+  }
+
+  Future<void> _resolveAccountName() async {
+    final accountNumber = _accountNumberController.text.trim();
+    if (accountNumber.length != 10 || _selectedBankCode == null) return;
+
+    setState(() => _isResolvingAccount = true);
+    final accountName = await ref
+        .read(userProfileProvider.notifier)
+        .resolvePaystackAccount(
+          accountNumber: accountNumber,
+          bankCode: _selectedBankCode!,
+        );
+    setState(() {
+      _resolvedAccountName = accountName;
+      _isResolvingAccount = false;
+    });
+  }
+
+  Future<void> _submitPaystackSetup() async {
+    final accountNumber = _accountNumberController.text.trim();
+    if (accountNumber.length != 10 ||
+        _selectedBankCode == null ||
+        _resolvedAccountName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please complete all required fields')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final success = await ref
+        .read(userProfileProvider.notifier)
+        .startPayoutOnboarding(
+          currency: 'NGN',
+          accountNumber: accountNumber,
+          bankCode: _selectedBankCode,
+          accountName: _resolvedAccountName,
+        );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (success != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Paystack account connected successfully!'),
+        ),
+      );
+      widget.onRefresh();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to connect Paystack account')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Connect Payout Account',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              OutlinedButton(
+                onPressed: widget.onRefresh,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                child: const Text('Refresh'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Enter your Nigerian bank details to receive payouts via Paystack.',
+            style: TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+          ),
+          const SizedBox(height: 16),
+
+          // Country (read-only)
+          TextFormField(
+            enabled: false,
+            initialValue: widget.country ?? 'Nigeria',
+            decoration: const InputDecoration(
+              labelText: 'Country',
+              prefixIcon: Icon(Icons.flag, size: 20),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Currency (read-only)
+          TextFormField(
+            enabled: false,
+            initialValue: 'NGN',
+            decoration: InputDecoration(
+              labelText: 'Currency',
+              prefixIcon: Icon(Icons.attach_money, size: 20),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Gateway (read-only)
+          TextFormField(
+            enabled: false,
+            initialValue: 'Paystack',
+            decoration: InputDecoration(
+              labelText: 'Gateway',
+              prefixIcon: Icon(Icons.account_balance, size: 20),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Account Email (read-only)
+          TextFormField(
+            enabled: false,
+            initialValue: widget.email,
+            decoration: const InputDecoration(
+              labelText: 'Account Email',
+              prefixIcon: Icon(Icons.email, size: 20),
+              border: OutlineInputBorder(),
+              helperText: 'Resolved from your profile. Not editable here.',
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Account Number
+          TextFormField(
+            controller: _accountNumberController,
+            keyboardType: TextInputType.number,
+            maxLength: 10,
+            decoration: const InputDecoration(
+              labelText: 'Account Number',
+              prefixIcon: Icon(Icons.account_balance_wallet, size: 20),
+              border: OutlineInputBorder(),
+              counterText: '',
+            ),
+            onChanged: (_) => _resolveAccountName(),
+          ),
+          const SizedBox(height: 12),
+
+          // Bank Selection
+          _isLoadingBanks
+              ? const Center(child: CircularProgressIndicator())
+              : DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Bank',
+                    prefixIcon: Icon(Icons.business, size: 20),
+                    border: OutlineInputBorder(),
+                  ),
+                  hint: const Text('Select a bank'),
+                  items: _banks.map((bank) {
+                    return DropdownMenuItem<String>(
+                      value: bank['code']?.toString(),
+                      child: Text(bank['name']?.toString() ?? ''),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedBankCode = value;
+                    });
+                    _resolveAccountName();
+                  },
+                ),
+          const SizedBox(height: 12),
+
+          // Account Name (auto-filled)
+          TextFormField(
+            enabled: false,
+            initialValue: _resolvedAccountName,
+            decoration: InputDecoration(
+              labelText: 'Account Name',
+              prefixIcon: const Icon(Icons.person, size: 20),
+              border: const OutlineInputBorder(),
+              helperText: _isResolvingAccount
+                  ? 'Resolving account name...'
+                  : 'Auto-filled after account number + bank are entered',
+              suffixIcon: _isResolvingAccount
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Submit Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isSubmitting ? null : _submitPaystackSetup,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF111827),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                disabledBackgroundColor: const Color(0xFFE5E7EB),
+              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Connect Paystack Account'),
             ),
           ),
         ],

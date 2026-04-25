@@ -43,7 +43,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
         statusBarBrightness: Brightness.dark,
       ),
       child: DefaultTabController(
-        length: 4,
+        length: 5,
         child: Scaffold(
           backgroundColor: const Color(0xFFF8FBFF),
           body: Column(
@@ -126,8 +126,9 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                       tabs: const [
                         Tab(text: 'Requested'),
                         Tab(text: 'Confirmed'),
-                        Tab(text: 'Cancelled'),
+                        Tab(text: 'Ongoing'),
                         Tab(text: 'Completed'),
+                        Tab(text: 'Cancelled'),
                       ],
                     ),
                     const SizedBox(height: 10),
@@ -139,8 +140,9 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                   children: [
                     _BookingsTab(status: BookingStatus.requested),
                     _BookingsTab(status: BookingStatus.confirmed),
-                    _BookingsTab(status: BookingStatus.cancelled),
+                    _BookingsTab(status: BookingStatus.ongoing),
                     _BookingsTab(status: BookingStatus.completed),
+                    _BookingsTab(status: BookingStatus.cancelled),
                   ],
                 ),
               ),
@@ -230,7 +232,13 @@ class _BookingsTab extends ConsumerWidget {
     final bookings = bookingsState.byStatus(status);
 
     if (bookings.isEmpty) {
-      return _EmptyState(status: status);
+      return RefreshIndicator(
+        onRefresh: () => ref.read(bookingsProvider.notifier).refreshBookings(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: _EmptyState(status: status),
+        ),
+      );
     }
 
     return RefreshIndicator(

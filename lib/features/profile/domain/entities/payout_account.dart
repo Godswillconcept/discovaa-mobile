@@ -1,6 +1,6 @@
 import 'profile_enums.dart';
 
-/// Represents a payout account configuration (Stripe Connect)
+/// Represents a payout account configuration (Stripe Connect or Paystack)
 class PayoutAccount {
   final String? stripeAccountId;
   final String? connectedAccountId;
@@ -19,6 +19,9 @@ class PayoutAccount {
   final String? email;
   final String? payoutSchedule;
   final bool chargesEnabled;
+  final PayoutGateway? gateway;
+  final String? bankCode;
+  final String? bankName;
 
   const PayoutAccount({
     this.stripeAccountId,
@@ -38,6 +41,9 @@ class PayoutAccount {
     this.email,
     this.payoutSchedule,
     this.chargesEnabled = false,
+    this.gateway,
+    this.bankCode,
+    this.bankName,
   });
 
   PayoutAccount copyWith({
@@ -58,6 +64,9 @@ class PayoutAccount {
     String? email,
     String? payoutSchedule,
     bool? chargesEnabled,
+    PayoutGateway? gateway,
+    String? bankCode,
+    String? bankName,
   }) {
     return PayoutAccount(
       stripeAccountId: stripeAccountId ?? this.stripeAccountId,
@@ -78,6 +87,9 @@ class PayoutAccount {
       email: email ?? this.email,
       payoutSchedule: payoutSchedule ?? this.payoutSchedule,
       chargesEnabled: chargesEnabled ?? this.chargesEnabled,
+      gateway: gateway ?? this.gateway,
+      bankCode: bankCode ?? this.bankCode,
+      bankName: bankName ?? this.bankName,
     );
   }
 
@@ -100,6 +112,9 @@ class PayoutAccount {
       'email': email,
       'payoutSchedule': payoutSchedule,
       'chargesEnabled': chargesEnabled,
+      'gateway': gateway?.name,
+      'bankCode': bankCode,
+      'bankName': bankName,
     };
   }
 
@@ -129,6 +144,14 @@ class PayoutAccount {
       email: json['email'],
       payoutSchedule: json['payoutSchedule'],
       chargesEnabled: json['chargesEnabled'] ?? false,
+      gateway: json['gateway'] != null
+          ? PayoutGateway.values.firstWhere(
+              (e) => e.name == json['gateway'],
+              orElse: () => PayoutGateway.stripe,
+            )
+          : null,
+      bankCode: json['bankCode'],
+      bankName: json['bankName'],
     );
   }
 

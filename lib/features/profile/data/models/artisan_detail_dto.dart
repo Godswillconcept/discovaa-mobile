@@ -151,26 +151,38 @@ class ProviderCertificationDto {
 
 class ProviderAvailabilityRuleDto {
   final String id;
+  final String? provider;
   final int weekday;
   final String? startTime;
   final String? endTime;
   final bool isClosed;
+  final String? timezone;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const ProviderAvailabilityRuleDto({
     required this.id,
+    this.provider,
     required this.weekday,
     this.startTime,
     this.endTime,
     this.isClosed = false,
+    this.timezone,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory ProviderAvailabilityRuleDto.fromJson(Map<String, dynamic> json) {
     return ProviderAvailabilityRuleDto(
       id: json['id']?.toString() ?? '',
+      provider: json['provider']?.toString(),
       weekday: _asInt(json['weekday']),
       startTime: json['start_time']?.toString(),
       endTime: json['end_time']?.toString(),
       isClosed: json['is_closed'] == true,
+      timezone: json['timezone']?.toString(),
+      createdAt: _parseDateTime(json['created_at']),
+      updatedAt: _parseDateTime(json['updated_at']),
     );
   }
 
@@ -211,6 +223,8 @@ class ProviderAvailabilityRuleDto {
 /// DTO for Service data from /api/services/
 class ServiceDto {
   final String id;
+  final String? provider;
+  final String? category;
   final String title;
   final String? description;
   final String pricingModel;
@@ -221,9 +235,14 @@ class ServiceDto {
   final String currency;
   final int? durationMinutes;
   final List<String> media;
+  final bool isActive;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const ServiceDto({
     required this.id,
+    this.provider,
+    this.category,
     required this.title,
     this.description,
     required this.pricingModel,
@@ -234,11 +253,16 @@ class ServiceDto {
     required this.currency,
     this.durationMinutes,
     required this.media,
+    this.isActive = true,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory ServiceDto.fromJson(Map<String, dynamic> json) {
     return ServiceDto(
       id: json['id']?.toString() ?? '',
+      provider: json['provider']?.toString(),
+      category: json['category']?.toString(),
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString(),
       pricingModel: json['pricing_model']?.toString() ?? 'FIXED',
@@ -249,6 +273,9 @@ class ServiceDto {
       currency: json['currency']?.toString() ?? 'NGN',
       durationMinutes: _asInt(json['duration_minutes']),
       media: _mapList(json['media'], (item) => item.toString()),
+      isActive: json['is_active'] == true,
+      createdAt: _parseDateTime(json['created_at']),
+      updatedAt: _parseDateTime(json['updated_at']),
     );
   }
 

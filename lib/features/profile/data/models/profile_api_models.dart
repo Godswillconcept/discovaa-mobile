@@ -741,3 +741,48 @@ String? _smartDisplayName(
   // Otherwise prefer user's display_name
   return userDisplayName;
 }
+
+/// Paystack Bank DTO
+class PaystackBankDto {
+  final String code;
+  final String name;
+  final String? slug;
+
+  const PaystackBankDto({required this.code, required this.name, this.slug});
+
+  factory PaystackBankDto.fromJson(Map<String, dynamic> json) {
+    return PaystackBankDto(
+      code: json['code']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      slug: json['slug']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'code': code, 'name': name, if (slug != null) 'slug': slug};
+  }
+}
+
+/// Paystack Account Resolution Response DTO
+class PaystackResolveAccountResponseDto {
+  final String accountName;
+  final String accountNumber;
+
+  const PaystackResolveAccountResponseDto({
+    required this.accountName,
+    required this.accountNumber,
+  });
+
+  factory PaystackResolveAccountResponseDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return PaystackResolveAccountResponseDto(
+      accountName: json['account_name']?.toString() ?? '',
+      accountNumber: json['account_number']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'account_name': accountName, 'account_number': accountNumber};
+  }
+}

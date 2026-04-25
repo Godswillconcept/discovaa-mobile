@@ -119,6 +119,8 @@ class RecentBookingEntity {
   final String serviceName;
   final String? serviceImage;
   final String providerName;
+  final String? clientName;
+  final String? clientAvatar;
   final DateTime date;
   final String status;
   final double? amount;
@@ -129,6 +131,8 @@ class RecentBookingEntity {
     required this.serviceName,
     this.serviceImage,
     required this.providerName,
+    this.clientName,
+    this.clientAvatar,
     required this.date,
     required this.status,
     this.amount,
@@ -159,6 +163,7 @@ class RecentBookingEntity {
 class AppointmentEntity {
   final String id;
   final String serviceName;
+  final String providerName;
   final String clientName;
   final String? clientAvatar;
   final DateTime scheduledDate;
@@ -171,6 +176,7 @@ class AppointmentEntity {
     required this.id,
     required this.serviceName,
     required this.clientName,
+    required this.providerName,
     this.clientAvatar,
     required this.scheduledDate,
     this.scheduledTime,

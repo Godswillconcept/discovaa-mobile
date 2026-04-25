@@ -1,3 +1,5 @@
+import 'package:discovaa/features/bookings/presentation/providers/bookings_provider.dart';
+import 'package:discovaa/features/home/presentation/providers/dashboard_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -385,7 +387,15 @@ class BookingState {
 }
 
 class BookingNotifier extends StateNotifier<BookingState> {
-  BookingNotifier() : super(BookingState());
+  final BookingsRepository _bookingsRepository;
+  final Ref _ref;
+
+  BookingNotifier({
+    required BookingsRepository bookingsRepository,
+    required Ref ref,
+  }) : _bookingsRepository = bookingsRepository,
+       _ref = ref,
+       super(BookingState());
 
   void selectArtisan(Artisan artisan) =>
       state = state.copyWith(selectedArtisan: artisan);
@@ -428,11 +438,10 @@ class BookingNotifier extends StateNotifier<BookingState> {
     state = state.copyWith(availableServices: services);
   }
 
-  Future<void> confirmBooking() async {
+  Future<String?> confirmBooking() async {
     state = state.copyWith(isConfirming: true);
 
     try {
-      final bookingsRepository = sl<BookingsRepository>();
       final artisan = state.selectedArtisan;
 
       if (artisan == null ||
@@ -440,18 +449,20 @@ class BookingNotifier extends StateNotifier<BookingState> {
           state.startTime == null ||
           state.endTime == null) {
         state = state.copyWith(isConfirming: false);
-        return;
+        return 'Missing required booking details.';
       }
 
       // Build full ISO datetime objects from date + time selections
-      final scheduledStart = DateTime(
+      // The backend expects the hour digits to match the provider's configured working hours.
+      // We treat the selected Lagos time as UTC directly to ensure the correct hour digits are transmitted in the ISO string.
+      final scheduledStart = DateTime.utc(
         state.selectedDate!.year,
         state.selectedDate!.month,
         state.selectedDate!.day,
         state.startTime!.hour,
         state.startTime!.minute,
       );
-      final scheduledEnd = DateTime(
+      final scheduledEnd = DateTime.utc(
         state.selectedDate!.year,
         state.selectedDate!.month,
         state.selectedDate!.day,
@@ -459,16 +470,31 @@ class BookingNotifier extends StateNotifier<BookingState> {
         state.endTime!.minute,
       );
 
+      debugPrint('=== TIMEZONE CONVERSION DEBUG ===');
+      debugPrint('Selected start (Lagos): $scheduledStart');
+      debugPrint('Selected end (Lagos): $scheduledEnd');
+      debugPrint('===============================');
+
       // 1. Check provider availability first (web app approach)
-      final availability = await bookingsRepository.checkAvailability(
+      final availability = await _bookingsRepository.checkAvailability(
         providerId: artisan.id,
         start: scheduledStart,
         end: scheduledEnd,
       );
 
+      debugPrint('=== Availability Result ===');
+      debugPrint('Available: ${availability.available}');
+      if (availability.reasons.isNotEmpty) {
+        debugPrint('Reasons: ${availability.reasons}');
+      }
+      debugPrint('==========================');
+
       if (!availability.available) {
         state = state.copyWith(isConfirming: false, isConfirmed: false);
-        return;
+        final reason = availability.reasons.isNotEmpty
+            ? availability.reasons.join(', ')
+            : 'Provider is not available at the selected time.';
+        return reason;
       }
 
       // 2. Map selected services to items using their UUIDs
@@ -488,8 +514,23 @@ class BookingNotifier extends StateNotifier<BookingState> {
         items.add({'service': artisan.id, 'quantity': 1});
       }
 
-      // 3. Create the booking matching the web app payload shape
-      await bookingsRepository.placeBooking(
+      final payloadItems = items;
+
+      debugPrint('=== BOOKING SUBMISSION DEBUG ===');
+      debugPrint('providerId: ${artisan.id}');
+      debugPrint('scheduledStart: $scheduledStart');
+      debugPrint('scheduledEnd: $scheduledEnd');
+      debugPrint('serviceType: ${state.bookingType.name.toUpperCase()}');
+      debugPrint('currency: NGN');
+      debugPrint(
+        'addressText: ${state.bookingType == BookingType.onsite ? state.address : null}',
+      );
+      debugPrint('notes: ${state.notes}');
+      debugPrint('items: $payloadItems');
+      debugPrint('================================');
+
+      // 3. Create the booking using the global bookingsProvider to ensure state synchronization
+      await _ref.read(bookingsProvider.notifier).placeBooking(
         providerId: artisan.id,
         scheduledStart: scheduledStart,
         scheduledEnd: scheduledEnd,
@@ -499,12 +540,61 @@ class BookingNotifier extends StateNotifier<BookingState> {
             ? state.address
             : null,
         notes: state.notes,
-        items: items,
+        items: payloadItems,
       );
 
+      // 4. Invalidate dashboard to ensure it reflects the new booking and KPIs
+      _ref.invalidate(dashboardProvider);
+
+      debugPrint('Booking submitted successfully!');
       state = state.copyWith(isConfirming: false, isConfirmed: true);
+      return null;
     } catch (e) {
+      debugPrint('Booking failed with error: $e');
+      if (e is DioException) {
+        debugPrint('DioException response: ${e.response?.data}');
+      }
       state = state.copyWith(isConfirming: false, isConfirmed: false);
+      // Extract error message from exceptions if possible, otherwise use generic message
+      String errorMsg = 'Failed to create booking. Please try again.';
+      if (e is DioException) {
+        if (e.response?.data != null) {
+          final data = e.response?.data;
+          if (data is Map) {
+            if (data.containsKey('message')) {
+              errorMsg = data['message'].toString();
+            } else if (data.containsKey('detail')) {
+              errorMsg = data['detail'].toString();
+            } else if (data.containsKey('non_field_errors')) {
+              errorMsg = (data['non_field_errors'] as List).join('\n');
+            } else {
+              // Parse field-level validation errors
+              final List<String> errors = [];
+              data.forEach((key, value) {
+                if (value is List) {
+                  errors.add('$key: ${value.join(', ')}');
+                } else if (value is Map) {
+                  errors.add('$key: $value');
+                } else {
+                  errors.add('$key: $value');
+                }
+              });
+              if (errors.isNotEmpty) {
+                errorMsg = errors.join('\n');
+              } else {
+                errorMsg = data.toString();
+              }
+            }
+          } else {
+            errorMsg = data.toString();
+          }
+        } else {
+          errorMsg = e.message ?? e.toString();
+        }
+      } else {
+        errorMsg = e.toString();
+      }
+      return errorMsg;
     }
   }
 
@@ -514,7 +604,10 @@ class BookingNotifier extends StateNotifier<BookingState> {
 final bookingProvider = StateNotifierProvider<BookingNotifier, BookingState>((
   ref,
 ) {
-  return BookingNotifier();
+  return BookingNotifier(
+    bookingsRepository: ref.read(bookingsRepositoryProvider),
+    ref: ref,
+  );
 });
 
 /// Hive key for persisting favorite artisan IDs.

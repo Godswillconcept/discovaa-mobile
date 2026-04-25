@@ -634,11 +634,53 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final response = await _dioClient.post(
         ApiEndpoints.authPasswordRequest,
         data: request.toJson(),
+        options: Options(
+          validateStatus: (status) => status == 200 || status == 401,
+        ),
       );
 
-      if (response.statusCode != 200) {
-        throw _handleError(response.data, 'Failed to send reset email');
+      if (response.statusCode == 200 || response.statusCode == 401) {
+        final responseData = response.data;
+        if (responseData is Map<String, dynamic>) {
+          final normalizedData = Map<String, dynamic>.from(responseData);
+
+          // Store any tokens provided in meta (like session_token for the flow)
+          if (normalizedData.containsKey('meta')) {
+            final metaJson = Map<String, dynamic>.from(
+              normalizedData['meta'] as Map,
+            );
+            final dataJson = normalizedData.containsKey('data')
+                ? Map<String, dynamic>.from(normalizedData['data'] as Map)
+                : <String, dynamic>{};
+            final meta = AuthMeta.fromJsonWithFallback(metaJson, dataJson);
+            await _storeTokens(meta, dataJson);
+            debugPrint(
+              '[sendPasswordResetEmail] Tokens stored for password reset flow.',
+            );
+          }
+
+          // Case 1: Success (200)
+          if (response.statusCode == 200) {
+            return;
+          }
+
+          // Case 2: Flow Pending (401)
+          if (response.statusCode == 401) {
+            final authResponse = AuthenticationResponse.fromJson(
+              normalizedData,
+            );
+            if (authResponse.isFlowPending('password_reset_by_code') ||
+                authResponse.isFlowPending('password_reset_by_email')) {
+              debugPrint(
+                '[sendPasswordResetEmail] Password reset flow initiated successfully.',
+              );
+              return;
+            }
+          }
+        }
       }
+
+      throw _handleError(response.data, 'Failed to send reset email');
     } on NetworkException {
       rethrow;
     } on ServerException {

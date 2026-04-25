@@ -632,7 +632,7 @@ class ProviderProfileTab extends ConsumerWidget {
                     ref
                         .read(userProfileProvider.notifier)
                         .updateProfile(
-                          profile.copyWith(summary: controller.text.trim()),
+                          profile.copyWith(bio: controller.text.trim()),
                         );
                     Navigator.pop(context);
                   },

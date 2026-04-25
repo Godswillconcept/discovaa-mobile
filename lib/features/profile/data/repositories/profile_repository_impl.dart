@@ -313,7 +313,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<UserProfile> saveCertification(Certification certification, {String? documentPath}) async {
+  Future<UserProfile> saveCertification(
+    Certification certification, {
+    String? documentPath,
+  }) async {
     final dto = ProviderCertificationDto(
       id: certification.id,
       title: certification.name,
@@ -322,10 +325,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
       expiresDate: certification.expiryDate,
       document: certification.documentUrl,
     );
-    
+
     dynamic requestData;
     Options? options;
-    
+
     if (documentPath != null && documentPath.isNotEmpty) {
       final map = dto.toWriteJson();
       map['document'] = await MultipartFile.fromFile(documentPath);
@@ -375,7 +378,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
     ).toJson();
 
     if (documentPath != null && documentPath.isNotEmpty) {
-      writeDto['registration_document'] = await MultipartFile.fromFile(documentPath);
+      writeDto['registration_document'] = await MultipartFile.fromFile(
+        documentPath,
+      );
       requestData = FormData.fromMap(writeDto);
       options = Options(contentType: 'multipart/form-data');
     } else {
@@ -409,10 +414,21 @@ class ProfileRepositoryImpl implements ProfileRepository {
     required String currency,
     String? country,
     String? email,
+    String? accountNumber,
+    String? bankCode,
+    String? accountName,
   }) async {
+    final data = <String, dynamic>{
+      'currency': currency,
+      'country': ?country,
+      'email': ?email,
+      'account_number': ?accountNumber,
+      'bank_code': ?bankCode,
+      'account_name': ?accountName,
+    };
     final response = await _dioClient.post(
       ApiEndpoints.payoutAccountSetup,
-      data: {'currency': currency, 'country': ?country, 'email': ?email},
+      data: data,
     );
     final payload = decodeEnvelope(
       response,
@@ -468,6 +484,29 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<List<dynamic>> fetchPaystackBanks() async {
+    final response = await _dioClient.get(ApiEndpoints.paystackBanks);
+    final payload = decodeEnvelope(response, (raw) => raw as List);
+    return payload.data;
+  }
+
+  @override
+  Future<String?> resolvePaystackAccount({
+    required String accountNumber,
+    required String bankCode,
+  }) async {
+    final response = await _dioClient.get(
+      ApiEndpoints.paystackResolveAccount,
+      queryParameters: {'account_number': accountNumber, 'bank_code': bankCode},
+    );
+    final payload = decodeEnvelope(
+      response,
+      (raw) => PaystackResolveAccountResponseDto.fromJson(asMap(raw)),
+    );
+    return payload.data.accountName;
+  }
+
+  @override
   Future<UserProfile> deactivateAccount(UserProfile current) async {
     return current.copyWith(isDeactivated: true, updatedAt: DateTime.now());
   }
@@ -475,35 +514,33 @@ class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<String> uploadAccountProfilePhoto(String filePath) async {
     final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(filePath),
+      'profile_photo': await MultipartFile.fromFile(filePath),
     });
-    final response = await _dioClient.post(
+    final response = await _dioClient.patch(
       ApiEndpoints.accountsMeProfilePhoto,
       data: formData,
-      options: Options(contentType: 'multipart/form-data'),
     );
     final envelope = decodeEnvelope(
       response,
-      (raw) => asMap(raw)['url']?.toString() ?? '',
+      (raw) => UserMeDto.fromJson(asMap(raw)),
     );
-    return envelope.data;
+    return envelope.data.profilePhoto ?? '';
   }
 
   @override
   Future<String> uploadProviderPhoto(String filePath) async {
     final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(filePath),
+      'profile_photo': await MultipartFile.fromFile(filePath),
     });
-    final response = await _dioClient.post(
+    final response = await _dioClient.patch(
       ApiEndpoints.providersMeProviderPhoto,
       data: formData,
-      options: Options(contentType: 'multipart/form-data'),
     );
     final envelope = decodeEnvelope(
       response,
-      (raw) => asMap(raw)['url']?.toString() ?? '',
+      (raw) => ProviderDto.fromJson(asMap(raw)),
     );
-    return envelope.data;
+    return envelope.data.profilePhoto ?? '';
   }
 
   // ============================================================================
@@ -547,7 +584,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
       // Ignore API errors during logout - we still want to clear local data securely
       debugPrint('[ProfileRepository] Logout API call failed: $e');
     }
-    
+
     // Clear local cache as well since all sessions are terminated
     await clearCache();
     // CRITICAL: Clear all authentication data locally so the user is signed out on this device too

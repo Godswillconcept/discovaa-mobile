@@ -28,6 +28,18 @@ class UserEntity {
     this.updatedAt,
   });
 
+  /// True if the user is any kind of service provider
+  bool get isProvider => role == 'INDIVIDUAL' || role == 'BUSINESS';
+
+  /// True if the user is specifically an individual service provider
+  bool get isIndividualProvider => role == 'INDIVIDUAL';
+
+  /// True if the user is specifically a business service provider
+  bool get isBusinessProvider => role == 'BUSINESS';
+
+  /// True if the user is a standard user
+  bool get isOrdinaryUser => role == 'USER';
+
   UserEntity copyWith({
     String? id,
     String? email,

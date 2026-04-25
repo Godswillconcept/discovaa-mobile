@@ -119,15 +119,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             // Profile is complete - proceed with normal flow
             // Map user role to UserRole enum
             UserRole userRole;
-            switch (user.role) {
-              case 'provider':
-                userRole = UserRole.individualProvider;
-                break;
-              case 'business':
-                userRole = UserRole.businessProvider;
-                break;
-              default:
-                userRole = UserRole.user;
+            if (user.isIndividualProvider || user.role == 'provider') {
+              userRole = UserRole.individualProvider;
+            } else if (user.isBusinessProvider || user.role == 'business') {
+              userRole = UserRole.businessProvider;
+            } else {
+              userRole = UserRole.user;
             }
             ref.read(sessionProvider.notifier).signIn(userRole);
 

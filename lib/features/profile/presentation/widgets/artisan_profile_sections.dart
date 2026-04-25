@@ -226,6 +226,7 @@ class ArtisanProfileHeader extends ConsumerWidget {
 
   void _showBookingModal(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(bookingProvider.notifier);
+    notifier.reset();
     notifier.selectArtisan(artisan);
 
     // Convert ArtisanService to BookingService and set in state

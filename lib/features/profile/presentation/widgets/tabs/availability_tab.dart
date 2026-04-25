@@ -32,7 +32,16 @@ class _AvailabilityTabState extends ConsumerState<AvailabilityTab> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(userProfileProvider);
+    ref.listen(userProfileProvider, (previous, next) {
+      if (!_hasChanges) {
+        final newDays = next.profile?.availability?.days.toList();
+        if (newDays != null) {
+          setState(() {
+            _days = newDays;
+          });
+        }
+      }
+    });
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),

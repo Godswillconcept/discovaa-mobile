@@ -240,6 +240,8 @@ class RecentBookingDto {
   final String serviceName;
   final String? serviceImage;
   final String providerName;
+  final String? clientName;
+  final String? clientAvatar;
   final DateTime date;
   final String status;
   final double? amount;
@@ -250,6 +252,8 @@ class RecentBookingDto {
     required this.serviceName,
     this.serviceImage,
     required this.providerName,
+    this.clientName,
+    this.clientAvatar,
     required this.date,
     required this.status,
     this.amount,
@@ -262,6 +266,8 @@ class RecentBookingDto {
       serviceName: json['service_name'] as String? ?? '',
       serviceImage: json['service_image'] as String?,
       providerName: json['provider_name'] as String? ?? '',
+      clientName: json['client_name'] as String?,
+      clientAvatar: json['client_avatar'] as String?,
       date: json['date'] != null
           ? DateTime.parse(json['date'] as String)
           : DateTime.now(),
@@ -276,6 +282,8 @@ class RecentBookingDto {
     'service_name': serviceName,
     'service_image': serviceImage,
     'provider_name': providerName,
+    'client_name': clientName,
+    'client_avatar': clientAvatar,
     'date': date.toIso8601String(),
     'status': status,
     'amount': amount,
@@ -288,6 +296,7 @@ class AppointmentDto {
   final String id;
   final String serviceName;
   final String clientName;
+  final String providerName;
   final String? clientAvatar;
   final DateTime scheduledDate;
   final TimeOfDay? scheduledTime;
@@ -299,6 +308,7 @@ class AppointmentDto {
     required this.id,
     required this.serviceName,
     required this.clientName,
+    required this.providerName,
     this.clientAvatar,
     required this.scheduledDate,
     this.scheduledTime,
@@ -324,6 +334,7 @@ class AppointmentDto {
       id: json['id'] as String? ?? '',
       serviceName: json['service_name'] as String? ?? '',
       clientName: json['client_name'] as String? ?? '',
+      providerName: json['provider_name'] as String? ?? '',
       clientAvatar: json['client_avatar'] as String?,
       scheduledDate: json['scheduled_date'] != null
           ? DateTime.parse(json['scheduled_date'] as String)
@@ -339,6 +350,7 @@ class AppointmentDto {
     'id': id,
     'service_name': serviceName,
     'client_name': clientName,
+    'provider_name': providerName,
     'client_avatar': clientAvatar,
     'scheduled_date': scheduledDate.toIso8601String(),
     'scheduled_time': scheduledTime != null

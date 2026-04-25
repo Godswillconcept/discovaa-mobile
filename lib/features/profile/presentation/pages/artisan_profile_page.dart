@@ -2,6 +2,7 @@ import 'package:discovaa/features/profile/presentation/providers/artisan_provide
 import 'package:discovaa/features/profile/presentation/providers/artisan_detail_provider.dart';
 import 'package:discovaa/features/profile/presentation/widgets/artisan_profile_sections.dart';
 import 'package:discovaa/shared/presentation/widgets/main_header.dart';
+import 'package:discovaa/shared/presentation/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -119,6 +120,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
+                const CustomHeader(),
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(

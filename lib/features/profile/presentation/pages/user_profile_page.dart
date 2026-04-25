@@ -1,5 +1,4 @@
 import 'package:discovaa/shared/presentation/widgets/main_header.dart';
-import 'package:discovaa/features/profile/domain/entities/user_profile.dart';
 import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:discovaa/features/profile/presentation/providers/profile_connectivity_provider.dart';
 import 'package:discovaa/features/profile/presentation/widgets/tabs/user_info_tab.dart';
@@ -8,6 +7,7 @@ import 'package:discovaa/features/profile/presentation/widgets/tabs/availability
 import 'package:discovaa/features/profile/presentation/widgets/tabs/payouts_tab.dart';
 import 'package:discovaa/features/profile/presentation/widgets/tabs/login_security_tab.dart';
 import 'package:discovaa/features/profile/presentation/widgets/privacy_tab.dart';
+import 'package:discovaa/shared/presentation/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,20 +24,8 @@ class UserProfilePage extends ConsumerStatefulWidget {
 class _UserProfilePageState extends ConsumerState<UserProfilePage> {
   int _selectedTabIndex = 0;
 
-  // Tab configuration - dynamically generated based on user role
-  late List<_TabConfig> _tabs;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeTabs();
-  }
-
-  void _initializeTabs() {
-    final profile = ref.read(userProfileProvider).profile;
-    final isProvider = profile?.isProvider ?? false;
-
-    _tabs = [
+  List<_TabConfig> _getTabs(bool isProvider) {
+    return [
       const _TabConfig(
         label: 'User Info',
         icon: Icons.person_outline,
@@ -78,6 +66,12 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
     final profileState = ref.watch(userProfileProvider);
     final connectivityState = ref.watch(profileConnectivityProvider);
 
+    final isProvider = profileState.profile?.isProvider ?? false;
+    final tabs = _getTabs(isProvider);
+    final safeTabIndex = _selectedTabIndex < tabs.length
+        ? _selectedTabIndex
+        : 0;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -100,7 +94,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
             ),
 
             // Tab Switcher
-            _buildTabSwitcher(),
+            _buildTabSwitcher(tabs, safeTabIndex),
 
             const Divider(height: 1, thickness: 0.5, color: Color(0xFFE5E7EB)),
 
@@ -109,14 +103,18 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
               _buildCacheBanner(profileState.cacheTimestamp),
 
             // Tab Content
-            Expanded(child: _buildContent(profileState)),
+            Expanded(child: _buildContent(profileState, tabs, safeTabIndex)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildContent(ProfileState state) {
+  Widget _buildContent(
+    ProfileState state,
+    List<_TabConfig> tabs,
+    int safeTabIndex,
+  ) {
     if (state.isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFF111827)),
@@ -131,7 +129,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
       return const Center(child: Text('No profile data available'));
     }
 
-    return _buildTabContent(state.profile!);
+    return tabs[safeTabIndex].widget;
   }
 
   Widget _buildCacheBanner(DateTime? timestamp) {
@@ -219,32 +217,23 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
     );
   }
 
-  Widget _buildTabSwitcher() {
+  Widget _buildTabSwitcher(List<_TabConfig> tabs, int safeTabIndex) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              'Your Profile',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF111827),
-              ),
-            ),
-          ),
+          const CustomHeader(title: 'Your Profile'),
+
           const SizedBox(height: 20),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
-              children: _tabs.asMap().entries.map((entry) {
+              children: tabs.asMap().entries.map((entry) {
                 final index = entry.key;
                 final config = entry.value;
-                final isSelected = _selectedTabIndex == index;
+                final isSelected = safeTabIndex == index;
 
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -296,22 +285,6 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
         ],
       ),
     );
-  }
-
-  Widget _buildTabContent(UserProfile profile) {
-    // Re-initialize tabs if user role changed (provider status)
-    final isProvider = profile.isProvider;
-    final hasProviderTabs = _tabs.any((t) => t.label == 'Provider');
-
-    if (isProvider != hasProviderTabs) {
-      setState(() => _initializeTabs());
-    }
-
-    if (_selectedTabIndex >= _tabs.length) {
-      _selectedTabIndex = 0;
-    }
-
-    return _tabs[_selectedTabIndex].widget;
   }
 }
 

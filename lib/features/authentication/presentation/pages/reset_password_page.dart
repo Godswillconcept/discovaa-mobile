@@ -37,18 +37,16 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     // Get email from route extras before any async operations
     final Map<String, dynamic>? extraData =
         GoRouterState.of(context).extra as Map<String, dynamic>?;
-    final String email = extraData?['email'] ?? '';
+    final String code = extraData?['code'] ?? '';
 
     setState(() => _isLoading = true);
 
     try {
       // Call auth repository to reset password
-      // Note: The email acts as the identifier for the reset
-      // The actual reset key would come from the email sent by the backend
       final success = await ref
           .read(authProvider.notifier)
           .resetPassword(
-            token: email, // Using email as token/key for now
+            token: code, // Using the code entered on OTP page
             newPassword: _newPasswordController.text,
           );
 

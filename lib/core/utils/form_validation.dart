@@ -119,17 +119,17 @@ class FormValidationRules {
   }
 
   // OTP validation
-  static String? validateOtp(String? value) {
+  static String? validateOtp(String? value, {int length = 6}) {
     if (value == null || value.trim().isEmpty) {
       return 'Verification code is required';
     }
 
-    if (value.length != 6) {
-      return 'Verification code must be exactly 6 characters';
+    if (value.length != length) {
+      return 'Verification code must be exactly $length characters';
     }
 
     // Check if all characters are alphanumeric (letters and digits)
-    if (!RegExp(r'^[0-9A-Za-z]{6}$').hasMatch(value)) {
+    if (!RegExp('^[0-9A-Za-z]{$length}\$').hasMatch(value)) {
       return 'Verification code must contain only letters and digits';
     }
 

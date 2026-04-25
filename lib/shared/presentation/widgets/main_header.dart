@@ -3,10 +3,11 @@ import 'package:discovaa/features/authentication/presentation/providers/auth_pro
 import 'package:discovaa/features/notifications/presentation/widgets/notification_bottom_sheet.dart';
 import 'package:discovaa/features/notifications/presentation/widgets/notification_badge.dart';
 import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
-import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:discovaa/core/constants/api_endpoints.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../app/router/route_names.dart';
 
 class MainHeader extends ConsumerWidget {
@@ -189,20 +190,13 @@ class MainHeader extends ConsumerWidget {
 
               Consumer(
                 builder: (context, ref, child) {
-                  // Try to get UserProfile first (priority), fall back to UserEntity
-                  final profileState = ref.watch(userProfileProvider);
                   final userEntity = ref.watch(currentUserProvider);
 
-                  // Determine profile image URL
+                  // Determine profile image URL and initials from UserEntity
                   String? profileImageUrl;
                   String? initials;
 
-                  if (profileState.profile != null) {
-                    // Use UserProfile data (priority)
-                    profileImageUrl = profileState.profile!.profileImage;
-                    initials = profileState.profile!.initials;
-                  } else if (userEntity != null) {
-                    // Fall back to UserEntity
+                  if (userEntity != null) {
                     profileImageUrl = userEntity.photoUrl;
                     // Extract initials from displayName
                     final displayName = userEntity.displayName;
@@ -230,14 +224,30 @@ class MainHeader extends ConsumerWidget {
                       profileImageUrl.isNotEmpty &&
                       profileImageUrl != 'null';
 
+                  String? resolvedImageUrl = profileImageUrl;
+                  if (hasProfileImage && resolvedImageUrl != null) {
+                    if (resolvedImageUrl.startsWith('/')) {
+                      resolvedImageUrl =
+                          '${ApiEndpoints.baseUrl}$resolvedImageUrl';
+                    }
+                  }
+
                   return InkWell(
                     onTap: () => _openUserProfile(context),
                     borderRadius: BorderRadius.circular(20),
                     child: CircleAvatar(
                       radius: 20,
                       backgroundColor: Colors.white24,
-                      backgroundImage: hasProfileImage
-                          ? NetworkImage(profileImageUrl)
+                      backgroundImage:
+                          hasProfileImage && resolvedImageUrl != null
+                          ? CachedNetworkImageProvider(resolvedImageUrl)
+                          : null,
+                      onBackgroundImageError: hasProfileImage
+                          ? (exception, stackTrace) {
+                              debugPrint(
+                                'Failed to load profile image: $exception',
+                              );
+                            }
                           : null,
                       child: hasProfileImage
                           ? null

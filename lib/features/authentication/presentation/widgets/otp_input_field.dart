@@ -10,6 +10,7 @@ class OtpInputField extends StatelessWidget {
   final OtpState otpState;
   final Function(String) onChanged;
   final Function(String) onCompleted;
+  final int length;
 
   const OtpInputField({
     super.key,
@@ -18,14 +19,18 @@ class OtpInputField extends StatelessWidget {
     required this.otpState,
     required this.onChanged,
     required this.onCompleted,
+    this.length = 6,
   });
 
   @override
   Widget build(BuildContext context) {
     final defaultPinTheme = PinTheme(
-      width: 56,
+      width: length > 6 ? 42 : 56,
       height: 60,
-      textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      textStyle: TextStyle(
+        fontSize: length > 6 ? 18 : 22,
+        fontWeight: FontWeight.bold,
+      ),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
@@ -65,11 +70,11 @@ class OtpInputField extends StatelessWidget {
     return Pinput(
       controller: controller,
       focusNode: focusNode,
-      length: 6,
+      length: length,
       defaultPinTheme: defaultPinTheme,
       focusedPinTheme: focusedPinTheme,
       submittedPinTheme: submittedPinTheme,
-      validator: (value) => FormValidationRules.validateOtp(value),
+      validator: (value) => FormValidationRules.validateOtp(value, length: length),
       onChanged: onChanged,
       onCompleted: onCompleted,
       keyboardType: TextInputType.text,

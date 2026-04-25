@@ -1,7 +1,6 @@
 import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
-import 'package:discovaa/features/bookings/data/models/booking_api_models.dart';
 import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/presentation/providers/bookings_provider.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
@@ -10,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Full-screen detail view for a single [BookingModel].
 class BookingDetailPage extends ConsumerStatefulWidget {
@@ -37,8 +37,7 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
     final status = booking.status;
 
     final authState = ref.watch(authProvider);
-    final userRole = authState.user?.role;
-    final isProviderView = isProviderRole(userRole);
+    final isProviderView = authState.user?.isProvider ?? false;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -94,72 +93,166 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // ── Header: Provider email, date/time, status, amount ───────
-                        _HeaderSection(
+                        // Title Row
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Booking details',
+                                    style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    isProviderView
+                                        ? 'Booking for ${booking.userDisplayName ?? booking.clientName}'
+                                        : 'Booking with ${booking.providerName ?? 'Provider'}',
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      height: 1.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                OutlinedButton(
+                                  onPressed: () => Navigator.of(context).pop(),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 0,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    side: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Back',
+                                    style: TextStyle(
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                if (!isProviderView) ...[
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      final displayName = booking.providerName ?? 'Provider';
+                                      final avatarPath = booking.providerAvatarPath;
+                                      final conversation = ref
+                                          .read(messagingProvider.notifier)
+                                          .findOrCreateConversation(
+                                            artisanId: booking.id,
+                                            artisanName: displayName,
+                                            artisanAvatar:
+                                                avatarPath ??
+                                                'assets/images/placeholders/user_avatar.png',
+                                          );
+                                      context.push(
+                                        '${RouteNames.messages}/chat',
+                                        extra: conversation,
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.black,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 0,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    child: const Text(
+                                      'Message',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Header Card (User/Provider details)
+                        _HeaderCard(
                           booking: booking,
                           isProviderView: isProviderView,
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 16),
 
-                        // ── Chat Button ───────────────────────────────────────────
-                        _ChatButtonSection(booking: booking),
-                        const SizedBox(height: 20),
+                        // Items Card
+                        _SectionLabel('Items'),
+                        const SizedBox(height: 8),
+                        _ItemsCard(
+                          booking: booking,
+                          isProviderView: isProviderView,
+                        ),
+                        const SizedBox(height: 16),
 
-                        // ── Payment Status ────────────────────────────────────────
-                        if (booking.paymentStatus != null) ...[
-                          _PaymentStatusSection(booking: booking),
-                          const SizedBox(height: 20),
+                        // Booking info Card
+                        _SectionLabel('Booking info'),
+                        const SizedBox(height: 8),
+                        _BookingInfoCard(booking: booking),
+                        const SizedBox(height: 16),
+
+                        // Adjust time Card
+                        if (isProviderView) ...[
+                          _SectionLabel('Adjust time'),
+                          const SizedBox(height: 8),
+                          _AdjustTimeCard(booking: booking),
+                          const SizedBox(height: 16),
                         ],
 
-                        // ── Variable Price Warning (provider only) ────────────────
+                        // Payment Action (User only)
+                        if (!isProviderView &&
+                            booking.paymentStatus == 'REQUIRES_ACTION') ...[
+                          _PaymentActionSection(booking: booking),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Actions Card
+                        _SectionLabel('Actions'),
+                        const SizedBox(height: 8),
+                        _ActionsCard(
+                          booking: booking,
+                          isProviderView: isProviderView,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Variable price warning
                         if (isProviderView &&
                             booking.service.priceType ==
                                 PriceType.variable) ...[
                           _VariablePriceWarning(),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
                         ],
 
-                        // ── Concluded Unit Price (provider only, variable) ──────────
-                        if (isProviderView &&
-                            booking.service.priceType ==
-                                PriceType.variable) ...[
-                          _SectionLabel('Concluded unit price'),
-                          const SizedBox(height: 10),
-                          _ConcludedPriceSection(booking: booking),
-                          const SizedBox(height: 20),
-                        ],
-
-                        // ── Items Section ─────────────────────────────────────────
-                        _SectionLabel('Items'),
-                        const SizedBox(height: 10),
-                        _ItemsSection(booking: booking),
-                        const SizedBox(height: 20),
-
-                        // ── Booking Info Section ─────────────────────────────────
-                        _SectionLabel('Booking info'),
-                        const SizedBox(height: 10),
-                        _BookingInfoSection(booking: booking),
-                        const SizedBox(height: 20),
-
-                        // ── Adjust Time (provider only) ────────────────────────────
-                        if (isProviderView) ...[
-                          _SectionLabel('Adjust time'),
-                          const SizedBox(height: 10),
-                          _AdjustTimeSection(booking: booking),
-                          const SizedBox(height: 20),
-                        ],
-
-                        // ── Payment Section (with Act Now button) ─────────────────
-                        if (booking.paymentStatus != null &&
-                            booking.paymentStatus == 'REQUIRES_ACTION') ...[
-                          _PaymentActionSection(booking: booking),
-                          const SizedBox(height: 20),
-                        ],
-
-                        // ── Review (completed only) ─────────────────────────────
+                        // Review
                         if (status == BookingStatus.completed) ...[
                           _SectionLabel('Review'),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           _ReviewSection(booking: booking),
                         ],
                       ],
@@ -197,17 +290,6 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                 ),
               ),
             ),
-
-            // ── Sticky action bar ───────────────────────────────────────
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _ActionBar(
-                booking: booking,
-                isProviderView: isProviderView,
-              ),
-            ),
           ],
         ),
       ),
@@ -229,219 +311,6 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
       imagePath,
       fit: BoxFit.cover,
       errorBuilder: (ctx, e, st) => _HeroFallback(category: category),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Action bar — context-sensitive buttons
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ActionBar extends ConsumerWidget {
-  final BookingModel booking;
-  final bool isProviderView;
-  const _ActionBar({required this.booking, required this.isProviderView});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final notifier = ref.read(bookingsProvider.notifier);
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        14,
-        20,
-        MediaQuery.of(context).padding.bottom + 14,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: switch (booking.status) {
-        BookingStatus.requested => Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  notifier.cancelBooking(booking.id);
-                  Navigator.of(context).pop();
-                },
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.grey.shade300),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black54,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                onPressed: () => notifier.confirmBooking(booking.id),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Confirm booking',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        BookingStatus.confirmed => Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () {
-                  notifier.cancelBooking(booking.id);
-                  Navigator.of(context).pop();
-                },
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.grey.shade300),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black54,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 2,
-              child: ElevatedButton(
-                onPressed: () => notifier.startBooking(booking.id),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Mark as ongoing',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        BookingStatus.ongoing => SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () => notifier.completeBooking(booking.id),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              'Mark as completed',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
-          ),
-        ),
-        BookingStatus.completed =>
-          isProviderView
-              ? Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Booking completed',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                )
-              : SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      /* navigate to re-book */
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Book again',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ),
-        BookingStatus.cancelled => Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            'This booking was cancelled',
-            style: TextStyle(
-              color: Colors.grey.shade500,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      },
     );
   }
 }
@@ -672,28 +541,6 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  final List<Widget> children;
-  const _InfoCard({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FBFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        children:
-            children.expand((w) => [w, const SizedBox(height: 10)]).toList()
-              ..removeLast(),
-      ),
-    );
-  }
-}
-
 class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -747,240 +594,6 @@ class _InfoRow extends StatelessWidget {
 // New section widgets for the redesigned booking detail page
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _HeaderSection extends StatelessWidget {
-  final BookingModel booking;
-  final bool isProviderView;
-  const _HeaderSection({required this.booking, required this.isProviderView});
-
-  @override
-  Widget build(BuildContext context) {
-    final displayName = isProviderView
-        ? (booking.userDisplayName ?? booking.clientName)
-        : (booking.providerName ?? booking.providerEmail ?? 'Unknown');
-    final status = booking.status;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          displayName,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Text(
-              '${booking.scheduledDisplayDate}, ${booking.scheduledDisplayTime}',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '•',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade400),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: status.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                status.displayName,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: status.color,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        if (booking.paymentAmount != null)
-          Text(
-            '${booking.paymentAmount}',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _PaymentStatusSection extends StatelessWidget {
-  final BookingModel booking;
-  const _PaymentStatusSection({required this.booking});
-
-  @override
-  Widget build(BuildContext context) {
-    final status = booking.paymentStatus ?? 'UNKNOWN';
-    Color statusColor;
-    String statusLabel;
-
-    switch (status) {
-      case 'REQUIRES_ACTION':
-        statusColor = const Color(0xFFF59E0B);
-        statusLabel = 'Payment: REQUIRES_ACTION';
-        break;
-      case 'COMPLETED':
-        statusColor = const Color(0xFF10B981);
-        statusLabel = 'Payment: COMPLETED';
-        break;
-      case 'PENDING':
-        statusColor = const Color(0xFF3B82F6);
-        statusLabel = 'Payment: PENDING';
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusLabel = 'Payment: $status';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: statusColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
-      ),
-      child: Text(
-        statusLabel,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: statusColor,
-        ),
-      ),
-    );
-  }
-}
-
-class _ItemsSection extends StatelessWidget {
-  final BookingModel booking;
-  const _ItemsSection({required this.booking});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FBFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            booking.service.title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Text(
-                'Qty: 1',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '•',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                booking.concludedUnitPrice != null
-                    ? '${(booking.service.formattedPrice.split(' ').isNotEmpty ? booking.service.formattedPrice.split(' ').first : '')} ${booking.concludedUnitPrice}'
-                    : booking.service.formattedPrice,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.success,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BookingInfoSection extends StatelessWidget {
-  final BookingModel booking;
-  const _BookingInfoSection({required this.booking});
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoCard(
-      children: [
-        _InfoRow(
-          icon: Icons.calendar_today_outlined,
-          label: 'Scheduled',
-          value: booking.scheduledEnd != null
-              ? '${booking.scheduledDisplayDate}, ${booking.scheduledDisplayTime} — ${_formatDateTime(booking.scheduledEnd!)}'
-              : '${booking.scheduledDisplayDate}, ${booking.scheduledDisplayTime}',
-        ),
-        _InfoRow(
-          icon: Icons.create_rounded,
-          label: 'Time Created',
-          value: _formatDateTime(booking.createdAt),
-        ),
-        if (booking.serviceType != null)
-          _InfoRow(
-            icon: Icons.category_outlined,
-            label: 'Type',
-            value: booking.serviceType!,
-          ),
-        if (booking.addressText != null && booking.addressText!.isNotEmpty)
-          _InfoRow(
-            icon: Icons.location_on_outlined,
-            label: 'Address',
-            value: booking.addressText!,
-          ),
-        _InfoRow(
-          icon: Icons.note_outlined,
-          label: 'Note',
-          value: booking.note?.isNotEmpty == true ? booking.note! : '—',
-        ),
-      ],
-    );
-  }
-
-  String _formatDateTime(DateTime dt) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final hour = dt.hour;
-    final h = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    final m = dt.minute.toString().padLeft(2, '0');
-    final p = hour >= 12 ? 'PM' : 'AM';
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}, $h:$m $p';
-  }
-}
-
 class _PaymentActionSection extends StatelessWidget {
   final BookingModel booking;
   const _PaymentActionSection({required this.booking});
@@ -1032,9 +645,13 @@ class _PaymentActionSection extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // Open the payment authorization URL
-                  // TODO: Implement URL launcher
+                onPressed: () async {
+                  if (booking.paymentAuthorizationUrl != null) {
+                    final uri = Uri.parse(booking.paymentAuthorizationUrl!);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF59E0B),
@@ -1053,114 +670,6 @@ class _PaymentActionSection extends StatelessWidget {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChatButtonSection extends ConsumerWidget {
-  final BookingModel booking;
-  const _ChatButtonSection({required this.booking});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final userRole = authState.user?.role;
-    final isProvider = isProviderRole(userRole);
-
-    // Determine which name/avatar to show based on role
-    final displayName = isProvider
-        ? booking.userDisplayName
-        : booking.providerName;
-    final displayAvatarPath = isProvider
-        ? booking.userProfilePhoto
-        : booking.providerAvatarPath;
-    final displayLabel = isProvider ? 'Client' : 'Provider';
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FBFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: const Color(0xFFE5E7EB),
-            backgroundImage: displayAvatarPath != null
-                ? AssetImage(displayAvatarPath)
-                : null,
-            child: displayAvatarPath == null
-                ? Text(
-                    (displayName?.isNotEmpty == true)
-                        ? displayName![0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black54,
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  displayLabel,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  displayName ?? displayLabel,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () {
-              // Find or create a conversation for this booking,
-              // keyed by booking.id so each booking has its own thread.
-              final conversation = ref
-                  .read(messagingProvider.notifier)
-                  .findOrCreateConversation(
-                    artisanId: booking.id,
-                    artisanName: displayName ?? displayLabel,
-                    artisanAvatar:
-                        displayAvatarPath ??
-                        'assets/images/placeholders/user_avatar.png',
-                  );
-              context.push('${RouteNames.messages}/chat', extra: conversation);
-            },
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                ),
-              ),
-              child: const Icon(
-                Icons.message_outlined,
-                size: 16,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1317,17 +826,389 @@ class _ConcludedPriceSectionState
   }
 }
 
-class _AdjustTimeSection extends ConsumerStatefulWidget {
-  final BookingModel booking;
-  const _AdjustTimeSection({required this.booking});
+// ─────────────────────────────────────────────────────────────────────────────
+// New Card-based Layout Widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CardContainer extends StatelessWidget {
+  final Widget child;
+  const _CardContainer({required this.child});
 
   @override
-  ConsumerState<_AdjustTimeSection> createState() => _AdjustTimeSectionState();
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
 }
 
-class _AdjustTimeSectionState extends ConsumerState<_AdjustTimeSection> {
-  late DateTime _start;
-  late DateTime? _end;
+class _HeaderCard extends StatelessWidget {
+  final BookingModel booking;
+  final bool isProviderView;
+  const _HeaderCard({required this.booking, required this.isProviderView});
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = isProviderView
+        ? booking.userProfilePhoto
+        : booking.providerAvatarPath;
+    final name = isProviderView
+        ? (booking.userDisplayName ?? booking.clientName)
+        : (booking.providerName ?? 'Unknown');
+
+    // Format date
+    final dateObj = booking.scheduledDate;
+    final dateStr =
+        '${dateObj.month}/${dateObj.day}/${dateObj.year}, ${dateObj.hour > 12 ? dateObj.hour - 12 : (dateObj.hour == 0 ? 12 : dateObj.hour)}:${dateObj.minute.toString().padLeft(2, '0')} ${dateObj.hour >= 12 ? 'PM' : 'AM'}';
+
+    // Status text
+    final statusText =
+        booking.status.name[0].toUpperCase() + booking.status.name.substring(1);
+
+    // Price
+    final priceStr =
+        booking.concludedUnitPrice ??
+        booking.service.formattedPrice.replaceAll(RegExp(r'[^0-9.]'), '');
+
+    return _CardContainer(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: Colors.grey.shade200,
+            backgroundImage: avatar != null && avatar.isNotEmpty
+                ? NetworkImage(avatar)
+                : null,
+            child: avatar == null || avatar.isEmpty
+                ? const Icon(Icons.person, color: Colors.grey)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isProviderView ? 'Customer' : 'Service Provider',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$dateStr • $statusText',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              const Text(
+                'NGN',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                priceStr,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+              if (booking.paymentStatus != null && booking.paymentStatus!.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Payment:',
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                Text(
+                  booking.paymentStatus!,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: booking.paymentStatus == 'REQUIRES_ACTION' 
+                      ? const Color(0xFFF59E0B) 
+                      : (booking.paymentStatus == 'PAID' ? Colors.green : Colors.grey.shade700),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemsCard extends StatelessWidget {
+  final BookingModel booking;
+  final bool isProviderView;
+  const _ItemsCard({required this.booking, required this.isProviderView});
+
+  @override
+  Widget build(BuildContext context) {
+    final priceStr =
+        booking.concludedUnitPrice ??
+        booking.service.formattedPrice.replaceAll(RegExp(r'[^0-9.]'), '');
+    return _CardContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            booking.service.title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Qty: 1 • NGN $priceStr',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          ),
+          if (isProviderView &&
+              booking.service.priceType == PriceType.variable) ...[
+            const SizedBox(height: 16),
+            _ConcludedPriceInput(booking: booking),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ConcludedPriceInput extends ConsumerStatefulWidget {
+  final BookingModel booking;
+  const _ConcludedPriceInput({required this.booking});
+
+  @override
+  ConsumerState<_ConcludedPriceInput> createState() =>
+      _ConcludedPriceInputState();
+}
+
+class _ConcludedPriceInputState extends ConsumerState<_ConcludedPriceInput> {
+  late TextEditingController _ctrl;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(
+      text:
+          widget.booking.concludedUnitPrice ??
+          widget.booking.service.formattedPrice.replaceAll(
+            RegExp(r'[^0-9.]'),
+            '',
+          ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Concluded unit price',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+              color: Colors.grey.shade800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _ctrl,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _saving
+                    ? null
+                    : () async {
+                        final val = _ctrl.text.trim();
+                        if (val.isEmpty) return;
+                        setState(() => _saving = true);
+                        try {
+                          await ref
+                              .read(bookingsProvider.notifier)
+                              .updateConcludedPrice(
+                                widget.booking.id,
+                                unitPriceAmount: val,
+                              );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Price updated successfully'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        } finally {
+                          if (mounted) setState(() => _saving = false);
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: _saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Save',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookingInfoCard extends StatelessWidget {
+  final BookingModel booking;
+  const _BookingInfoCard({required this.booking});
+
+  @override
+  Widget build(BuildContext context) {
+    // Format date string
+    final s = booking.scheduledDate;
+    String scheduledStr =
+        '${s.month}/${s.day}/${s.year}, ${s.hour > 12 ? s.hour - 12 : (s.hour == 0 ? 12 : s.hour)}:${s.minute.toString().padLeft(2, '0')} ${s.hour >= 12 ? 'PM' : 'AM'}';
+    if (booking.scheduledEnd != null) {
+      final e = booking.scheduledEnd!;
+      scheduledStr +=
+          ' — ${e.month}/${e.day}/${e.year}, ${e.hour > 12 ? e.hour - 12 : (e.hour == 0 ? 12 : e.hour)}:${e.minute.toString().padLeft(2, '0')} ${e.hour >= 12 ? 'PM' : 'AM'}';
+    }
+
+    return _CardContainer(
+      child: Column(
+        children: [
+          _InfoRow(
+            icon: Icons.calendar_today_outlined,
+            label: 'Scheduled',
+            value: scheduledStr,
+          ),
+          const SizedBox(height: 12),
+          _InfoRow(
+            icon: Icons.category_outlined,
+            label: 'Type',
+            value: booking.service.category.toUpperCase(),
+          ),
+          const SizedBox(height: 12),
+          _InfoRow(
+            icon: Icons.location_on_outlined,
+            label: 'Address',
+            value: booking.addressText ?? 'Not provided',
+          ),
+          const SizedBox(height: 12),
+          _InfoRow(
+            icon: Icons.note_outlined,
+            label: 'Note',
+            value: booking.note ?? 'None',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdjustTimeCard extends ConsumerStatefulWidget {
+  final BookingModel booking;
+  const _AdjustTimeCard({required this.booking});
+
+  @override
+  ConsumerState<_AdjustTimeCard> createState() => _AdjustTimeCardState();
+}
+
+class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
+  DateTime? _start;
+  DateTime? _end;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -1336,161 +1217,344 @@ class _AdjustTimeSectionState extends ConsumerState<_AdjustTimeSection> {
     _end = widget.booking.scheduledEnd;
   }
 
-  Future<void> _pickDateTime(BuildContext context, bool isStart) async {
-    final initialDate = isStart ? _start : (_end ?? _start);
-
+  Future<void> _pickDateTime(bool isStart) async {
+    final initialDate = (isStart ? _start : _end) ?? DateTime.now();
     final date = await showDatePicker(
       context: context,
       initialDate: initialDate,
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (date == null || !context.mounted) return;
+    if (date == null) return;
+
+    if (!mounted) return;
 
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(initialDate),
     );
-    if (time == null || !context.mounted) return;
+    if (time == null) return;
 
-    final newDateTime = DateTime(
+    final dt = DateTime(
       date.year,
       date.month,
       date.day,
       time.hour,
       time.minute,
     );
-
     setState(() {
       if (isStart) {
-        _start = newDateTime;
+        _start = dt;
       } else {
-        _end = newDateTime;
+        _end = dt;
       }
     });
   }
 
-  String _formatDateTime(DateTime dt) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    final hour = dt.hour;
-    final h = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    final m = dt.minute.toString().padLeft(2, '0');
-    final p = hour >= 12 ? 'PM' : 'AM';
-    return '${months[dt.month - 1]} ${dt.day}, ${dt.year}, $h:$m $p';
+  String _fmt(DateTime? dt) {
+    if (dt == null) return 'Select date & time';
+    return '${dt.month.toString().padLeft(2, '0')}/${dt.day.toString().padLeft(2, '0')}/${dt.year} ${dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour)}:${dt.minute.toString().padLeft(2, '0')} ${dt.hour >= 12 ? 'PM' : 'AM'}';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FBFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+    return _CardContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTimeRow(context, 'Start', _start, true),
+          const Text(
+            'Start',
+            style: TextStyle(fontSize: 12, color: Colors.black87),
+          ),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: () => _pickDateTime(true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_fmt(_start), style: const TextStyle(fontSize: 14)),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 12),
-          _buildTimeRow(context, 'End', _end, false),
-          const SizedBox(height: 12),
+          const Text(
+            'End',
+            style: TextStyle(fontSize: 12, color: Colors.black87),
+          ),
+          const SizedBox(height: 6),
+          InkWell(
+            onTap: () => _pickDateTime(false),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_fmt(_end), style: const TextStyle(fontSize: 14)),
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                ref
-                    .read(bookingsProvider.notifier)
-                    .rescheduleBooking(
-                      widget.booking.id,
-                      newStart: _start,
-                      newEnd: _end,
-                    );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Time saved'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
+              onPressed: _saving
+                  ? null
+                  : () async {
+                      if (_start == null || _end == null) return;
+                      setState(() => _saving = true);
+                      try {
+                        await ref
+                            .read(bookingsProvider.notifier)
+                            .rescheduleBooking(
+                              widget.booking.id,
+                              newStart: _start!,
+                              newEnd: _end,
+                            );
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Time adjusted successfully'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      } finally {
+                        if (mounted) setState(() => _saving = false);
+                      }
+                    },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: Colors.black,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                'Save time',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              child: _saving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Save time',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildTimeRow(
-    BuildContext context,
-    String label,
-    DateTime? dateTime,
-    bool isStart,
-  ) {
-    return GestureDetector(
-      onTap: () => _pickDateTime(context, isStart),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Row(
-          children: [
-            Text(
-              label,
+class _ActionsCard extends ConsumerWidget {
+  final BookingModel booking;
+  final bool isProviderView;
+  const _ActionsCard({required this.booking, required this.isProviderView});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(bookingsProvider.notifier);
+    final status = booking.status;
+
+    List<Widget> buttons = [];
+
+    if (status == BookingStatus.requested) {
+      if (isProviderView) {
+        buttons = [
+          _ActionButton(
+            label: 'Confirm booking',
+            isPrimary: true,
+            onPressed: () => notifier.confirmBooking(booking.id),
+          ),
+          const SizedBox(height: 12),
+          _ActionButton(
+            label: 'Cancel booking',
+            isPrimary: false,
+            onPressed: () {
+              notifier.cancelBooking(booking.id);
+              Navigator.of(context).pop();
+            },
+          ),
+        ];
+      } else {
+        buttons = [
+          _ActionButton(
+            label: 'Cancel booking',
+            isPrimary: false,
+            onPressed: () {
+              notifier.cancelBooking(booking.id);
+              Navigator.of(context).pop();
+            },
+          ),
+        ];
+      }
+    } else if (status == BookingStatus.confirmed) {
+      if (isProviderView) {
+        buttons = [
+          _ActionButton(
+            label: 'Mark as ongoing',
+            isPrimary: true,
+            onPressed: () => notifier.startBooking(booking.id),
+          ),
+          const SizedBox(height: 12),
+          _ActionButton(
+            label: 'Cancel booking',
+            isPrimary: false,
+            onPressed: () {
+              notifier.cancelBooking(booking.id);
+              Navigator.of(context).pop();
+            },
+          ),
+        ];
+      } else {
+        buttons = [
+          _ActionButton(
+            label: 'Cancel booking',
+            isPrimary: false,
+            onPressed: () {
+              notifier.cancelBooking(booking.id);
+              Navigator.of(context).pop();
+            },
+          ),
+        ];
+      }
+    } else if (status == BookingStatus.ongoing) {
+      if (isProviderView) {
+        buttons = [
+          _ActionButton(
+            label: 'Mark as completed',
+            isPrimary: true,
+            color: AppColors.success,
+            onPressed: () => notifier.completeBooking(booking.id),
+          ),
+        ];
+      }
+    } else if (status == BookingStatus.completed) {
+      if (!isProviderView) {
+        buttons = [
+          _ActionButton(
+            label: 'Book again',
+            isPrimary: true,
+            onPressed: () {
+              // navigate to re-book logic
+            },
+          ),
+        ];
+      } else {
+        return _CardContainer(
+          child: Center(
+            child: Text(
+              'Booking completed',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
                 color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const Spacer(),
-            Text(
-              dateTime != null ? _formatDateTime(dateTime) : 'Not set',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+          ),
+        );
+      }
+    } else if (status == BookingStatus.cancelled) {
+      return _CardContainer(
+        child: Center(
+          child: Text(
+            'This booking was cancelled',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(width: 8),
-            Icon(
-              Icons.calendar_today_outlined,
-              size: 16,
-              color: Colors.grey.shade500,
-            ),
-          ],
+          ),
         ),
-      ),
+      );
+    }
+
+    if (buttons.isEmpty) return const SizedBox();
+
+    return _CardContainer(child: Column(children: buttons));
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final bool isPrimary;
+  final VoidCallback onPressed;
+  final Color? color;
+
+  const _ActionButton({
+    required this.label,
+    required this.isPrimary,
+    required this.onPressed,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: isPrimary
+          ? ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color ?? Colors.grey.shade600,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : OutlinedButton(
+              onPressed: onPressed,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
     );
   }
 }

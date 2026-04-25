@@ -48,7 +48,6 @@ class LoggingInterceptor extends Interceptor {
       debugPrint('Group: ${_endpointGroup(response.requestOptions.path)}');
       debugPrint('Status Code: ${response.statusCode}');
       debugPrint('Data: ${response.data}');
-      debugPrint('Headers: ${response.headers}');
       debugPrint('===================');
     }
     super.onResponse(response, handler);
@@ -58,7 +57,8 @@ class LoggingInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (AppConstants.isDebugMode) {
       // Don't show scary error block for an expected 401 on logout
-      final isExpectedLogout401 = err.response?.statusCode == 401 &&
+      final isExpectedLogout401 =
+          err.response?.statusCode == 401 &&
           err.requestOptions.method == 'DELETE' &&
           err.requestOptions.path.contains('/auth/session');
 
@@ -306,11 +306,15 @@ class AuthInterceptor extends Interceptor {
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = response.data as Map<String, dynamic>?;
         if (responseData == null) {
-          debugPrint('[AuthInterceptor] Token refresh failed: response data is null');
+          debugPrint(
+            '[AuthInterceptor] Token refresh failed: response data is null',
+          );
           return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
         }
 
-        debugPrint('[AuthInterceptor] Token refresh response data: $responseData');
+        debugPrint(
+          '[AuthInterceptor] Token refresh response data: $responseData',
+        );
 
         // Extract tokens by checking multiple possible locations in the response
         // 1. Check data field (standard for this project's envelope)
@@ -331,7 +335,9 @@ class AuthInterceptor extends Interceptor {
         // Check if authentication failed according to meta even though status is 200
         final isAuth = meta?['is_authenticated'] == true;
         if (meta != null && !isAuth && newToken == null) {
-          debugPrint('[AuthInterceptor] Token refresh failed: meta.is_authenticated is false');
+          debugPrint(
+            '[AuthInterceptor] Token refresh failed: meta.is_authenticated is false',
+          );
           return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
         }
 

@@ -33,7 +33,10 @@ abstract class ProfileRepository {
   Future<UserProfile> updateAvailability(Availability availability);
   Future<UserProfile> saveLocation(ServiceLocation serviceLocation);
   Future<UserProfile> deleteLocation(String locationId);
-  Future<UserProfile> saveCertification(Certification certification, {String? documentPath});
+  Future<UserProfile> saveCertification(
+    Certification certification, {
+    String? documentPath,
+  });
   Future<UserProfile> deleteCertification(String certificationId);
   Future<UserProfile> updateBusinessRegistration(
     BusinessRegistration registration, {
@@ -44,12 +47,20 @@ abstract class ProfileRepository {
     required String currency,
     String? country,
     String? email,
+    String? accountNumber,
+    String? bankCode,
+    String? accountName,
   });
   Future<String?> resumePayoutOnboarding();
   Future<String?> createPayoutUpdateLink();
   Future<List<ProviderPayout>> fetchPayouts({int? page, int? pageSize});
   Future<void> requestPayout();
   Future<void> deleteAccount();
+  Future<List<dynamic>> fetchPaystackBanks();
+  Future<String?> resolvePaystackAccount({
+    required String accountNumber,
+    required String bankCode,
+  });
   Future<UserProfile> deactivateAccount(UserProfile current);
   Future<String> uploadAccountProfilePhoto(String filePath);
   Future<String> uploadProviderPhoto(String filePath);

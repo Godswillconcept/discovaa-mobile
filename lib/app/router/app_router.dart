@@ -69,24 +69,6 @@ SecureTokenStorage get _routerTokenStorage {
   );
 }
 
-/// Check if the current user is a provider based on cached profile data.
-bool _isUserProvider() {
-  try {
-    final hiveService = HiveService.instance;
-    final profileCacheKey = 'profile.cache.me';
-    final cachedProfile = hiveService.getMap(profileCacheKey);
-
-    if (cachedProfile != null) {
-      final accountType = cachedProfile['accountType'] as String?;
-      // AccountType can be 'provider' or 'business' for providers
-      return accountType == 'provider' || accountType == 'business';
-    }
-  } catch (_) {
-    // If we can't read the cache, default to false (hide Services)
-  }
-  return false;
-}
-
 class AppRouter {
   static const String initial = RouteNames.splash;
 
@@ -322,13 +304,6 @@ List<StatefulShellBranch> _buildShellBranches() {
       routes: [
         GoRoute(
           path: RouteNames.services,
-          redirect: (context, state) {
-            // Redirect non-providers away from Services route
-            if (!_isUserProvider()) {
-              return RouteNames.home;
-            }
-            return null;
-          },
           builder: (context, state) => const ServicesPage(),
         ),
       ],

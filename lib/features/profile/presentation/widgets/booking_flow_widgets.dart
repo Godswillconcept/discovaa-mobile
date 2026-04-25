@@ -20,6 +20,8 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   final ScrollController _timeSlotScrollController = ScrollController();
+  String? _errorMessage;
+  bool _isServicesExpanded = false;
 
   @override
   void initState() {
@@ -131,7 +133,11 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
             ),
             const Spacer(),
             GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                if (mounted && Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: const BoxDecoration(
@@ -336,10 +342,13 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
     return weekdays[date.weekday - 1];
   }
 
-  /// Parses time string like "9:00AM" or "5:00PM" to TimeOfDay
+  /// Parses time string like "9:00AM" or "5:00 PM" to TimeOfDay
   TimeOfDay? _parseTimeOfDay(String timeStr) {
-    // Match patterns like "9:00AM", "12:30PM", "5:00PM"
-    final regex = RegExp(r'^(\d{1,2}):(\d{2})(AM|PM)$', caseSensitive: false);
+    // Match patterns like "9:00AM", "12:30PM", "5:00 PM"
+    final regex = RegExp(
+      r'^(\d{1,2}):(\d{2})\s*(AM|PM)$',
+      caseSensitive: false,
+    );
     final match = regex.firstMatch(timeStr);
 
     if (match == null) return null;
@@ -360,9 +369,10 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
 
   /// Generate time slots within the artisan's availability for the selected day
   List<TimeOfDay> _generateTimeSlots(DateTime? selectedDate, Artisan? artisan) {
-    // Default to 8 AM - 8 PM if no artisan or date selected
     int startHour = 8;
+    int startMinute = 0;
     int endHour = 20;
+    int endMinute = 0;
 
     if (artisan != null && selectedDate != null) {
       final availability = _parseAvailabilityForDay(selectedDate, artisan);
@@ -370,16 +380,25 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
         final (startTime, endTime) = availability;
         if (startTime != null && endTime != null) {
           startHour = startTime.hour;
+          startMinute = startTime.minute;
           endHour = endTime.hour;
+          endMinute = endTime.minute;
         }
       }
     }
 
+    final startTotalMins = startHour * 60 + startMinute;
+    final endTotalMins = endHour * 60 + endMinute;
+
     final slots = <TimeOfDay>[];
-    for (int hour = startHour; hour < endHour; hour++) {
-      for (int minute = 0; minute < 60; minute += 30) {
-        slots.add(TimeOfDay(hour: hour, minute: minute));
-      }
+    int currentMins = startTotalMins;
+    if (currentMins % 30 != 0) {
+      currentMins += (30 - (currentMins % 30));
+    }
+
+    while (currentMins <= endTotalMins) {
+      slots.add(TimeOfDay(hour: currentMins ~/ 60, minute: currentMins % 60));
+      currentMins += 30;
     }
     return slots;
   }
@@ -410,6 +429,34 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
     final minute = time.minute.toString().padLeft(2, '0');
     final period = time.period == DayPeriod.am ? 'am' : 'pm';
     return '$hour:$minute$period';
+  }
+
+  void _handleTimeSelection(
+    TimeOfDay time,
+    BookingState state,
+    BookingNotifier notifier,
+    Artisan? artisan,
+    DateTime? selectedDate,
+  ) {
+    if (!_isTimeWithinAvailability(time, selectedDate, artisan)) return;
+
+    if (state.startTime == null) {
+      notifier.selectStartTime(time);
+      notifier.selectEndTime(null);
+    } else if (state.endTime == null) {
+      final startMins = state.startTime!.hour * 60 + state.startTime!.minute;
+      final tapMins = time.hour * 60 + time.minute;
+      if (tapMins > startMins) {
+        notifier.selectEndTime(time);
+      } else if (tapMins < startMins) {
+        notifier.selectStartTime(time);
+      } else {
+        notifier.selectStartTime(null);
+      }
+    } else {
+      notifier.selectStartTime(time);
+      notifier.selectEndTime(null);
+    }
   }
 
   Widget _buildTimeRangeSelector(BookingState state, BookingNotifier notifier) {
@@ -521,49 +568,33 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
 
                             return Column(
                               children: [
-                                // First row time slot - START time selection
+                                // First row time slot
                                 _buildTimeSlotChip(
                                   timeSlots[firstSlotIndex],
                                   state.startTime,
                                   state.endTime,
-                                  isStartRow: true,
-                                  onSelect: (time) {
-                                    // Validate time is within availability
-                                    if (_isTimeWithinAvailability(
-                                      time,
-                                      selectedDate,
-                                      artisan,
-                                    )) {
-                                      notifier.selectStartTime(time);
-                                    }
-                                  },
+                                  onSelect: (time) => _handleTimeSelection(
+                                    time,
+                                    state,
+                                    notifier,
+                                    artisan,
+                                    selectedDate,
+                                  ),
                                 ),
                                 const SizedBox(height: 12),
-                                // Second row time slot - END time selection (if exists)
+                                // Second row time slot (if exists)
                                 if (secondSlotIndex < timeSlots.length)
                                   _buildTimeSlotChip(
                                     timeSlots[secondSlotIndex],
                                     state.startTime,
                                     state.endTime,
-                                    isStartRow: false,
-                                    onSelect: (time) {
-                                      // Validate time is within availability and after start time
-                                      if (_isTimeWithinAvailability(
-                                            time,
-                                            selectedDate,
-                                            artisan,
-                                          ) &&
-                                          state.startTime != null) {
-                                        final startMinutes =
-                                            state.startTime!.hour * 60 +
-                                            state.startTime!.minute;
-                                        final endMinutes =
-                                            time.hour * 60 + time.minute;
-                                        if (endMinutes > startMinutes) {
-                                          notifier.selectEndTime(time);
-                                        }
-                                      }
-                                    },
+                                    onSelect: (time) => _handleTimeSelection(
+                                      time,
+                                      state,
+                                      notifier,
+                                      artisan,
+                                      selectedDate,
+                                    ),
                                   ),
                               ],
                             );
@@ -605,17 +636,23 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
     TimeOfDay time,
     TimeOfDay? startTime,
     TimeOfDay? endTime, {
-    required bool isStartRow,
     required Function(TimeOfDay) onSelect,
   }) {
-    // First row highlights only the start time, second row highlights only the end time
-    final bool isSelected = isStartRow
-        ? (startTime != null &&
-              time.hour == startTime.hour &&
-              time.minute == startTime.minute)
-        : (endTime != null &&
-              time.hour == endTime.hour &&
-              time.minute == endTime.minute);
+    final timeMins = time.hour * 60 + time.minute;
+    final startMins = startTime != null
+        ? startTime.hour * 60 + startTime.minute
+        : null;
+    final endMins = endTime != null ? endTime.hour * 60 + endTime.minute : null;
+
+    final isStart = startMins == timeMins;
+    final isEnd = endMins == timeMins;
+    final isBetween =
+        startMins != null &&
+        endMins != null &&
+        timeMins > startMins &&
+        timeMins < endMins;
+
+    final bool isSelected = isStart || isEnd;
 
     return GestureDetector(
       onTap: () => onSelect(time),
@@ -623,10 +660,14 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
         width: 90,
         height: 44,
         decoration: BoxDecoration(
-          color: isSelected ? Colors.black : Colors.white,
+          color: isSelected
+              ? Colors.black
+              : (isBetween ? Colors.grey.shade200 : Colors.white),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Colors.black : Colors.grey.shade300,
+            color: isSelected
+                ? Colors.black
+                : (isBetween ? Colors.grey.shade300 : Colors.grey.shade300),
           ),
         ),
         child: Center(
@@ -694,6 +735,7 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
         ),
         const SizedBox(height: 16),
         Container(
+          width: double.maxFinite,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -831,9 +873,11 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
               children: [
                 Icon(Icons.store, color: Colors.grey.shade600),
                 const SizedBox(width: 12),
-                const Text(
-                  'Booking will be at the artisan\'s workshop',
-                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                Flexible(
+                  child: const Text(
+                    'Booking will be at the artisan\'s workshop',
+                    style: TextStyle(fontSize: 14, color: Colors.black87),
+                  ),
                 ),
               ],
             ),
@@ -906,93 +950,181 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
 
   Widget _buildServicesSection(BookingState state, BookingNotifier notifier) {
     final artisan = state.selectedArtisan;
-    if (artisan == null || artisan.services.isEmpty) {
-      return const SizedBox.shrink();
+    if (artisan == null) return const SizedBox.shrink();
+
+    final selectedServices = state.selectedServices;
+
+    // Helper functions for pricing calculation (matching ArtisanPricesDropdown logic)
+    String calculatedPriceRange(Set<String> selected) {
+      final selectedServiceObjects = state.availableServices
+          .where((s) => selected.contains(s.title))
+          .toList();
+
+      if (selectedServiceObjects.isEmpty) return '';
+
+      final ranges = selectedServiceObjects
+          .map((s) => s.priceRange)
+          .where((r) => r.isNotEmpty)
+          .toSet()
+          .toList();
+      if (ranges.length == 1) {
+        return ranges.first;
+      } else if (ranges.length > 1) {
+        return '${ranges.first} - ${ranges.last}';
+      }
+      return '';
     }
 
-    // Create a map of service names to their pricing data
-    final serviceDataMap = <String, BookingService>{};
-    for (final service in state.availableServices) {
-      serviceDataMap[service.title] = service;
+    double calculatedHourlyRate(Set<String> selected) {
+      final selectedServiceObjects = state.availableServices
+          .where((s) => selected.contains(s.title) && s.hourlyRate != null)
+          .toList();
+
+      if (selectedServiceObjects.isEmpty) return artisan.hourlyRate;
+
+      final rates = selectedServiceObjects.map((s) => s.hourlyRate!).toList();
+      return rates.reduce((a, b) => (a < b ? a : b));
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Services',
+          'Prices',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 12),
-        ...artisan.services.map((serviceName) {
-          final isSelected = state.selectedServices.contains(serviceName);
-          final serviceData = serviceDataMap[serviceName];
-
-          // Build price display string
-          String priceDisplay = '';
-          if (serviceData != null) {
-            if (serviceData.hourlyRate != null) {
-              priceDisplay = '₦${serviceData.hourlyRate!.toInt()}/hr';
-            } else if (serviceData.priceRange.isNotEmpty) {
-              priceDisplay = serviceData.priceRange;
-            }
-          }
-
-          return InkWell(
-            onTap: () => notifier.toggleService(serviceName),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.grey.shade100 : Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isSelected ? Colors.black : Colors.grey.shade300,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: isSelected ? Colors.black : Colors.white,
-                      border: Border.all(
-                        color: isSelected ? Colors.black : Colors.grey.shade400,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: isSelected
-                        ? const Icon(Icons.check, size: 16, color: Colors.white)
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      serviceName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                  if (priceDisplay.isNotEmpty)
-                    Text(
-                      priceDisplay,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isSelected ? Colors.black : Colors.grey.shade600,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
-                    ),
-                ],
-              ),
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: () =>
+              setState(() => _isServicesExpanded = !_isServicesExpanded),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade300),
             ),
-          );
-        }),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    selectedServices.isEmpty
+                        ? 'Select services'
+                        : selectedServices.join(', '),
+                    style: const TextStyle(color: Colors.black87),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Icon(
+                  _isServicesExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: Colors.black,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_isServicesExpanded)
+          Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children:
+                  (state.availableServices.isNotEmpty
+                          ? state.availableServices.map((s) => s.title).toList()
+                          : artisan.services)
+                      .map((service) {
+                        final isSelected = selectedServices.contains(service);
+                        return InkWell(
+                          onTap: () {
+                            notifier.toggleService(service);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Colors.black
+                                          : Colors.grey,
+                                    ),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: isSelected
+                                      ? const Icon(
+                                          Icons.check,
+                                          size: 14,
+                                          color: Colors.black,
+                                        )
+                                      : null,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  service,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      })
+                      .toList(),
+            ),
+          ),
+        const SizedBox(height: 16),
+        if (selectedServices.isNotEmpty) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Hourly rate', style: TextStyle(color: Colors.grey)),
+              Text(
+                '₦${calculatedHourlyRate(selectedServices).toInt()}/hour',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Price range for a project',
+                style: TextStyle(color: Colors.grey),
+              ),
+              Text(
+                calculatedPriceRange(selectedServices).isNotEmpty
+                    ? calculatedPriceRange(selectedServices)
+                    : artisan.priceRange,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ] else
+          const Text(
+            'Select services to see pricing',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
       ],
     );
   }
@@ -1037,8 +1169,41 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
   ) {
     return Column(
       children: [
+        if (_errorMessage != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.red.shade800, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _errorMessage!,
+                    style: TextStyle(color: Colors.red.shade900, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         ElevatedButton(
-          onPressed: state.isValid ? () => notifier.confirmBooking() : null,
+          onPressed: state.isValid
+              ? () async {
+                  if (mounted) {
+                    setState(() => _errorMessage = null);
+                  }
+                  final errorMsg = await notifier.confirmBooking();
+                  if (errorMsg != null && mounted) {
+                    setState(() => _errorMessage = errorMsg);
+                  }
+                }
+              : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.black,
             minimumSize: const Size(double.infinity, 55),
@@ -1195,7 +1360,11 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
           Align(
             alignment: Alignment.topRight,
             child: GestureDetector(
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                if (mounted && Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: const BoxDecoration(
@@ -1249,7 +1418,7 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text.rich(
               TextSpan(
-                text: 'Your booking with Plum ',
+                text: 'Your booking with ',
                 style: const TextStyle(color: Color(0xFF666666), fontSize: 14),
                 children: [
                   TextSpan(

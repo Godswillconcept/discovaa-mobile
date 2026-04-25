@@ -118,10 +118,12 @@ class AuthInitializerNotifier extends StateNotifier<AuthInitializerState> {
   void _restoreSessionState(String role) {
     UserRole userRole;
     switch (role) {
-      case 'provider':
+      case 'INDIVIDUAL':
+      case 'provider': // Fallback for old stored data
         userRole = UserRole.individualProvider;
         break;
-      case 'business':
+      case 'BUSINESS':
+      case 'business': // Fallback for old stored data
         userRole = UserRole.businessProvider;
         break;
       default:

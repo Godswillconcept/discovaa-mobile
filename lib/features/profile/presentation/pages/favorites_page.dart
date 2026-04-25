@@ -1,3 +1,4 @@
+import 'package:discovaa/shared/presentation/widgets/custom_header.dart';
 import 'package:discovaa/shared/presentation/widgets/main_header.dart';
 import 'package:discovaa/features/messaging/domain/entities/conversation.dart';
 import 'package:discovaa/features/messaging/presentation/providers/messaging_provider.dart';
@@ -71,80 +72,69 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header with title and options
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Favourites',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                    CustomHeader(
+                      title: 'Favourites',
+                      actions: [
+                        PopupMenuButton<String>(
+                          icon: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.more_horiz,
+                              color: Colors.grey,
+                              size: 20,
                             ),
                           ),
-                          PopupMenuButton<String>(
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.more_horiz,
-                                color: Colors.grey,
-                                size: 20,
+                          onSelected: (value) {
+                            switch (value) {
+                              case 'clear_all':
+                                _showClearAllDialog(context, ref);
+                                break;
+                              case 'refresh':
+                                ref
+                                    .read(
+                                      profileConnectivityProvider.notifier,
+                                    )
+                                    .checkConnection();
+                                break;
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'refresh',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.refresh, size: 20),
+                                  SizedBox(width: 12),
+                                  Text('Refresh'),
+                                ],
                               ),
                             ),
-                            onSelected: (value) {
-                              switch (value) {
-                                case 'clear_all':
-                                  _showClearAllDialog(context, ref);
-                                  break;
-                                case 'refresh':
-                                  ref
-                                      .read(
-                                        profileConnectivityProvider.notifier,
-                                      )
-                                      .checkConnection();
-                                  break;
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'refresh',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.refresh, size: 20),
-                                    SizedBox(width: 12),
-                                    Text('Refresh'),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'clear_all',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.delete_outline,
-                                      size: 20,
+                            PopupMenuItem(
+                              value: 'clear_all',
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.delete_outline,
+                                    size: 20,
+                                    color: Colors.red.shade400,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Clear All',
+                                    style: TextStyle(
                                       color: Colors.red.shade400,
                                     ),
-                                    const SizedBox(width: 12),
-                                    Text(
-                                      'Clear All',
-                                      style: TextStyle(
-                                        color: Colors.red.shade400,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                     // Search field
                     Padding(

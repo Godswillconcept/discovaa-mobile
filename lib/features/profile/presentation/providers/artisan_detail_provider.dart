@@ -168,7 +168,7 @@ class ArtisanDetailNotifier
       _loadAvailability(artisanId),
     ]);
 
-    return baseState;
+    return state.requireValue;
   }
 
   Future<void> _loadServices(String artisanId) async {

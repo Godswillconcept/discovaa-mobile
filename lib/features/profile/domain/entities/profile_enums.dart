@@ -133,3 +133,22 @@ enum ProviderPayoutStatus {
     }
   }
 }
+
+/// Payout gateway provider
+enum PayoutGateway {
+  paystack,
+  stripe;
+
+  String get displayName {
+    switch (this) {
+      case PayoutGateway.paystack:
+        return 'Paystack';
+      case PayoutGateway.stripe:
+        return 'Stripe';
+    }
+  }
+
+  String get displayNameLower {
+    return displayName.toLowerCase();
+  }
+}

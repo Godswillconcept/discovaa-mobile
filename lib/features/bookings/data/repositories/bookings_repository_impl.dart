@@ -120,8 +120,8 @@ class BookingsRepositoryImpl implements BookingsRepository {
     final response = await _dioClient.get(
       ApiEndpoints.providerAvailabilityCheck(providerId),
       queryParameters: {
-        'start': start.toUtc().toIso8601String(),
-        'end': end.toUtc().toIso8601String(),
+        'start': start.toIso8601String().split('Z').first,
+        'end': end.toIso8601String().split('Z').first,
       },
     );
     final envelope = decodeEnvelope(response, (raw) => asMap(raw));
@@ -148,8 +148,10 @@ class BookingsRepositoryImpl implements BookingsRepository {
       ApiEndpoints.bookings,
       data: BookingWriteDto(
         providerId: providerId,
-        scheduledStart: scheduledStart.toUtc(),
-        scheduledEnd: scheduledEnd.toUtc(),
+        scheduledStart: DateTime.parse(scheduledStart.toIso8601String().split('Z').first),
+        scheduledEnd: scheduledEnd.toIso8601String().contains('Z') 
+            ? DateTime.parse(scheduledEnd.toIso8601String().split('Z').first)
+            : scheduledEnd,
         serviceType: serviceType,
         currency: currency,
         addressText: addressText,

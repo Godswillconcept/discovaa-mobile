@@ -56,11 +56,11 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     });
   }
 
-  void _onOtpChanged(String value) {
+  void _onOtpChanged(String value, int length) {
     // Validate OTP as user types
-    final validation = FormValidationRules.validateOtp(value);
+    final validation = FormValidationRules.validateOtp(value, length: length);
 
-    if (value.length == 6) {
+    if (value.length == length) {
       // OTP is complete, validate it
       if (validation == null) {
         // Valid OTP - set success state
@@ -95,10 +95,13 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     setState(() => _isLoading = true);
 
     try {
-      // Call auth repository to verify OTP
-      final success = await ref
-          .read(authProvider.notifier)
-          .verifyOtp(email: email, otpCode: _pinController.text);
+      bool success = true;
+      if (!isForgot) {
+        // Call auth repository to verify OTP (only for email verification/signup)
+        success = await ref
+            .read(authProvider.notifier)
+            .verifyOtp(email: email, otpCode: _pinController.text);
+      }
 
       if (mounted) {
         if (success) {
@@ -126,7 +129,10 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                 Navigator.of(context).pop(); // Close modal
                 // Navigate based on source
                 if (isForgot) {
-                  context.push('/reset-password', extra: {'email': email});
+                  context.push(
+                    '/reset-password',
+                    extra: {'email': email, 'code': _pinController.text},
+                  );
                 } else if (isLoginVerify) {
                   // User verified from login — go straight to home
                   context.go('/home');
@@ -161,6 +167,8 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     // Get email from route extras before any async operations
     final Map<String, dynamic>? data =
         GoRouterState.of(context).extra as Map<String, dynamic>?;
+    final String type = data?['type'] ?? 'register';
+    final bool isForgot = type == 'forgot_password';
     final String email = data?['email'] ?? '';
 
     setState(() => _lastResendTime = DateTime.now());
@@ -169,8 +177,10 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     _pinController.clear();
     ref.read(signupProvider.notifier).updateOtpState(OtpState.neutral);
 
-    // Call auth repository to resend OTP
-    final success = await ref.read(authProvider.notifier).resendOtp(email);
+    // Call correct repository method based on flow
+    final success = isForgot
+        ? await ref.read(authProvider.notifier).sendPasswordResetEmail(email)
+        : await ref.read(authProvider.notifier).resendOtp(email);
 
     if (!mounted) return;
 
@@ -213,6 +223,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     final String phone = data?['phone'] ?? '';
     final state = ref.watch(signupProvider);
     final otpState = state.otpState;
+    final int otpLength = isForgot ? 8 : 6;
 
     return PopScope(
       canPop: false,
@@ -243,8 +254,8 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                       Text.rich(
                         TextSpan(
                           text: isForgot
-                              ? "Please Enter the 6 digit verification code sent to "
-                              : "We’ve sent a 6-digit confirmation code to",
+                              ? "Please Enter the $otpLength digit verification code sent to "
+                              : "We’ve sent a $otpLength-digit confirmation code to",
                           style: const TextStyle(fontSize: 14),
                           children: [
                             TextSpan(
@@ -269,7 +280,8 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                         controller: _pinController,
                         focusNode: _pinFocusNode,
                         otpState: otpState,
-                        onChanged: _onOtpChanged,
+                        length: otpLength,
+                        onChanged: (val) => _onOtpChanged(val, otpLength),
                         onCompleted: (pin) => _verifyOtp(),
                       ),
 
@@ -280,7 +292,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                         AppAlertMessage(
                           type: AlertType.error,
                           message:
-                              'Invalid verification code. Please check your email and enter the 6-character code (letters and numbers).',
+                              'Invalid verification code. Please check your email and enter the $otpLength-character code (letters and numbers).',
                           onDismiss: () {
                             ref
                                 .read(signupProvider.notifier)

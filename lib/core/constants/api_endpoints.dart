@@ -142,6 +142,11 @@ class ApiEndpoints {
   static const String payoutsBalanceSummary =
       '/api/payments/payouts/balance-summary/';
 
+  // Paystack-specific endpoints
+  static const String paystackBanks = '/api/payments/paystack/banks/';
+  static const String paystackResolveAccount =
+      '/api/payments/paystack/resolve-account/';
+
   // User Profile
   static const String userProfile = '/user/profile';
   static const String updateProfile = '/user/profile';

@@ -688,7 +688,7 @@ BookingModel mapBookingDto(
                 serviceId: nestedService.id,
                 title: nestedService.title,
                 category: 'Service',
-                imagePath: _extractServiceImagePath(nestedService),
+                imagePath: _extractServiceImagePath(nestedService, dto.provider),
                 formattedPrice: _formatAmount(dto.totalAmount, dto.currency),
                 pricingModel: PricingModel.fixed,
                 priceType: parsePriceType(nestedService.priceType),
@@ -785,6 +785,8 @@ BookingStatus bookingStatusFromString(String raw) {
   switch (raw.toUpperCase()) {
     case 'CONFIRMED':
       return BookingStatus.confirmed;
+    case 'ONGOING':
+      return BookingStatus.ongoing;
     case 'COMPLETED':
       return BookingStatus.completed;
     case 'CANCELLED':
@@ -796,15 +798,29 @@ BookingStatus bookingStatusFromString(String raw) {
 
 /// Extracts a renderable image path from nested service data
 /// The API returns media as UUID strings, not URLs, so we validate
-/// and fall back to placeholder if no renderable path is found
-String? _extractServiceImagePath(ServiceNestedDto service) {
-  // Check if any media item is a renderable URL
+/// and fall back to placeholder if no renderable path is found.
+/// We also check the provider's media array since the API provides full media objects there.
+String? _extractServiceImagePath(ServiceNestedDto service, [ProviderNestedDto? provider]) {
+  // 1. Check provider's media array since API expands full media objects there
+  if (provider != null) {
+    for (final mediaItem in provider.media) {
+      if (mediaItem is Map<String, dynamic> && mediaItem['service'] == service.id) {
+        final url = mediaItem['url']?.toString();
+        if (_isRenderableImagePath(url)) {
+          return url;
+        }
+      }
+    }
+  }
+
+  // 2. Check if any media item inside service is directly a renderable URL
   for (final mediaItem in service.media) {
     if (_isRenderableImagePath(mediaItem)) {
       return mediaItem;
     }
   }
-  // No renderable URL found, use placeholder
+  
+  // 3. No renderable URL found, use placeholder
   return AppAssets.servicePlaceholder(service.id);
 }
 

@@ -84,7 +84,11 @@ class ArtisanDetailRepositoryImpl implements ArtisanDetailRepository {
 
       final response = await _dioClient.get(
         ApiEndpoints.services,
-        queryParameters: {'provider': artisanId},
+        queryParameters: {
+          'provider': artisanId,
+          'page_size': 100,
+          'ordering': '-created_at',
+        },
         options: Options(headers: {'X-Skip-Auth': 'true'}),
       );
 
@@ -137,7 +141,8 @@ class ArtisanDetailRepositoryImpl implements ArtisanDetailRepository {
       }
 
       final response = await _dioClient.get(
-        '${ApiEndpoints.providers}$artisanId/availability/',
+        ApiEndpoints.providerAvailabilityRules,
+        queryParameters: {'provider': artisanId},
         options: Options(headers: {'X-Skip-Auth': 'true'}),
       );
 

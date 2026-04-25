@@ -12,6 +12,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:discovaa/features/profile/domain/entities/profile_enums.dart';
+import 'package:discovaa/features/home/domain/entities/dashboard_entity.dart';
+import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
@@ -179,7 +181,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         if (isProvider) const SizedBox(height: 20),
 
                         // Recent Bookings
-                        const _RecentBookingsCard(),
+                        _RecentBookingsCard(isProvider: isProvider),
                         const SizedBox(height: 16),
 
                         // Inbox Pulse
@@ -760,18 +762,42 @@ class _SpendingTrendChart extends StatelessWidget {
     final points = data.points as List<dynamic>;
     if (points.isEmpty) return const SizedBox.shrink();
 
-    final spots = points.asMap().entries.map((entry) {
-      return FlSpot(entry.key.toDouble(), entry.value.amount as double);
-    }).toList();
-
-    final maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
-    final minY = 0.0;
+    final maxY = points.map((p) => p.amount as double).fold(0.0, (max, val) => val > max ? val : max);
 
     return SizedBox(
       height: 150,
-      child: LineChart(
-        LineChartData(
+      child: BarChart(
+        BarChartData(
           gridData: const FlGridData(show: false),
+          barTouchData: BarTouchData(
+            enabled: true,
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) => Colors.black.withValues(alpha: 0.8),
+              // tooltipRoundedRadius: 8,
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                final date = points[group.x].date as DateTime;
+                final dateStr = DateFormat('MMM dd').format(date);
+                return BarTooltipItem(
+                  '$dateStr\n',
+                  const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: '₦${rod.toY.toInt()}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
           titlesData: FlTitlesData(
             show: true,
             rightTitles: const AxisTitles(
@@ -786,44 +812,57 @@ class _SpendingTrendChart extends StatelessWidget {
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 22,
-                interval: (spots.length / 4).ceil().toDouble().clamp(
-                  1,
-                  double.infinity,
-                ),
+                reservedSize: 25,
                 getTitlesWidget: (value, meta) {
                   final index = value.toInt();
                   if (index < 0 || index >= points.length) {
                     return const SizedBox.shrink();
                   }
+                  
+                  // Show labels for every 2nd or 3rd point to avoid crowding
+                  if (points.length > 7 && index % (points.length > 15 ? 4 : 2) != 0) {
+                    return const SizedBox.shrink();
+                  }
+                  
                   final date = points[index].date as DateTime;
-                  return Text(
-                    '${date.day}/${date.month}',
-                    style: const TextStyle(color: Colors.black54, fontSize: 10),
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      DateFormat('dd/MM').format(date),
+                      style: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   );
                 },
               ),
             ),
           ),
           borderData: FlBorderData(show: false),
-          minX: 0,
-          maxX: (spots.length - 1).toDouble(),
-          minY: minY,
-          maxY: maxY > 0 ? maxY * 1.2 : 5,
-          lineBarsData: [
-            LineChartBarData(
-              spots: spots,
-              isCurved: true,
-              color: AppColors.primary,
-              barWidth: 3,
-              isStrokeCapRound: true,
-              dotData: const FlDotData(show: false),
-              belowBarData: BarAreaData(
-                show: true,
-                color: AppColors.primary.withValues(alpha: 0.15),
-              ),
-            ),
-          ],
+          barGroups: points.asMap().entries.map((entry) {
+            return BarChartGroupData(
+              x: entry.key,
+              barRods: [
+                BarChartRodData(
+                  toY: entry.value.amount as double,
+                  color: AppColors.primary,
+                  width: points.length > 15 ? 6 : 10,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(4),
+                    bottom: Radius.circular(1),
+                  ),
+                  backDrawRodData: BackgroundBarChartRodData(
+                    show: true,
+                    toY: maxY > 0 ? maxY * 1.1 : 10,
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
+          maxY: maxY > 0 ? maxY * 1.1 : 10,
         ),
       ),
     );
@@ -1011,7 +1050,10 @@ class _AppointmentsSection extends ConsumerWidget {
         else
           Column(
             children: appointments.take(3).map((appointment) {
-              return _AppointmentItem(appointment: appointment);
+              return _AppointmentItem(
+                appointment: appointment,
+                isProvider: isProvider,
+              );
             }).toList(),
           ),
       ],
@@ -1021,8 +1063,9 @@ class _AppointmentsSection extends ConsumerWidget {
 
 class _AppointmentItem extends StatelessWidget {
   final dynamic appointment;
+  final bool isProvider;
 
-  const _AppointmentItem({required this.appointment});
+  const _AppointmentItem({required this.appointment, required this.isProvider});
 
   @override
   Widget build(BuildContext context) {
@@ -1056,8 +1099,29 @@ class _AppointmentItem extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
+                Text(
+                  isProvider
+                      ? "Client: ${appointment.clientName}"
+                      : "Artisan: ${appointment.providerName}",
+                  style: TextStyle(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (isProvider) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    "Service by: ${appointment.providerName}",
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                  ),
+                ],
+                const SizedBox(height: 2),
                 Text(
                   '${appointment.formattedDate} • ${appointment.formattedTime}',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
@@ -1351,7 +1415,9 @@ class _PerformancePulseCard extends ConsumerWidget {
 }
 
 class _RecentBookingsCard extends ConsumerWidget {
-  const _RecentBookingsCard();
+  final bool isProvider;
+
+  const _RecentBookingsCard({required this.isProvider});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1374,7 +1440,10 @@ class _RecentBookingsCard extends ConsumerWidget {
       actionText: "View all",
       child: Column(
         children: bookings.take(3).map((booking) {
-          return _RecentBookingItem(booking: booking);
+          return _RecentBookingItem(
+            booking: booking,
+            isProvider: isProvider,
+          );
         }).toList(),
       ),
     );
@@ -1382,9 +1451,13 @@ class _RecentBookingsCard extends ConsumerWidget {
 }
 
 class _RecentBookingItem extends StatelessWidget {
-  final dynamic booking;
+  final RecentBookingEntity booking;
+  final bool isProvider;
 
-  const _RecentBookingItem({required this.booking});
+  const _RecentBookingItem({
+    required this.booking,
+    required this.isProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1402,7 +1475,7 @@ class _RecentBookingItem extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                booking.serviceImage,
+                booking.serviceImage!,
                 width: 48,
                 height: 48,
                 fit: BoxFit.cover,
@@ -1440,9 +1513,20 @@ class _RecentBookingItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  booking.providerName,
+                  "Provider: ${booking.providerName}",
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
+                if (isProvider && booking.clientName != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    "Client: ${booking.clientName}",
+                    style: TextStyle(
+                      color: AppColors.primary.withValues(alpha: 0.8),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 2),
                 Text(
                   booking.formattedDate,
@@ -1453,7 +1537,7 @@ class _RecentBookingItem extends StatelessWidget {
           ),
           if (booking.formattedAmount != null)
             Text(
-              booking.formattedAmount,
+              booking.formattedAmount!,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             ),
         ],
