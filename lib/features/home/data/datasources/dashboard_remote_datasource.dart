@@ -143,7 +143,7 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
         ...params,
         'limit': 100, // Get enough data to calculate stats
         'expand':
-            'items.service', // Expand service details to get title and media
+            'items.service,provider', // Expand service and provider details
       },
     );
 
@@ -419,6 +419,7 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
         'status': 'CONFIRMED',
         'ordering': 'scheduled_start',
         'limit': limit,
+        'expand': 'provider', // Expand provider details for display
       },
     );
 
@@ -481,7 +482,12 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
   Future<List<RecentBookingDto>> getRecentBookings({int limit = 5}) async {
     final response = await _dioClient.get(
       ApiEndpoints.bookings,
-      queryParameters: {'ordering': '-created_at', 'limit': limit},
+      queryParameters: {
+        'ordering': '-created_at',
+        'limit': limit,
+        'expand':
+            'items.service,provider', // Expand service and provider details
+      },
     );
 
     final envelope = decodeListEnvelope(
@@ -501,12 +507,22 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
     if (items != null && items.isNotEmpty) {
       final firstItem = items.first;
       if (firstItem is Map<String, dynamic>) {
+        // Try service_snapshot first, then fall back to service
         final serviceSnapshot = firstItem['service_snapshot'];
+        final service = firstItem['service'];
+
+        Map<String, dynamic>? serviceData;
         if (serviceSnapshot is Map<String, dynamic>) {
-          serviceName = serviceSnapshot['title']?.toString() ?? 'Service';
-          serviceId = serviceSnapshot['id']?.toString() ?? '';
+          serviceData = serviceSnapshot;
+        } else if (service is Map<String, dynamic>) {
+          serviceData = service;
+        }
+
+        if (serviceData != null) {
+          serviceName = serviceData['title']?.toString() ?? 'Service';
+          serviceId = serviceData['id']?.toString() ?? '';
           // Get first media item if available - validate it's a renderable URL
-          final media = serviceSnapshot['media'];
+          final media = serviceData['media'];
           if (media is List<dynamic> && media.isNotEmpty) {
             final firstMedia = media.first;
             if (firstMedia is Map<String, dynamic>) {
@@ -555,7 +571,10 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
 
   @override
   Future<BookingMixDto> getBookingMix() async {
-    final response = await _dioClient.get(ApiEndpoints.bookings);
+    final response = await _dioClient.get(
+      ApiEndpoints.bookings,
+      queryParameters: {'expand': 'provider'}, // Expand provider details
+    );
 
     final envelope = decodeListEnvelope(response, (item) => item);
 
@@ -596,7 +615,10 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
     // Get bookings for spending trend calculation
     final response = await _dioClient.get(
       ApiEndpoints.bookings,
-      queryParameters: {'limit': 100},
+      queryParameters: {
+        'limit': 100,
+        'expand': 'provider', // Expand provider details
+      },
     );
 
     final envelope = decodeListEnvelope(response, (item) => item);

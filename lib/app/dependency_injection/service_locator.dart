@@ -32,18 +32,13 @@ Future<void> _initHive() async {
   await hiveService.init();
   sl.registerSingleton<HiveService>(hiveService);
 
-  // Register FlutterSecureStorage with encryptedSharedPreferences for Android
-  const secureStorage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  // Register FlutterSecureStorage
+  const secureStorage = FlutterSecureStorage(aOptions: AndroidOptions());
   sl.registerSingleton<FlutterSecureStorage>(secureStorage);
 
   // Register SecureTokenStorage which depends on HiveService and FlutterSecureStorage
   sl.registerSingleton<SecureTokenStorage>(
-    SecureTokenStorage(
-      hiveService: hiveService,
-      secureStorage: secureStorage,
-    ),
+    SecureTokenStorage(hiveService: hiveService, secureStorage: secureStorage),
   );
 }
 

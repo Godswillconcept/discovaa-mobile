@@ -1,4 +1,5 @@
 import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
+import 'package:discovaa/features/profile/presentation/widgets/location_picker_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -932,11 +933,29 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
         ),
         const SizedBox(height: 8),
         OutlinedButton.icon(
-          onPressed: () {
-            // Placeholder for map integration
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Map feature coming soon')),
+          onPressed: () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => LocationPickerPage(
+                  initialLatitude: state.latitude,
+                  initialLongitude: state.longitude,
+                  initialAddress: state.address,
+                ),
+              ),
             );
+            if (result != null && mounted) {
+              final address = result['address'] as String?;
+              final lat = result['latitude'] as double?;
+              final lng = result['longitude'] as double?;
+              if (address != null) {
+                _addressController.text = address;
+                notifier.setAddress(address);
+              }
+              if (lat != null && lng != null) {
+                notifier.setLocation(lat, lng);
+              }
+            }
           },
           icon: const Icon(Icons.map, size: 18),
           label: const Text('Open map'),
@@ -1270,7 +1289,9 @@ class _BookingFlowModalState extends ConsumerState<BookingFlowModal> {
 
       // Get current position
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
 
       // Store coordinates in state

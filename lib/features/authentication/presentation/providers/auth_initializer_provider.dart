@@ -26,9 +26,7 @@ enum AuthStatus {
 final secureTokenStorageProvider = Provider<SecureTokenStorage>((ref) {
   return SecureTokenStorage(
     hiveService: HiveService.instance,
-    secureStorage: const FlutterSecureStorage(
-      aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    ),
+    secureStorage: const FlutterSecureStorage(aOptions: AndroidOptions()),
   );
 });
 

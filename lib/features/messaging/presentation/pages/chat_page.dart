@@ -64,7 +64,7 @@ class ChatPage extends ConsumerWidget {
                 TextButton(
                   onPressed: () async {
                     Navigator.pop(context);
-                    final result = await FilePicker.platform.pickFiles(
+                    final result = await FilePicker.pickFiles(
                       type: FileType.any,
                     );
 

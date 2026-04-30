@@ -75,6 +75,8 @@ class ApiEndpoints {
   static const String providerCertifications = '/api/provider-certifications/';
   static const String providerAvailabilityRules =
       '/api/provider-availability-rules/';
+  static String providerAvailabilityRule(String id) =>
+      '/api/provider-availability-rules/$id/';
 
   static const String serviceCategories = '/api/service-categories/';
   static const String services = '/api/services/';

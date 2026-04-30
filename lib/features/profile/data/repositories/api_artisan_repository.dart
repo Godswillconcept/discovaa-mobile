@@ -35,6 +35,11 @@ class ApiArtisanRepository implements ArtisanRepository {
     String? search,
     String? category,
     String? ordering,
+    double? minRating,
+    double? minPrice,
+    double? maxPrice,
+    String? location,
+    bool? isAvailableOnly,
   }) {
     final query = <String, dynamic>{};
     if (search != null && search.trim().isNotEmpty) {
@@ -42,6 +47,21 @@ class ApiArtisanRepository implements ArtisanRepository {
     }
     if (ordering != null && ordering.trim().isNotEmpty) {
       query['ordering'] = ordering.trim();
+    }
+    if (minRating != null && minRating > 0) {
+      query['min_avg_rating'] = minRating;
+    }
+    if (minPrice != null && minPrice > 0) {
+      query['min_hourly_rate'] = minPrice;
+    }
+    if (maxPrice != null && maxPrice > 0) {
+      query['max_hourly_rate'] = maxPrice;
+    }
+    if (location != null && location.trim().isNotEmpty) {
+      query['location'] = location.trim();
+    }
+    if (isAvailableOnly == true) {
+      query['is_available'] = true;
     }
 
     if (category != null && category.trim().isNotEmpty) {
@@ -65,6 +85,11 @@ class ApiArtisanRepository implements ArtisanRepository {
     String? search,
     String? category,
     String? ordering,
+    double? minRating,
+    double? minPrice,
+    double? maxPrice,
+    String? location,
+    bool? isAvailableOnly,
   }) async {
     final query = <String, dynamic>{};
     if (search != null && search.trim().isNotEmpty) {
@@ -72,6 +97,21 @@ class ApiArtisanRepository implements ArtisanRepository {
     }
     if (ordering != null && ordering.trim().isNotEmpty) {
       query['ordering'] = ordering.trim();
+    }
+    if (minRating != null && minRating > 0) {
+      query['min_avg_rating'] = minRating;
+    }
+    if (minPrice != null && minPrice > 0) {
+      query['min_hourly_rate'] = minPrice;
+    }
+    if (maxPrice != null && maxPrice > 0) {
+      query['max_hourly_rate'] = maxPrice;
+    }
+    if (location != null && location.trim().isNotEmpty) {
+      query['location'] = location.trim();
+    }
+    if (isAvailableOnly == true) {
+      query['is_available'] = true;
     }
 
     if (category != null && category.trim().isNotEmpty) {

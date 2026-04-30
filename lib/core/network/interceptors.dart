@@ -188,47 +188,51 @@ class AuthInterceptor extends Interceptor {
       }
 
       debugPrint('[AuthInterceptor] Got 401, attempting token refresh...');
-      try {
-        final refreshResult = await _refreshToken();
-        if (refreshResult.status == _TokenRefreshStatus.success &&
-            refreshResult.accessToken != null &&
-            refreshResult.accessToken!.isNotEmpty) {
-          debugPrint(
-            '[AuthInterceptor] Token refreshed successfully, retrying request...',
-          );
-          originalRequest.headers['Authorization'] =
-              'Bearer ${refreshResult.accessToken}';
-          originalRequest.headers[_retryAfterRefreshHeader] = true;
+      final refreshResult = await _refreshToken();
+      if (refreshResult.status == _TokenRefreshStatus.success &&
+          refreshResult.accessToken != null &&
+          refreshResult.accessToken!.isNotEmpty) {
+        debugPrint(
+          '[AuthInterceptor] Token refreshed successfully, retrying request...',
+        );
+        originalRequest.headers['Authorization'] =
+            'Bearer ${refreshResult.accessToken}';
+        originalRequest.headers[_retryAfterRefreshHeader] = true;
 
+        try {
           final response = await _retryRequest(originalRequest);
           handler.resolve(response);
           return;
+        } catch (retryError) {
+          // Retry failed with new token - this is not a refresh failure
+          // The token was valid, but the request itself failed (e.g., validation error)
+          debugPrint(
+            '[AuthInterceptor] Request retry failed after successful token refresh: $retryError',
+          );
+          // Let the error propagate to the caller with proper error handling
+          super.onError(err, handler);
+          return;
         }
+      }
 
-        if (refreshResult.status == _TokenRefreshStatus.unauthorized) {
-          // Only clear auth state if refresh token was present but rejected by server
-          // This indicates the refresh token itself is invalid/expired
-          await _clearAuthState(reason: 'refresh_token_rejected');
-        } else if (refreshResult.status == _TokenRefreshStatus.failed) {
-          // For other failures (network, server error, etc.), preserve auth state
-          // to allow retry when connectivity is restored
-          debugPrint(
-            '[AuthInterceptor] Token refresh failed but preserving auth state for retry.',
-          );
-        } else if (refreshResult.status ==
-            _TokenRefreshStatus.missingRefreshToken) {
-          // Refresh token was never stored - this is a login flow bug, not a refresh failure
-          // Don't clear auth state as it would be destructive
-          debugPrint(
-            '[AuthInterceptor] Refresh token missing from storage. '
-            'This indicates the refresh token was not saved during login. '
-            'Auth state preserved to avoid destructive clearing.',
-          );
-        }
-      } catch (e) {
-        debugPrint('[AuthInterceptor] Token refresh failed: $e');
+      if (refreshResult.status == _TokenRefreshStatus.unauthorized) {
+        // Only clear auth state if refresh token was present but rejected by server
+        // This indicates the refresh token itself is invalid/expired
+        await _clearAuthState(reason: 'refresh_token_rejected');
+      } else if (refreshResult.status == _TokenRefreshStatus.failed) {
+        // For other failures (network, server error, etc.), preserve auth state
+        // to allow retry when connectivity is restored
         debugPrint(
-          '[AuthInterceptor][auth] Preserving auth state because refresh failure may be transient.',
+          '[AuthInterceptor] Token refresh failed but preserving auth state for retry.',
+        );
+      } else if (refreshResult.status ==
+          _TokenRefreshStatus.missingRefreshToken) {
+        // Refresh token was never stored - this is a login flow bug, not a refresh failure
+        // Don't clear auth state as it would be destructive
+        debugPrint(
+          '[AuthInterceptor] Refresh token missing from storage. '
+          'This indicates the refresh token was not saved during login. '
+          'Auth state preserved to avoid destructive clearing.',
         );
       }
     }

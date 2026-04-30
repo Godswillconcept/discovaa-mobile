@@ -133,17 +133,42 @@ class ArtisanFilterState {
   final ArtisanSort sortBy;
   final String? selectedCategory;
   final String searchQuery;
+  final double? minRating;
+  final double? minPrice;
+  final double? maxPrice;
+  final String? location;
+  final bool isAvailableOnly;
 
   ArtisanFilterState({
     this.sortBy = ArtisanSort.categories,
     this.selectedCategory,
     this.searchQuery = '',
+    this.minRating,
+    this.minPrice,
+    this.maxPrice,
+    this.location,
+    this.isAvailableOnly = false,
   });
+
+  int get activeFilterCount {
+    int count = 0;
+    if (selectedCategory != null) count++;
+    if (minRating != null) count++;
+    if (minPrice != null || maxPrice != null) count++;
+    if (location != null && location!.isNotEmpty) count++;
+    if (isAvailableOnly) count++;
+    return count;
+  }
 
   ArtisanFilterState copyWith({
     Object? sortBy = _unset,
     Object? selectedCategory = _unset,
     Object? searchQuery = _unset,
+    Object? minRating = _unset,
+    Object? minPrice = _unset,
+    Object? maxPrice = _unset,
+    Object? location = _unset,
+    bool? isAvailableOnly,
   }) {
     return ArtisanFilterState(
       sortBy: identical(sortBy, _unset) ? this.sortBy : sortBy as ArtisanSort,
@@ -153,14 +178,87 @@ class ArtisanFilterState {
       searchQuery: identical(searchQuery, _unset)
           ? this.searchQuery
           : searchQuery as String,
+      minRating: identical(minRating, _unset)
+          ? this.minRating
+          : minRating as double?,
+      minPrice: identical(minPrice, _unset)
+          ? this.minPrice
+          : minPrice as double?,
+      maxPrice: identical(maxPrice, _unset)
+          ? this.maxPrice
+          : maxPrice as double?,
+      location: identical(location, _unset)
+          ? this.location
+          : location as String?,
+      isAvailableOnly: isAvailableOnly ?? this.isAvailableOnly,
     );
   }
 }
 
 class ArtisanFilterNotifier extends StateNotifier<ArtisanFilterState> {
   final Ref _ref;
+  final HiveService _hiveService;
+  static const _filtersCacheKey = 'artisans.cache.filters';
 
-  ArtisanFilterNotifier(this._ref) : super(ArtisanFilterState());
+  ArtisanFilterNotifier(this._ref, this._hiveService)
+    : super(_loadFilters(_hiveService));
+
+  static bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value != 0;
+    if (value is String) return value.toLowerCase() == 'true';
+    return false;
+  }
+
+  static ArtisanFilterState _loadFilters(HiveService hiveService) {
+    try {
+      final cached = hiveService.getMap(_filtersCacheKey);
+      if (cached != null) {
+        return ArtisanFilterState(
+          sortBy: cached['sortBy'] != null
+              ? ArtisanSort.values.firstWhere(
+                  (e) => e.name == cached['sortBy'],
+                  orElse: () => ArtisanSort.categories,
+                )
+              : ArtisanSort.categories,
+          selectedCategory: cached['selectedCategory'] as String?,
+          searchQuery: cached['searchQuery'] as String? ?? '',
+          minRating: (cached['minRating'] as num?)?.toDouble(),
+          minPrice: (cached['minPrice'] as num?)?.toDouble(),
+          maxPrice: (cached['maxPrice'] as num?)?.toDouble(),
+          location: cached['location'] as String?,
+          isAvailableOnly: _parseBool(cached['isAvailableOnly']),
+        );
+      }
+    } catch (_) {
+      // Ignore cache errors, use defaults
+    }
+    return ArtisanFilterState();
+  }
+
+  void _saveFilters() {
+    try {
+      _hiveService.setMap(_filtersCacheKey, {
+        'sortBy': state.sortBy.name,
+        'selectedCategory': state.selectedCategory,
+        'searchQuery': state.searchQuery,
+        'minRating': state.minRating,
+        'minPrice': state.minPrice,
+        'maxPrice': state.maxPrice,
+        'location': state.location,
+        'isAvailableOnly': state.isAvailableOnly,
+      });
+    } catch (_) {
+      // Ignore save errors
+    }
+  }
+
+  @override
+  set state(ArtisanFilterState value) {
+    super.state = value;
+    _saveFilters();
+  }
 
   void setSortBy(ArtisanSort sort) {
     state = state.copyWith(sortBy: sort);
@@ -177,6 +275,37 @@ class ArtisanFilterNotifier extends StateNotifier<ArtisanFilterState> {
     _resetPage();
   }
 
+  void setMinRating(double? rating) {
+    state = state.copyWith(minRating: rating);
+    _resetPage();
+  }
+
+  void setPriceRange(double? min, double? max) {
+    state = state.copyWith(minPrice: min, maxPrice: max);
+    _resetPage();
+  }
+
+  void setLocation(String? location) {
+    state = state.copyWith(location: location);
+    _resetPage();
+  }
+
+  void setAvailableOnly(bool value) {
+    state = state.copyWith(isAvailableOnly: value);
+    _resetPage();
+  }
+
+  void clearAdvancedFilters() {
+    state = state.copyWith(
+      minRating: null,
+      minPrice: null,
+      maxPrice: null,
+      location: null,
+      isAvailableOnly: false,
+    );
+    _resetPage();
+  }
+
   void _resetPage() {
     _ref.read(artisanPageProvider.notifier).state = 1;
   }
@@ -184,7 +313,7 @@ class ArtisanFilterNotifier extends StateNotifier<ArtisanFilterState> {
 
 final artisanFilterProvider =
     StateNotifierProvider<ArtisanFilterNotifier, ArtisanFilterState>((ref) {
-      return ArtisanFilterNotifier(ref);
+      return ArtisanFilterNotifier(ref, sl<HiveService>());
     });
 
 enum BookingType { onsite, workshop }
@@ -530,18 +659,22 @@ class BookingNotifier extends StateNotifier<BookingState> {
       debugPrint('================================');
 
       // 3. Create the booking using the global bookingsProvider to ensure state synchronization
-      await _ref.read(bookingsProvider.notifier).placeBooking(
-        providerId: artisan.id,
-        scheduledStart: scheduledStart,
-        scheduledEnd: scheduledEnd,
-        serviceType: state.bookingType.name.toUpperCase(),
-        currency: 'NGN',
-        addressText: state.bookingType == BookingType.onsite
-            ? state.address
-            : null,
-        notes: state.notes,
-        items: payloadItems,
-      );
+      await _ref
+          .read(bookingsProvider.notifier)
+          .placeBooking(
+            providerId: artisan.id,
+            scheduledStart: scheduledStart,
+            scheduledEnd: scheduledEnd,
+            serviceType: state.bookingType.name.toUpperCase(),
+            currency: 'NGN',
+            addressText: state.bookingType == BookingType.onsite
+                ? state.address
+                : null,
+            notes: state.notes,
+            latitude: state.latitude,
+            longitude: state.longitude,
+            items: payloadItems,
+          );
 
       // 4. Invalidate dashboard to ensure it reflects the new booking and KPIs
       _ref.invalidate(dashboardProvider);
@@ -688,6 +821,11 @@ class FilteredArtisansNotifier extends AsyncNotifier<List<Artisan>> {
       search: filter.searchQuery.isNotEmpty ? filter.searchQuery : null,
       category: filter.selectedCategory,
       ordering: ordering,
+      minRating: filter.minRating,
+      minPrice: filter.minPrice,
+      maxPrice: filter.maxPrice,
+      location: filter.location,
+      isAvailableOnly: filter.isAvailableOnly,
     );
     if (cached.isNotEmpty) {
       state = AsyncData(cached);
@@ -697,6 +835,11 @@ class FilteredArtisansNotifier extends AsyncNotifier<List<Artisan>> {
       search: filter.searchQuery.isNotEmpty ? filter.searchQuery : null,
       category: filter.selectedCategory,
       ordering: ordering,
+      minRating: filter.minRating,
+      minPrice: filter.minPrice,
+      maxPrice: filter.maxPrice,
+      location: filter.location,
+      isAvailableOnly: filter.isAvailableOnly,
     );
     return results;
   }

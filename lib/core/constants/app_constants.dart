@@ -73,6 +73,15 @@ class AppColors {
     0xFFE2211D,
   ); // The red from the logo swoosh
   static const Color textWhite = Color(0xFFFFFFFF);
+
+  // Additional colors for booking and UI elements
+  static const Color warning = Color(0xFFF59E0B); // Amber/Warning
+  static const Color lightBlueBackground = Color(
+    0xFFF8FBFF,
+  ); // Light blue background
+  static const Color lightOrangeBackground = Color(
+    0xFFFFF7ED,
+  ); // Light orange background
 }
 
 class AppAssets {

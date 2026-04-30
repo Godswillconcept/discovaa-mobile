@@ -5,11 +5,11 @@ abstract class NetworkInfo {
   /// Check if device has internet connection
   Future<bool> get isConnected;
 
-  /// Get current connectivity result (v5 API returns single ConnectivityResult)
-  Future<ConnectivityResult> get connectivityResult;
+  /// Get current connectivity result (v7 API returns List&lt;ConnectivityResult&gt;)
+  Future<List<ConnectivityResult>> get connectivityResult;
 
-  /// Stream of connectivity changes (v5 API returns single ConnectivityResult)
-  Stream<ConnectivityResult> get onConnectivityChanged;
+  /// Stream of connectivity changes (v7 API returns List&lt;ConnectivityResult&gt;)
+  Stream<List<ConnectivityResult>> get onConnectivityChanged;
 }
 
 /// Implementation of NetworkInfo using connectivity_plus package v5
@@ -21,17 +21,17 @@ class NetworkInfoImpl implements NetworkInfo {
   @override
   Future<bool> get isConnected async {
     final result = await connectivity.checkConnectivity();
-    // v5 API returns single ConnectivityResult
-    return result != ConnectivityResult.none;
+    // v7 API returns List<ConnectivityResult>
+    return !result.contains(ConnectivityResult.none);
   }
 
   @override
-  Future<ConnectivityResult> get connectivityResult async {
+  Future<List<ConnectivityResult>> get connectivityResult async {
     return await connectivity.checkConnectivity();
   }
 
   @override
-  Stream<ConnectivityResult> get onConnectivityChanged {
+  Stream<List<ConnectivityResult>> get onConnectivityChanged {
     return connectivity.onConnectivityChanged;
   }
 }

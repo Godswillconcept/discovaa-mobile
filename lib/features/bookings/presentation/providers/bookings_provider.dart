@@ -7,6 +7,7 @@ import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/data/repositories/bookings_repository_impl.dart';
 import 'package:discovaa/features/bookings/domain/repositories/bookings_repository.dart';
 import 'package:discovaa/features/services/presentation/providers/services_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // ---------------------------------------------------------------------------
@@ -20,12 +21,18 @@ class BookingsState {
   final BookingsLoadStatus status;
   final String? errorMessage;
   final String searchQuery;
+  final int currentPage;
+  final int pageSize;
+  final bool hasMore;
 
   const BookingsState({
     this.bookings = const [],
     this.status = BookingsLoadStatus.idle,
     this.errorMessage,
     this.searchQuery = '',
+    this.currentPage = 1,
+    this.pageSize = 20,
+    this.hasMore = true,
   });
 
   BookingsState copyWith({
@@ -33,12 +40,18 @@ class BookingsState {
     BookingsLoadStatus? status,
     String? errorMessage,
     String? searchQuery,
+    int? currentPage,
+    int? pageSize,
+    bool? hasMore,
   }) {
     return BookingsState(
       bookings: bookings ?? this.bookings,
       status: status ?? this.status,
       errorMessage: errorMessage,
       searchQuery: searchQuery ?? this.searchQuery,
+      currentPage: currentPage ?? this.currentPage,
+      pageSize: pageSize ?? this.pageSize,
+      hasMore: hasMore ?? this.hasMore,
     );
   }
 
@@ -134,10 +147,14 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
       final data = await _repository.listBookings(
         userRole: userRole,
         providerId: providerId,
+        page: 1,
+        pageSize: state.pageSize,
       );
       state = state.copyWith(
         bookings: data,
         status: BookingsLoadStatus.success,
+        currentPage: 1,
+        hasMore: data.length >= state.pageSize,
       );
     } catch (e) {
       // On refresh failure, keep existing bookings and show error
@@ -149,6 +166,47 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     }
   }
 
+  /// Load more bookings (pagination)
+  Future<void> loadMoreBookings() async {
+    if (!state.hasMore || state.status == BookingsLoadStatus.loading) return;
+
+    state = state.copyWith(status: BookingsLoadStatus.loading);
+    try {
+      final authState = _ref.read(authProvider);
+      final user = authState.user;
+      final userRole = user?.role;
+      final providerId = user?.id;
+
+      final nextPage = state.currentPage + 1;
+      final data = await _repository.listBookings(
+        userRole: userRole,
+        providerId: providerId,
+        page: nextPage,
+        pageSize: state.pageSize,
+      );
+
+      if (mounted) {
+        state = state.copyWith(
+          bookings: [...state.bookings, ...data],
+          status: BookingsLoadStatus.success,
+          currentPage: nextPage,
+          hasMore: data.length >= state.pageSize,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        state = state.copyWith(status: BookingsLoadStatus.success);
+      }
+    }
+  }
+
+  /// Retrieve a single booking by ID from server and update local state.
+  Future<BookingModel> retrieveBooking(String bookingId) async {
+    final booking = await _repository.retrieveBooking(bookingId);
+    _replaceBooking(booking);
+    return booking;
+  }
+
   /// Create a new booking matching the web app API contract.
   Future<BookingModel> placeBooking({
     required String providerId,
@@ -158,6 +216,8 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     required String currency,
     String? addressText,
     String? notes,
+    double? latitude,
+    double? longitude,
     required List<Map<String, dynamic>> items,
   }) async {
     final booking = await _repository.placeBooking(
@@ -168,6 +228,8 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
       currency: currency,
       addressText: addressText,
       notes: notes,
+      latitude: latitude,
+      longitude: longitude,
       items: items,
     );
     state = state.copyWith(
@@ -182,20 +244,73 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     final matches = state.bookings.where((b) => b.id == id);
     final current = matches.isEmpty ? null : matches.first;
     if (current == null) return;
-    final updated = await _repository.cancelBooking(current);
-    _replaceBooking(updated);
+    await _repository.cancelBooking(current);
+    // Refresh from server to get server-truth status
+    try {
+      final updated = await _repository.retrieveBooking(id);
+      _replaceBooking(updated);
+    } catch (e) {
+      // Fallback to optimistic update if refresh fails
+      final updated = current.copyWith(
+        status: BookingStatus.cancelled,
+        updatedAt: DateTime.now(),
+      );
+      _replaceBooking(updated);
+    }
+  }
+
+  /// Delete a booking by id.
+  Future<void> deleteBooking(String id) async {
+    final matches = state.bookings.where((b) => b.id == id);
+    final current = matches.isEmpty ? null : matches.first;
+    if (current == null) return;
+    await _repository.deleteBooking(current);
+    state = state.copyWith(
+      bookings: state.bookings.where((b) => b.id != id).toList(),
+    );
+  }
+
+  /// Charge a booking for payment.
+  Future<void> chargeBooking(String id) async {
+    final matches = state.bookings.where((b) => b.id == id);
+    final current = matches.isEmpty ? null : matches.first;
+    if (current == null) return;
+    await _repository.chargeBooking(current);
+    // Refresh from server to get server-truth status
+    try {
+      final updated = await _repository.retrieveBooking(id);
+      _replaceBooking(updated);
+    } catch (e) {
+      // Fallback to optimistic update if refresh fails
+      final updated = await _repository.chargeBooking(current);
+      _replaceBooking(updated);
+    }
+  }
+
+  /// Authorize payment for a booking via Paystack.
+  /// Returns the authorization URL to open in WebView.
+  Future<String> authorizePayment(String bookingId) async {
+    return await _repository.authorizePayment(bookingId);
   }
 
   /// Mark a booking as ongoing.
-  void startBooking(String id) {
-    final idx = state.bookings.indexWhere((b) => b.id == id);
-    if (idx == -1) return;
-    final updated = [...state.bookings];
-    updated[idx] = updated[idx].copyWith(
-      status: BookingStatus.ongoing,
-      updatedAt: DateTime.now(),
-    );
-    state = state.copyWith(bookings: updated);
+  Future<void> startBooking(String id) async {
+    final matches = state.bookings.where((b) => b.id == id);
+    final current = matches.isEmpty ? null : matches.first;
+    if (current == null) return;
+    await _repository.startBooking(current);
+    // Refresh from server to get server-truth status
+    try {
+      final updated = await _repository.retrieveBooking(id);
+      _replaceBooking(updated);
+    } catch (e) {
+      // Fallback to optimistic update if refresh fails
+      final updated = current.copyWith(
+        status: BookingStatus.ongoing,
+        updatedAt: DateTime.now(),
+      );
+      _replaceBooking(updated);
+    }
   }
 
   /// Mark a booking as completed.
@@ -203,17 +318,54 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     final matches = state.bookings.where((b) => b.id == id);
     final current = matches.isEmpty ? null : matches.first;
     if (current == null) return;
-    final updated = await _repository.completeBooking(current);
-    _replaceBooking(updated);
+    await _repository.completeBooking(current);
+    // Refresh from server to get server-truth status
+    try {
+      final updated = await _repository.retrieveBooking(id);
+      _replaceBooking(updated);
+    } catch (e) {
+      // Fallback to optimistic update if refresh fails
+      final updated = current.copyWith(
+        status: BookingStatus.completed,
+        updatedAt: DateTime.now(),
+      );
+      _replaceBooking(updated);
+    }
   }
 
   /// Confirm a pending booking → upcoming.
   Future<void> confirmBooking(String id) async {
     final matches = state.bookings.where((b) => b.id == id);
     final current = matches.isEmpty ? null : matches.first;
-    if (current == null) return;
-    final updated = await _repository.confirmBooking(current);
-    _replaceBooking(updated);
+    if (current == null) {
+      debugPrint('[confirmBooking] Booking not found: $id');
+      return;
+    }
+    try {
+      debugPrint('[confirmBooking] Calling repository for booking: $id');
+      await _repository.confirmBooking(current);
+      debugPrint('[confirmBooking] Repository call successful');
+      // Refresh from server to get server-truth status
+      try {
+        final updated = await _repository.retrieveBooking(id);
+        _replaceBooking(updated);
+        debugPrint('[confirmBooking] Booking refreshed from server');
+      } catch (e) {
+        debugPrint(
+          '[confirmBooking] Refresh failed, using optimistic update: $e',
+        );
+        // Fallback to optimistic update if refresh fails
+        final updated = current.copyWith(
+          status: BookingStatus.confirmed,
+          updatedAt: DateTime.now(),
+        );
+        _replaceBooking(updated);
+      }
+    } catch (e, stackTrace) {
+      debugPrint('[confirmBooking] Error confirming booking: $e');
+      debugPrint('[confirmBooking] StackTrace: $stackTrace');
+      rethrow;
+    }
   }
 
   /// Add or update a rating + review on a completed booking.
@@ -225,12 +377,20 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     final matches = state.bookings.where((b) => b.id == id);
     final booking = matches.isEmpty ? null : matches.first;
     if (booking == null) return;
-    final updatedBooking = await _repository.submitReview(
-      booking,
-      rating: rating,
-      review: review,
-    );
-    _replaceBooking(updatedBooking);
+    await _repository.submitReview(booking, rating: rating, review: review);
+    // Refresh from server to get server-truth status
+    try {
+      final updated = await _repository.retrieveBooking(id);
+      _replaceBooking(updated);
+    } catch (e) {
+      // Fallback to optimistic update if refresh fails
+      final updatedBooking = booking.copyWith(
+        rating: rating,
+        review: review,
+        updatedAt: DateTime.now(),
+      );
+      _replaceBooking(updatedBooking);
+    }
   }
 
   /// Reschedule a booking by updating start and end times.
@@ -242,12 +402,24 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     final matches = state.bookings.where((b) => b.id == id);
     final current = matches.isEmpty ? null : matches.first;
     if (current == null) return;
-    final updated = await _repository.rescheduleBooking(
+    await _repository.rescheduleBooking(
       current,
       newStart: newStart,
       newEnd: newEnd,
     );
-    _replaceBooking(updated);
+    // Refresh from server to get server-truth status
+    try {
+      final updated = await _repository.retrieveBooking(id);
+      _replaceBooking(updated);
+    } catch (e) {
+      // Fallback to optimistic update if refresh fails
+      final updated = await _repository.rescheduleBooking(
+        current,
+        newStart: newStart,
+        newEnd: newEnd,
+      );
+      _replaceBooking(updated);
+    }
   }
 
   /// Update the concluded unit price for a variable-price booking.

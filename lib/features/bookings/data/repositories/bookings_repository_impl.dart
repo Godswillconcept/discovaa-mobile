@@ -8,6 +8,7 @@ import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/domain/repositories/bookings_repository.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/services/domain/repositories/services_repository.dart';
+import 'package:flutter/foundation.dart';
 
 // Import the helper function from booking_api_models.dart
 // Note: _bookingStatus is a private function, so we need to handle this differently
@@ -48,6 +49,8 @@ class BookingsRepositoryImpl implements BookingsRepository {
   Future<List<BookingModel>> listBookings({
     String? userRole,
     String? providerId,
+    int? page,
+    int? pageSize,
   }) async {
     final cacheKey = _getCacheKey(userRole);
     try {
@@ -66,6 +69,14 @@ class BookingsRepositoryImpl implements BookingsRepository {
       // Add expand parameter to fetch nested data
       queryParameters ??= {};
       queryParameters['expand'] = 'provider,items.service,payment,user';
+
+      // Add pagination parameters if provided
+      if (page != null) {
+        queryParameters['page'] = page;
+      }
+      if (pageSize != null) {
+        queryParameters['page_size'] = pageSize;
+      }
 
       // Run API calls in parallel to reduce total loading time
       final results = await Future.wait([
@@ -134,6 +145,37 @@ class BookingsRepositoryImpl implements BookingsRepository {
   }
 
   @override
+  Future<BookingModel> retrieveBooking(String bookingId) async {
+    // Fetch services to build service snapshot
+    final services = await _servicesRepository.listServices();
+    final serviceMap = {for (final s in services) s.id: s};
+
+    // Fetch booking with expanded nested data
+    final response = await _dioClient.get(
+      ApiEndpoints.bookingDetail(bookingId),
+      queryParameters: {
+        'expand': 'provider,items.service,payment,user',
+        'expand[items]': 'service',
+      },
+    );
+    final dto = decodeEnvelope(
+      response,
+      (raw) => BookingDto.fromJson(asMap(raw)),
+    ).data;
+
+    // Fetch review if booking is completed
+    ReviewDto? review;
+    final status = bookingStatusFromString(dto.status);
+    if (status == BookingStatus.completed) {
+      review = await fetchBookingReview(bookingId);
+    }
+
+    final booking = mapBookingDto(dto, serviceMap, review: review);
+    await _upsertCachedBooking(booking);
+    return booking;
+  }
+
+  @override
   Future<BookingModel> placeBooking({
     required String providerId,
     required DateTime scheduledStart,
@@ -142,20 +184,26 @@ class BookingsRepositoryImpl implements BookingsRepository {
     required String currency,
     String? addressText,
     String? notes,
+    double? latitude,
+    double? longitude,
     required List<Map<String, dynamic>> items,
   }) async {
     final response = await _dioClient.post(
       ApiEndpoints.bookings,
       data: BookingWriteDto(
         providerId: providerId,
-        scheduledStart: DateTime.parse(scheduledStart.toIso8601String().split('Z').first),
-        scheduledEnd: scheduledEnd.toIso8601String().contains('Z') 
+        scheduledStart: DateTime.parse(
+          scheduledStart.toIso8601String().split('Z').first,
+        ),
+        scheduledEnd: scheduledEnd.toIso8601String().contains('Z')
             ? DateTime.parse(scheduledEnd.toIso8601String().split('Z').first)
             : scheduledEnd,
         serviceType: serviceType,
         currency: currency,
         addressText: addressText,
         notes: notes,
+        latitude: latitude,
+        longitude: longitude,
         items: items,
       ).toJson(),
     );
@@ -185,14 +233,70 @@ class BookingsRepositoryImpl implements BookingsRepository {
   }
 
   @override
-  Future<BookingModel> confirmBooking(BookingModel booking) async {
-    await _dioClient.post(ApiEndpoints.bookingConfirm(booking.id));
-    final updated = booking.copyWith(
-      status: BookingStatus.confirmed,
-      updatedAt: DateTime.now(),
+  Future<BookingModel> deleteBooking(BookingModel booking) async {
+    await _dioClient.delete(ApiEndpoints.bookingDetail(booking.id));
+    await _removeCachedBooking(booking.id);
+    return booking;
+  }
+
+  @override
+  Future<BookingModel> chargeBooking(BookingModel booking) async {
+    final response = await _dioClient.post(
+      ApiEndpoints.bookingCharge(booking.id),
     );
+    final dto = decodeEnvelope(
+      response,
+      (raw) => BookingDto.fromJson(asMap(raw)),
+    ).data;
+
+    // Fetch services to build service snapshot
+    final services = await _servicesRepository.listServices();
+    final serviceMap = {for (final s in services) s.id: s};
+
+    final updated = mapBookingDto(dto, serviceMap);
     await _upsertCachedBooking(updated);
     return updated;
+  }
+
+  @override
+  Future<BookingModel> startBooking(BookingModel booking) async {
+    final response = await _dioClient.patch(
+      ApiEndpoints.bookingReschedule(booking.id),
+      data: {'status': 'ONGOING'},
+    );
+    final dto = decodeEnvelope(
+      response,
+      (raw) => BookingDto.fromJson(asMap(raw)),
+    ).data;
+
+    // Fetch services to build service snapshot
+    final services = await _servicesRepository.listServices();
+    final serviceMap = {for (final s in services) s.id: s};
+
+    final updated = mapBookingDto(dto, serviceMap);
+    await _upsertCachedBooking(updated);
+    return updated;
+  }
+
+  @override
+  Future<BookingModel> confirmBooking(BookingModel booking) async {
+    try {
+      debugPrint(
+        '[confirmBooking] Calling API: ${ApiEndpoints.bookingConfirm(booking.id)}',
+      );
+      await _dioClient.post(ApiEndpoints.bookingConfirm(booking.id));
+      debugPrint('[confirmBooking] API call successful');
+      final updated = booking.copyWith(
+        status: BookingStatus.confirmed,
+        updatedAt: DateTime.now(),
+      );
+      await _upsertCachedBooking(updated);
+      return updated;
+    } catch (e, stackTrace) {
+      debugPrint('[confirmBooking] Error: $e');
+      debugPrint('[confirmBooking] StackTrace: $stackTrace');
+      rethrow;
+    }
   }
 
   @override
@@ -323,15 +427,28 @@ class BookingsRepositoryImpl implements BookingsRepository {
         ApiEndpoints.reviewsV1,
         queryParameters: {'booking': bookingId},
       );
-      final envelope = decodeListEnvelope(
-        response,
-        (item) => ReviewDto.fromJson(item),
-      );
-      // Return the first review if any
-      return envelope.data.isNotEmpty ? envelope.data.first : null;
-    } catch (_) {
+      final envelope = decodeEnvelope(response, (raw) => (raw as List));
+      if (envelope.data.isEmpty) return null;
+      final reviewData = envelope.data.first as Map<String, dynamic>;
+      return ReviewDto.fromJson(reviewData);
+    } catch (e) {
+      // If review fetch fails, return null (review is optional)
       return null;
     }
+  }
+
+  @override
+  Future<String> authorizePayment(String bookingId) async {
+    final response = await _dioClient.post(
+      ApiEndpoints.payments,
+      data: {'booking': bookingId},
+    );
+    final envelope = decodeEnvelope(response, (raw) => asMap(raw));
+    final authorizationUrl = envelope.data['authorization_url'] as String?;
+    if (authorizationUrl == null || authorizationUrl.isEmpty) {
+      throw Exception('Payment authorization URL not returned');
+    }
+    return authorizationUrl;
   }
 
   Future<void> _cacheBookings(
@@ -371,5 +488,14 @@ class BookingsRepositoryImpl implements BookingsRepository {
       current[index] = booking;
     }
     await _cacheBookings(current, cacheKey);
+  }
+
+  Future<void> _removeCachedBooking(
+    String bookingId, {
+    String? cacheKey,
+  }) async {
+    final current = _readCachedBookings(cacheKey).toList();
+    final filtered = current.where((item) => item.id != bookingId).toList();
+    await _cacheBookings(filtered, cacheKey);
   }
 }

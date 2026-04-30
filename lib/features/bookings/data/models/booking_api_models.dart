@@ -192,6 +192,8 @@ class BookingWriteDto {
   final String? currency;
   final String? notes;
   final String? addressText;
+  final double? latitude;
+  final double? longitude;
   final List<Map<String, dynamic>> items;
 
   const BookingWriteDto({
@@ -202,6 +204,8 @@ class BookingWriteDto {
     this.currency,
     this.notes,
     this.addressText,
+    this.latitude,
+    this.longitude,
     this.items = const [],
   });
 
@@ -216,6 +220,11 @@ class BookingWriteDto {
       if (notes != null && notes!.isNotEmpty) 'notes': notes,
       if (addressText != null && addressText!.isNotEmpty)
         'address_text': addressText,
+      if (latitude != null && longitude != null)
+        'location_point': {
+          'type': 'Point',
+          'coordinates': [longitude, latitude], // GeoJSON uses [lng, lat] order
+        },
       if (items.isNotEmpty) 'items': items,
     };
   }
@@ -688,7 +697,10 @@ BookingModel mapBookingDto(
                 serviceId: nestedService.id,
                 title: nestedService.title,
                 category: 'Service',
-                imagePath: _extractServiceImagePath(nestedService, dto.provider),
+                imagePath: _extractServiceImagePath(
+                  nestedService,
+                  dto.provider,
+                ),
                 formattedPrice: _formatAmount(dto.totalAmount, dto.currency),
                 pricingModel: PricingModel.fixed,
                 priceType: parsePriceType(nestedService.priceType),
@@ -800,11 +812,15 @@ BookingStatus bookingStatusFromString(String raw) {
 /// The API returns media as UUID strings, not URLs, so we validate
 /// and fall back to placeholder if no renderable path is found.
 /// We also check the provider's media array since the API provides full media objects there.
-String? _extractServiceImagePath(ServiceNestedDto service, [ProviderNestedDto? provider]) {
+String? _extractServiceImagePath(
+  ServiceNestedDto service, [
+  ProviderNestedDto? provider,
+]) {
   // 1. Check provider's media array since API expands full media objects there
   if (provider != null) {
     for (final mediaItem in provider.media) {
-      if (mediaItem is Map<String, dynamic> && mediaItem['service'] == service.id) {
+      if (mediaItem is Map<String, dynamic> &&
+          mediaItem['service'] == service.id) {
         final url = mediaItem['url']?.toString();
         if (_isRenderableImagePath(url)) {
           return url;
@@ -819,7 +835,7 @@ String? _extractServiceImagePath(ServiceNestedDto service, [ProviderNestedDto? p
       return mediaItem;
     }
   }
-  
+
   // 3. No renderable URL found, use placeholder
   return AppAssets.servicePlaceholder(service.id);
 }

@@ -17,7 +17,7 @@ final profileConnectivityProvider =
 /// Notifier that monitors network connectivity for profile operations
 class ProfileConnectivityNotifier
     extends StateNotifier<ProfileConnectivityState> {
-  StreamSubscription<ConnectivityResult>? _subscription;
+  StreamSubscription<List<ConnectivityResult>>? _subscription;
   NetworkInfo? _networkInfo;
 
   ProfileConnectivityNotifier() : super(ProfileConnectivityState.unknown) {
@@ -47,8 +47,8 @@ class ProfileConnectivityNotifier
   }
 
   /// Handle connectivity changes
-  void _handleConnectivityChange(ConnectivityResult result) {
-    final hasConnection = result != ConnectivityResult.none;
+  void _handleConnectivityChange(List<ConnectivityResult> result) {
+    final hasConnection = !result.contains(ConnectivityResult.none);
     state = hasConnection
         ? ProfileConnectivityState.connected
         : ProfileConnectivityState.disconnected;

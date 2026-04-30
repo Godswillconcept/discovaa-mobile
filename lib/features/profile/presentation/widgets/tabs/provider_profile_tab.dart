@@ -1426,7 +1426,7 @@ class ProviderProfileTab extends ConsumerWidget {
               leading: const Icon(Icons.folder_open_outlined),
               title: const Text('Files'),
               onTap: () async {
-                final result = await FilePicker.platform.pickFiles(
+                final result = await FilePicker.pickFiles(
                   type: FileType.custom,
                   allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
                 );

@@ -31,6 +31,17 @@ abstract class ProfileRepository {
   });
 
   Future<UserProfile> updateAvailability(Availability availability);
+
+  /// Availability rule CRUD operations
+  Future<Map<String, dynamic>> createAvailabilityRule(
+    Map<String, dynamic> ruleData,
+  );
+  Future<Map<String, dynamic>> updateAvailabilityRule(
+    String ruleId,
+    Map<String, dynamic> ruleData,
+  );
+  Future<void> deleteAvailabilityRule(String ruleId);
+
   Future<UserProfile> saveLocation(ServiceLocation serviceLocation);
   Future<UserProfile> deleteLocation(String locationId);
   Future<UserProfile> saveCertification(

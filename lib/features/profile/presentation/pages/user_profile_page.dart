@@ -129,7 +129,18 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
       return const Center(child: Text('No profile data available'));
     }
 
-    return tabs[safeTabIndex].widget;
+    // Wrap tab content with RefreshIndicator for pull-to-refresh
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(userProfileProvider.notifier).refreshProfile();
+      },
+      color: const Color(0xFF111827),
+      backgroundColor: Colors.white,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: tabs[safeTabIndex].widget,
+      ),
+    );
   }
 
   Widget _buildCacheBanner(DateTime? timestamp) {

@@ -7,6 +7,7 @@ import 'package:discovaa/features/services/data/models/service_api_models.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/services/data/repositories/services_repository_impl.dart';
 import 'package:discovaa/features/services/domain/repositories/services_repository.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -384,8 +385,22 @@ class ServicesNotifier extends StateNotifier<ServicesState> {
     try {
       // Get the authenticated user's profile to retrieve providerId
       final profile = _ref.read(userProfileProvider).profile;
-      final providerId =
-          profile?.providerId; // Use the providerId field from profile
+      final providerId = profile?.providerId;
+
+      // Log if providerId is missing for debugging
+      if (providerId == null || providerId.isEmpty) {
+        debugPrint(
+          '[Services] providerId is null or empty. User may not have a provider account.',
+        );
+        state = state.copyWith(
+          ownServices: [],
+          status: ServicesStatus.success,
+          errorMessage: profile?.isProvider == true
+              ? 'Provider account not fully set up. Please complete your provider profile.'
+              : null,
+        );
+        return;
+      }
 
       final data = await _repository.listOwnServices(providerId: providerId);
       state = state.copyWith(ownServices: data, status: ServicesStatus.success);

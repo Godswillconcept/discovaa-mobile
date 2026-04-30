@@ -142,6 +142,11 @@ class MockArtisanRepository implements ArtisanRepository {
     String? search,
     String? category,
     String? ordering,
+    double? minRating,
+    double? minPrice,
+    double? maxPrice,
+    String? location,
+    bool? isAvailableOnly,
   }) {
     // Basic in-memory filtering for cache
     return _artisans;
@@ -152,6 +157,11 @@ class MockArtisanRepository implements ArtisanRepository {
     String? search,
     String? category,
     String? ordering,
+    double? minRating,
+    double? minPrice,
+    double? maxPrice,
+    String? location,
+    bool? isAvailableOnly,
   }) async {
     // Basic in-memory filtering to mimic backend search
     await Future.delayed(const Duration(milliseconds: 300));
@@ -170,6 +180,30 @@ class MockArtisanRepository implements ArtisanRepository {
             a.category.toLowerCase().contains(q) ||
             a.bio.toLowerCase().contains(q),
       );
+    }
+
+    if (minRating != null && minRating > 0) {
+      results = results.where((a) => a.rating >= minRating);
+    }
+
+    if (minPrice != null && minPrice > 0) {
+      results = results.where((a) => a.hourlyRate >= minPrice);
+    }
+
+    if (maxPrice != null && maxPrice > 0) {
+      results = results.where((a) => a.hourlyRate <= maxPrice);
+    }
+
+    if (location != null && location.trim().isNotEmpty) {
+      final locLower = location.toLowerCase();
+      results = results.where(
+        (a) => a.location.toLowerCase().contains(locLower),
+      );
+    }
+
+    if (isAvailableOnly == true) {
+      // For mock, just filter by having some availability data
+      results = results.where((a) => a.availability.isNotEmpty);
     }
 
     final list = results.toList();

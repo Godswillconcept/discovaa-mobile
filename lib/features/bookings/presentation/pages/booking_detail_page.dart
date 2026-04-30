@@ -1,15 +1,170 @@
 import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/core/constants/app_constants.dart';
-import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/presentation/providers/bookings_provider.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/messaging/presentation/providers/messaging_provider.dart';
+import 'package:discovaa/features/authentication/presentation/providers/session_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Utility Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Formats a DateTime to a readable string like "4/29/2026, 3:30 PM"
+String formatBookingDate(DateTime date) {
+  final hour = date.hour > 12
+      ? date.hour - 12
+      : (date.hour == 0 ? 12 : date.hour);
+  final minute = date.minute.toString().padLeft(2, '0');
+  final period = date.hour >= 12 ? 'PM' : 'AM';
+  return '${date.month}/${date.day}/${date.year}, $hour:$minute $period';
+}
+
+/// Extracts numeric price from a formatted price string (e.g., "NGN 5,000" -> "5000")
+String extractNumericPrice(String formattedPrice) {
+  return formattedPrice.replaceAll(RegExp(r'[^0-9.]'), '');
+}
+
+/// Converts payment status from API (e.g., "REQUIRES_ACTION") to readable format ("Requires action")
+String formatPaymentStatus(String? status) {
+  if (status == null || status.isEmpty) return 'Unknown';
+
+  // Handle snake_case or UPPER_CASE
+  final readable = status
+      .toLowerCase()
+      .replaceAll('_', ' ')
+      .split(' ')
+      .map(
+        (word) => word.isNotEmpty
+            ? '${word[0].toUpperCase()}${word.substring(1)}'
+            : '',
+      )
+      .join(' ');
+
+  return readable;
+}
+
+/// Checks if payment has been successfully completed (captured or authorized)
+bool isPaymentSuccessful(String? paymentStatus) {
+  if (paymentStatus == null) return false;
+  return paymentStatus == 'CAPTURED' || paymentStatus == 'AUTHORIZED';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Extracted Widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _TitleSection extends StatelessWidget {
+  final BookingModel booking;
+  final bool isProvider;
+
+  const _TitleSection({required this.booking, required this.isProvider});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Booking details',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isProvider
+                    ? 'Booking for ${booking.userDisplayName ?? booking.clientName}'
+                    : 'Booking with ${booking.providerName ?? 'Provider'}',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 0,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+              child: const Text(
+                'Back',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            if (!isProvider) ...[
+              const SizedBox(width: 8),
+              _MessageButton(booking: booking),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _MessageButton extends ConsumerWidget {
+  final BookingModel booking;
+
+  const _MessageButton({required this.booking});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ElevatedButton(
+      onPressed: () {
+        final displayName = booking.providerName ?? 'Provider';
+        final avatarPath = booking.providerAvatarPath;
+        final conversation = ref
+            .read(messagingProvider.notifier)
+            .findOrCreateConversation(
+              artisanId: booking.id,
+              artisanName: displayName,
+              artisanAvatar:
+                  avatarPath ?? 'assets/images/placeholders/user_avatar.png',
+            );
+        context.push('${RouteNames.messages}/chat', extra: conversation);
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.black,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+      ),
+      child: const Text(
+        'Message',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
 
 /// Full-screen detail view for a single [BookingModel].
 class BookingDetailPage extends ConsumerStatefulWidget {
@@ -22,12 +177,12 @@ class BookingDetailPage extends ConsumerStatefulWidget {
 
 class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
   /// Always use the live booking from the provider so status changes propagate.
+  /// Uses select() to only rebuild when the specific booking changes.
   BookingModel get _booking {
-    final live = ref
-        .watch(bookingsProvider)
-        .bookings
-        .where((b) => b.id == widget.booking.id)
-        .toList();
+    final bookings = ref.watch(
+      bookingsProvider.select((state) => state.bookings),
+    );
+    final live = bookings.where((b) => b.id == widget.booking.id).toList();
     return live.isNotEmpty ? live.first : widget.booking;
   }
 
@@ -35,9 +190,7 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
   Widget build(BuildContext context) {
     final booking = _booking;
     final status = booking.status;
-
-    final authState = ref.watch(authProvider);
-    final isProviderView = authState.user?.isProvider ?? false;
+    final isProvider = ref.watch(isServiceProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -47,250 +200,159 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
       ),
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: Stack(
-          children: [
-            CustomScrollView(
-              slivers: [
-                // ── Hero image ─────────────────────────────────────────
-                SliverAppBar(
-                  automaticallyImplyLeading: false,
-                  expandedHeight: 240,
-                  pinned: false,
-                  backgroundColor: Colors.transparent,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        booking.service.imagePath != null
-                            ? _buildHeroImage(
-                                booking.service.imagePath!,
-                                booking.service.category,
-                              )
-                            : _HeroFallback(category: booking.service.category),
-                        const DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Colors.white],
-                              stops: [0.5, 1.0],
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 16,
-                          left: 20,
-                          child: _StatusBadge(status: status),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Title Row
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Booking details',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    isProviderView
-                                        ? 'Booking for ${booking.userDisplayName ?? booking.clientName}'
-                                        : 'Booking with ${booking.providerName ?? 'Provider'}',
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                ],
+        body: RefreshIndicator(
+          onRefresh: () async {
+            await ref
+                .read(bookingsProvider.notifier)
+                .retrieveBooking(widget.booking.id);
+          },
+          child: Stack(
+            children: [
+              CustomScrollView(
+                slivers: [
+                  // ── Hero image ─────────────────────────────────────────
+                  SliverAppBar(
+                    automaticallyImplyLeading: false,
+                    expandedHeight: 240,
+                    pinned: false,
+                    backgroundColor: Colors.transparent,
+                    flexibleSpace: FlexibleSpaceBar(
+                      background: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          booking.service.imagePath != null
+                              ? _buildHeroImage(
+                                  booking.service.imagePath!,
+                                  booking.service.category,
+                                )
+                              : _HeroFallback(
+                                  category: booking.service.category,
+                                ),
+                          const DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [Colors.transparent, Colors.white],
+                                stops: [0.5, 1.0],
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                OutlinedButton(
-                                  onPressed: () => Navigator.of(context).pop(),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 0,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    side: BorderSide(
-                                      color: Colors.grey.shade300,
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Back',
-                                    style: TextStyle(
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                if (!isProviderView) ...[
-                                  const SizedBox(width: 8),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      final displayName = booking.providerName ?? 'Provider';
-                                      final avatarPath = booking.providerAvatarPath;
-                                      final conversation = ref
-                                          .read(messagingProvider.notifier)
-                                          .findOrCreateConversation(
-                                            artisanId: booking.id,
-                                            artisanName: displayName,
-                                            artisanAvatar:
-                                                avatarPath ??
-                                                'assets/images/placeholders/user_avatar.png',
-                                          );
-                                      context.push(
-                                        '${RouteNames.messages}/chat',
-                                        extra: conversation,
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.black,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 0,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      elevation: 0,
-                                    ),
-                                    child: const Text(
-                                      'Message',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Header Card (User/Provider details)
-                        _HeaderCard(
-                          booking: booking,
-                          isProviderView: isProviderView,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Items Card
-                        _SectionLabel('Items'),
-                        const SizedBox(height: 8),
-                        _ItemsCard(
-                          booking: booking,
-                          isProviderView: isProviderView,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Booking info Card
-                        _SectionLabel('Booking info'),
-                        const SizedBox(height: 8),
-                        _BookingInfoCard(booking: booking),
-                        const SizedBox(height: 16),
-
-                        // Adjust time Card
-                        if (isProviderView) ...[
-                          _SectionLabel('Adjust time'),
-                          const SizedBox(height: 8),
-                          _AdjustTimeCard(booking: booking),
-                          const SizedBox(height: 16),
+                          ),
+                          Positioned(
+                            bottom: 16,
+                            left: 20,
+                            child: _StatusBadge(status: status),
+                          ),
                         ],
-
-                        // Payment Action (User only)
-                        if (!isProviderView &&
-                            booking.paymentStatus == 'REQUIRES_ACTION') ...[
-                          _PaymentActionSection(booking: booking),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Actions Card
-                        _SectionLabel('Actions'),
-                        const SizedBox(height: 8),
-                        _ActionsCard(
-                          booking: booking,
-                          isProviderView: isProviderView,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Variable price warning
-                        if (isProviderView &&
-                            booking.service.priceType ==
-                                PriceType.variable) ...[
-                          _VariablePriceWarning(),
-                          const SizedBox(height: 16),
-                        ],
-
-                        // Review
-                        if (status == BookingStatus.completed) ...[
-                          _SectionLabel('Review'),
-                          const SizedBox(height: 8),
-                          _ReviewSection(booking: booking),
-                        ],
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
 
-            // ── Floating back button ────────────────────────────────────
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Title Row
+                          _TitleSection(
+                            booking: booking,
+                            isProvider: isProvider,
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Header Card (User/Provider details)
+                          _HeaderCard(booking: booking, isProvider: isProvider),
+                          const SizedBox(height: 16),
+
+                          // Items Card
+                          _SectionLabel('Items'),
+                          const SizedBox(height: 8),
+                          _ItemsCard(booking: booking, isProvider: isProvider),
+                          const SizedBox(height: 16),
+
+                          // Booking info Card
+                          _SectionLabel('Booking info'),
+                          const SizedBox(height: 8),
+                          _BookingInfoCard(booking: booking),
+                          const SizedBox(height: 16),
+
+                          // Adjust time Card - only allow before booking is confirmed
+                          if (isProvider &&
+                              booking.status == BookingStatus.requested) ...[
+                            _SectionLabel('Adjust time'),
+                            const SizedBox(height: 8),
+                            _AdjustTimeCard(booking: booking),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // Payment Action (User only)
+                          if (!isProvider &&
+                              booking.paymentStatus == 'REQUIRES_ACTION') ...[
+                            _PaymentActionSection(booking: booking),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // Actions Card
+                          _SectionLabel('Actions'),
+                          const SizedBox(height: 8),
+                          _ActionsCard(
+                            booking: booking,
+                            isProvider: isProvider,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Variable price warning
+                          if (isProvider &&
+                              booking.service.priceType ==
+                                  PriceType.variable) ...[
+                            _VariablePriceWarning(),
+                            const SizedBox(height: 16),
+                          ],
+
+                          // Review
+                          if (status == BookingStatus.completed) ...[
+                            _SectionLabel('Review'),
+                            const SizedBox(height: 8),
+                            _ReviewSection(booking: booking),
+                          ],
+                        ],
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      size: 18,
-                      color: Colors.black87,
+                  ),
+                ],
+              ),
+
+              // ── Floating back button ────────────────────────────────────
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        size: 18,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -351,7 +413,7 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FBFF),
+        color: AppColors.lightBlueBackground,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -368,9 +430,7 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
                 child: Icon(
                   i < _rating ? Icons.star_rounded : Icons.star_outline_rounded,
                   size: 28,
-                  color: i < _rating
-                      ? const Color(0xFFF59E0B)
-                      : Colors.grey.shade300,
+                  color: i < _rating ? AppColors.warning : Colors.grey.shade300,
                 ),
               );
             }),
@@ -464,7 +524,7 @@ class _HeroFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFF0F0F0),
+      color: Colors.grey.shade200,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -594,20 +654,18 @@ class _InfoRow extends StatelessWidget {
 // New section widgets for the redesigned booking detail page
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _PaymentActionSection extends StatelessWidget {
+class _PaymentActionSection extends ConsumerWidget {
   final BookingModel booking;
   const _PaymentActionSection({required this.booking});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
+        color: AppColors.lightOrangeBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -617,7 +675,7 @@ class _PaymentActionSection extends StatelessWidget {
               const Icon(
                 Icons.warning_amber_rounded,
                 size: 16,
-                color: Color(0xFFF59E0B),
+                color: AppColors.warning,
               ),
               const SizedBox(width: 8),
               Text(
@@ -628,11 +686,11 @@ class _PaymentActionSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Status: ${booking.paymentStatus}',
+            'Status: ${formatPaymentStatus(booking.paymentStatus)}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFF59E0B),
+              color: AppColors.warning,
             ),
           ),
           if (booking.paymentAmount != null)
@@ -640,21 +698,65 @@ class _PaymentActionSection extends StatelessWidget {
               'Amount: ${booking.paymentAmount}',
               style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
+          // Show concluded price notice for variable price services
+          if (booking.service.priceType == PriceType.variable &&
+              booking.concludedUnitPrice != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: Colors.green.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Provider has set the concluded price to NGN ${booking.concludedUnitPrice}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
-          if (booking.paymentAuthorizationUrl != null)
+          // Only show payment button if authorization URL exists and payment requires action
+          if (booking.paymentAuthorizationUrl != null &&
+              booking.paymentStatus == 'REQUIRES_ACTION')
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () async {
                   if (booking.paymentAuthorizationUrl != null) {
-                    final uri = Uri.parse(booking.paymentAuthorizationUrl!);
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    }
+                    // Open payment URL in-app WebView
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => _PaymentWebView(
+                          url: booking.paymentAuthorizationUrl!,
+                          onPaymentComplete: () {
+                            // Refresh booking data after payment
+                            ref
+                                .read(bookingsProvider.notifier)
+                                .retrieveBooking(booking.id);
+                          },
+                        ),
+                      ),
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF59E0B),
+                  backgroundColor: AppColors.warning,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
@@ -662,12 +764,36 @@ class _PaymentActionSection extends StatelessWidget {
                   ),
                 ),
                 child: const Text(
-                  'Act Now',
+                  'Pay Now',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+              ),
+            )
+          else if (booking.paymentStatus != null &&
+              booking.paymentStatus != 'REQUIRES_ACTION')
+            // Show payment completed status
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green.shade700),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Payment ${formatPaymentStatus(booking.paymentStatus).toLowerCase()}',
+                    style: TextStyle(
+                      color: Colors.green.shade800,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
         ],
@@ -688,18 +814,16 @@ class _VariablePriceWarning extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF7ED),
+        color: AppColors.lightOrangeBackground,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
           const Icon(
             Icons.warning_amber_rounded,
             size: 18,
-            color: Color(0xFFF59E0B),
+            color: AppColors.warning,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -709,114 +833,6 @@ class _VariablePriceWarning extends StatelessWidget {
                 fontSize: 12,
                 color: Colors.grey.shade700,
                 height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ConcludedPriceSection extends ConsumerStatefulWidget {
-  final BookingModel booking;
-  const _ConcludedPriceSection({required this.booking});
-
-  @override
-  ConsumerState<_ConcludedPriceSection> createState() =>
-      _ConcludedPriceSectionState();
-}
-
-class _ConcludedPriceSectionState
-    extends ConsumerState<_ConcludedPriceSection> {
-  late TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(
-      text:
-          widget.booking.concludedUnitPrice ??
-          widget.booking.service.formattedPrice.replaceAll(
-            RegExp(r'[^0-9.]'),
-            '',
-          ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final parts = widget.booking.service.formattedPrice.split(' ');
-    final currency = parts.isNotEmpty ? parts.first : '';
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FBFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            controller: _ctrl,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: 'Enter concluded price',
-              prefixText: currency.isNotEmpty ? '$currency ' : null,
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(color: Colors.grey.shade300),
-              ),
-              contentPadding: const EdgeInsets.all(12),
-            ),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                final value = _ctrl.text.trim();
-                if (value.isNotEmpty) {
-                  ref
-                      .read(bookingsProvider.notifier)
-                      .updateConcludedPrice(
-                        widget.booking.id,
-                        unitPriceAmount: value,
-                      );
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Concluded price saved'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text(
-                'Save',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
               ),
             ),
           ),
@@ -858,22 +874,20 @@ class _CardContainer extends StatelessWidget {
 
 class _HeaderCard extends StatelessWidget {
   final BookingModel booking;
-  final bool isProviderView;
-  const _HeaderCard({required this.booking, required this.isProviderView});
+  final bool isProvider;
+  const _HeaderCard({required this.booking, required this.isProvider});
 
   @override
   Widget build(BuildContext context) {
-    final avatar = isProviderView
+    final avatar = isProvider
         ? booking.userProfilePhoto
         : booking.providerAvatarPath;
-    final name = isProviderView
+    final name = isProvider
         ? (booking.userDisplayName ?? booking.clientName)
         : (booking.providerName ?? 'Unknown');
 
     // Format date
-    final dateObj = booking.scheduledDate;
-    final dateStr =
-        '${dateObj.month}/${dateObj.day}/${dateObj.year}, ${dateObj.hour > 12 ? dateObj.hour - 12 : (dateObj.hour == 0 ? 12 : dateObj.hour)}:${dateObj.minute.toString().padLeft(2, '0')} ${dateObj.hour >= 12 ? 'PM' : 'AM'}';
+    final dateStr = formatBookingDate(booking.scheduledDate);
 
     // Status text
     final statusText =
@@ -882,7 +896,7 @@ class _HeaderCard extends StatelessWidget {
     // Price
     final priceStr =
         booking.concludedUnitPrice ??
-        booking.service.formattedPrice.replaceAll(RegExp(r'[^0-9.]'), '');
+        extractNumericPrice(booking.service.formattedPrice);
 
     return _CardContainer(
       child: Row(
@@ -904,7 +918,7 @@ class _HeaderCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isProviderView ? 'Customer' : 'Service Provider',
+                  isProvider ? 'Customer' : 'Service Provider',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -945,23 +959,24 @@ class _HeaderCard extends StatelessWidget {
                   fontSize: 14,
                 ),
               ),
-              if (booking.paymentStatus != null && booking.paymentStatus!.isNotEmpty) ...[
+              if (booking.paymentStatus != null &&
+                  booking.paymentStatus!.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
                   'Payment:',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
                 ),
                 Text(
-                  booking.paymentStatus!,
+                  formatPaymentStatus(booking.paymentStatus),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: booking.paymentStatus == 'REQUIRES_ACTION' 
-                      ? const Color(0xFFF59E0B) 
-                      : (booking.paymentStatus == 'PAID' ? Colors.green : Colors.grey.shade700),
+                    color: booking.paymentStatus == 'REQUIRES_ACTION'
+                        ? AppColors.warning
+                        : (booking.paymentStatus == 'CAPTURED' ||
+                                  booking.paymentStatus == 'AUTHORIZED'
+                              ? Colors.green
+                              : Colors.grey.shade700),
                   ),
                 ),
               ],
@@ -975,14 +990,16 @@ class _HeaderCard extends StatelessWidget {
 
 class _ItemsCard extends StatelessWidget {
   final BookingModel booking;
-  final bool isProviderView;
-  const _ItemsCard({required this.booking, required this.isProviderView});
+  final bool isProvider;
+  const _ItemsCard({required this.booking, required this.isProvider});
 
   @override
   Widget build(BuildContext context) {
+    final hasConcludedPrice = booking.concludedUnitPrice != null;
     final priceStr =
         booking.concludedUnitPrice ??
         booking.service.formattedPrice.replaceAll(RegExp(r'[^0-9.]'), '');
+    final priceLabel = hasConcludedPrice ? 'Concluded' : 'Price';
     return _CardContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -993,11 +1010,13 @@ class _ItemsCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Qty: 1 • NGN $priceStr',
+            'Qty: 1 • $priceLabel: NGN $priceStr',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
           ),
-          if (isProviderView &&
-              booking.service.priceType == PriceType.variable) ...[
+          // Only show concluded price input if it hasn't been set yet
+          if (isProvider &&
+              booking.service.priceType == PriceType.variable &&
+              booking.concludedUnitPrice == null) ...[
             const SizedBox(height: 16),
             _ConcludedPriceInput(booking: booking),
           ],
@@ -1044,7 +1063,7 @@ class _ConcludedPriceInputState extends ConsumerState<_ConcludedPriceInput> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+        color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.grey.shade200),
       ),
@@ -1156,13 +1175,9 @@ class _BookingInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Format date string
-    final s = booking.scheduledDate;
-    String scheduledStr =
-        '${s.month}/${s.day}/${s.year}, ${s.hour > 12 ? s.hour - 12 : (s.hour == 0 ? 12 : s.hour)}:${s.minute.toString().padLeft(2, '0')} ${s.hour >= 12 ? 'PM' : 'AM'}';
+    String scheduledStr = formatBookingDate(booking.scheduledDate);
     if (booking.scheduledEnd != null) {
-      final e = booking.scheduledEnd!;
-      scheduledStr +=
-          ' — ${e.month}/${e.day}/${e.year}, ${e.hour > 12 ? e.hour - 12 : (e.hour == 0 ? 12 : e.hour)}:${e.minute.toString().padLeft(2, '0')} ${e.hour >= 12 ? 'PM' : 'AM'}';
+      scheduledStr += ' — ${formatBookingDate(booking.scheduledEnd!)}';
     }
 
     return _CardContainer(
@@ -1209,6 +1224,7 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
   DateTime? _start;
   DateTime? _end;
   bool _saving = false;
+  bool _saved = false;
 
   @override
   void initState() {
@@ -1262,6 +1278,26 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Time can only be adjusted before confirming the booking.',
+                    style: TextStyle(fontSize: 11, color: Colors.blue.shade800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           const Text(
             'Start',
             style: TextStyle(fontSize: 12, color: Colors.black87),
@@ -1319,10 +1355,21 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _saving
+              onPressed: _saving || _saved
                   ? null
                   : () async {
                       if (_start == null || _end == null) return;
+                      // Validate that end time is after start time
+                      if (_end!.isBefore(_start!) ||
+                          _end!.isAtSameMomentAs(_start!)) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('End time must be after start time'),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
                       setState(() => _saving = true);
                       try {
                         await ref
@@ -1330,7 +1377,7 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
                             .rescheduleBooking(
                               widget.booking.id,
                               newStart: _start!,
-                              newEnd: _end,
+                              newEnd: _end!,
                             );
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -1339,6 +1386,7 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
+                        setState(() => _saved = true);
                       } finally {
                         if (mounted) setState(() => _saving = false);
                       }
@@ -1360,8 +1408,8 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text(
-                      'Save time',
+                  : Text(
+                      _saved ? 'Time saved' : 'Save time',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -1377,32 +1425,57 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
 
 class _ActionsCard extends ConsumerWidget {
   final BookingModel booking;
-  final bool isProviderView;
-  const _ActionsCard({required this.booking, required this.isProviderView});
+  final bool isProvider;
+  const _ActionsCard({required this.booking, required this.isProvider});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(bookingsProvider.notifier);
     final status = booking.status;
+    final paymentCompleted = isPaymentSuccessful(booking.paymentStatus);
 
     List<Widget> buttons = [];
 
     if (status == BookingStatus.requested) {
-      if (isProviderView) {
+      if (isProvider) {
         buttons = [
           _ActionButton(
             label: 'Confirm booking',
             isPrimary: true,
-            onPressed: () => notifier.confirmBooking(booking.id),
+            onPressed: () async {
+              try {
+                await notifier.confirmBooking(booking.id);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Booking confirmed successfully'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Failed to confirm booking. Please try again.',
+                    ),
+                    backgroundColor: Colors.red.shade700,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
           ),
           const SizedBox(height: 12),
           _ActionButton(
             label: 'Cancel booking',
             isPrimary: false,
-            onPressed: () {
-              notifier.cancelBooking(booking.id);
-              Navigator.of(context).pop();
-            },
+            onPressed: paymentCompleted
+                ? null // Disable if payment is complete
+                : () {
+                    notifier.cancelBooking(booking.id);
+                    Navigator.of(context).pop();
+                  },
           ),
         ];
       } else {
@@ -1410,15 +1483,17 @@ class _ActionsCard extends ConsumerWidget {
           _ActionButton(
             label: 'Cancel booking',
             isPrimary: false,
-            onPressed: () {
-              notifier.cancelBooking(booking.id);
-              Navigator.of(context).pop();
-            },
+            onPressed: paymentCompleted
+                ? null // Disable if payment is complete
+                : () {
+                    notifier.cancelBooking(booking.id);
+                    Navigator.of(context).pop();
+                  },
           ),
         ];
       }
     } else if (status == BookingStatus.confirmed) {
-      if (isProviderView) {
+      if (isProvider) {
         buttons = [
           _ActionButton(
             label: 'Mark as ongoing',
@@ -1429,10 +1504,12 @@ class _ActionsCard extends ConsumerWidget {
           _ActionButton(
             label: 'Cancel booking',
             isPrimary: false,
-            onPressed: () {
-              notifier.cancelBooking(booking.id);
-              Navigator.of(context).pop();
-            },
+            onPressed: paymentCompleted
+                ? null // Disable if payment is complete
+                : () {
+                    notifier.cancelBooking(booking.id);
+                    Navigator.of(context).pop();
+                  },
           ),
         ];
       } else {
@@ -1440,15 +1517,17 @@ class _ActionsCard extends ConsumerWidget {
           _ActionButton(
             label: 'Cancel booking',
             isPrimary: false,
-            onPressed: () {
-              notifier.cancelBooking(booking.id);
-              Navigator.of(context).pop();
-            },
+            onPressed: paymentCompleted
+                ? null // Disable if payment is complete
+                : () {
+                    notifier.cancelBooking(booking.id);
+                    Navigator.of(context).pop();
+                  },
           ),
         ];
       }
     } else if (status == BookingStatus.ongoing) {
-      if (isProviderView) {
+      if (isProvider) {
         buttons = [
           _ActionButton(
             label: 'Mark as completed',
@@ -1459,13 +1538,17 @@ class _ActionsCard extends ConsumerWidget {
         ];
       }
     } else if (status == BookingStatus.completed) {
-      if (!isProviderView) {
+      if (!isProvider) {
         buttons = [
           _ActionButton(
             label: 'Book again',
             isPrimary: true,
             onPressed: () {
-              // navigate to re-book logic
+              // Navigate to service detail page to re-book
+              context.push(
+                '${RouteNames.services}/${booking.service.serviceId}',
+                extra: booking.service,
+              );
             },
           ),
         ];
@@ -1505,7 +1588,7 @@ class _ActionsCard extends ConsumerWidget {
 class _ActionButton extends StatelessWidget {
   final String label;
   final bool isPrimary;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final Color? color;
 
   const _ActionButton({
@@ -1555,6 +1638,156 @@ class _ActionButton extends StatelessWidget {
                 ),
               ),
             ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Payment WebView Widget - Opens payment URL within the app
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PaymentWebView extends StatefulWidget {
+  final String url;
+  final VoidCallback onPaymentComplete;
+
+  const _PaymentWebView({required this.url, required this.onPaymentComplete});
+
+  @override
+  State<_PaymentWebView> createState() => _PaymentWebViewState();
+}
+
+class _PaymentWebViewState extends State<_PaymentWebView> {
+  late InAppWebViewController _webViewController;
+  double _progress = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Complete Payment'),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _webViewController.reload(),
+          ),
+        ],
+        bottom: _progress < 1.0
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(2),
+                child: LinearProgressIndicator(value: _progress),
+              )
+            : null,
+      ),
+      body: InAppWebView(
+        initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+        onWebViewCreated: (controller) {
+          _webViewController = controller;
+        },
+        onProgressChanged: (controller, progress) {
+          setState(() {
+            _progress = progress / 100;
+          });
+        },
+        onLoadStart: (controller, url) {
+          final urlString = url.toString();
+          if (_isPaymentComplete(urlString)) {
+            widget.onPaymentComplete();
+            Navigator.of(context).pop();
+          }
+        },
+        onLoadStop: (controller, url) async {
+          final urlString = url.toString();
+          if (_isPaymentComplete(urlString)) {
+            widget.onPaymentComplete();
+            Navigator.of(context).pop();
+          }
+          // Check page title for error messages
+          final title = await controller.getTitle();
+          if (_isPaymentError(title ?? '')) {
+            // Show feedback to user
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('This payment has already been processed.'),
+                duration: Duration(seconds: 3),
+              ),
+            );
+            widget.onPaymentComplete(); // Refresh to check current status
+            Navigator.of(context).pop();
+          }
+        },
+        onReceivedError: (controller, request, error) {
+          // Handle WebView errors
+          debugPrint('Payment WebView error: ${error.description}');
+        },
+        onReceivedHttpError: (controller, request, errorResponse) {
+          // Handle HTTP errors - may indicate already completed transaction
+          debugPrint('Payment WebView HTTP error: ${errorResponse.statusCode}');
+          // If we get a 4xx error from Paystack API, transaction may be done
+          final statusCode = errorResponse.statusCode;
+          if (statusCode != null &&
+              statusCode >= 400 &&
+              request.url.toString().contains('paystack.com')) {
+            // Show feedback to user before closing
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Payment already completed or link expired. Refreshing...',
+                ),
+                duration: Duration(seconds: 3),
+              ),
+            );
+            widget.onPaymentComplete(); // Refresh to check current status
+            Navigator.of(context).pop();
+          }
+        },
+        shouldOverrideUrlLoading: (controller, navigationAction) async {
+          final url = navigationAction.request.url.toString();
+          if (_isPaymentComplete(url)) {
+            widget.onPaymentComplete();
+            Navigator.of(context).pop();
+            return NavigationActionPolicy.CANCEL;
+          }
+          return NavigationActionPolicy.ALLOW;
+        },
+      ),
+    );
+  }
+
+  bool _isPaymentComplete(String url) {
+    final paymentSuccessPatterns = [
+      '/payment/success',
+      '/payment/callback',
+      '/paystack/callback',
+      '/flutterwave/callback',
+      'payment?status=success',
+      'payment_success',
+      'success=true',
+      'payment/verify',
+      'reference=', // Paystack reference parameter indicates callback
+      'trxref=', // Paystack transaction reference
+      '/payment/complete',
+      '/payment/successful',
+    ];
+    return paymentSuccessPatterns.any(
+      (pattern) => url.toLowerCase().contains(pattern.toLowerCase()),
+    );
+  }
+
+  bool _isPaymentError(String title) {
+    final errorPatterns = [
+      'transaction is already completed',
+      'payment failed',
+      'error',
+      'failed',
+      'invalid',
+      'expired',
+    ];
+    return errorPatterns.any(
+      (pattern) => title.toLowerCase().contains(pattern.toLowerCase()),
     );
   }
 }

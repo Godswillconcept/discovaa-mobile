@@ -8,6 +8,7 @@ import 'package:discovaa/shared/presentation/widgets/main_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:discovaa/features/authentication/presentation/providers/session_provider.dart';
 
 class ServicesPage extends ConsumerStatefulWidget {
   const ServicesPage({super.key});
@@ -54,20 +55,14 @@ class _ServicesPageState extends ConsumerState<ServicesPage> {
     super.initState();
     // Trigger API fetch asynchronously
     Future.microtask(() {
-      final isProvider =
-          ref.read(userProfileProvider).profile?.isProvider ?? false;
-      if (isProvider) {
-        ref.read(servicesProvider.notifier).loadOwnServices();
-      } else {
-        ref.read(servicesProvider.notifier).loadServices();
-      }
+      ref.read(servicesProvider.notifier).loadOwnServices();
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(userProfileProvider);
-    final isProvider = profileState.profile?.isProvider ?? false;
+    final isProvider = ref.watch(isServiceProvider);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(

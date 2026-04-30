@@ -63,9 +63,7 @@ SecureTokenStorage? _tokenStorage;
 SecureTokenStorage get _routerTokenStorage {
   return _tokenStorage ??= SecureTokenStorage(
     hiveService: HiveService.instance,
-    secureStorage: const FlutterSecureStorage(
-      aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    ),
+    secureStorage: const FlutterSecureStorage(aOptions: AndroidOptions()),
   );
 }
 

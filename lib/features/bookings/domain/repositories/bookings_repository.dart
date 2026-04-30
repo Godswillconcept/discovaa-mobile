@@ -6,6 +6,8 @@ abstract class BookingsRepository {
   Future<List<BookingModel>> listBookings({
     String? userRole,
     String? providerId,
+    int? page,
+    int? pageSize,
   });
 
   /// Check if a provider is available for the given time slot.
@@ -15,6 +17,9 @@ abstract class BookingsRepository {
     required DateTime end,
   });
 
+  /// Retrieve a single booking by ID with expanded nested data.
+  Future<BookingModel> retrieveBooking(String bookingId);
+
   Future<BookingModel> placeBooking({
     required String providerId,
     required DateTime scheduledStart,
@@ -23,9 +28,14 @@ abstract class BookingsRepository {
     required String currency,
     String? addressText,
     String? notes,
+    double? latitude,
+    double? longitude,
     required List<Map<String, dynamic>> items,
   });
   Future<BookingModel> cancelBooking(BookingModel booking);
+  Future<BookingModel> deleteBooking(BookingModel booking);
+  Future<BookingModel> chargeBooking(BookingModel booking);
+  Future<BookingModel> startBooking(BookingModel booking);
   Future<BookingModel> confirmBooking(BookingModel booking);
   Future<BookingModel> completeBooking(BookingModel booking);
   Future<BookingModel> submitReview(
@@ -55,4 +65,8 @@ abstract class BookingsRepository {
 
   /// Fetch reviews for a specific booking from /api/reviews/
   Future<ReviewDto?> fetchBookingReview(String bookingId);
+
+  /// Authorize payment for a booking via Paystack.
+  /// Returns the authorization URL to open in WebView.
+  Future<String> authorizePayment(String bookingId);
 }

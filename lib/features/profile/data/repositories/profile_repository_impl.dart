@@ -282,6 +282,36 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> createAvailabilityRule(
+    Map<String, dynamic> ruleData,
+  ) async {
+    final response = await _dioClient.post(
+      ApiEndpoints.providerAvailabilityRules,
+      data: ruleData,
+    );
+    final envelope = decodeEnvelope(response, (raw) => asMap(raw));
+    return envelope.data;
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateAvailabilityRule(
+    String ruleId,
+    Map<String, dynamic> ruleData,
+  ) async {
+    final response = await _dioClient.patch(
+      ApiEndpoints.providerAvailabilityRule(ruleId),
+      data: ruleData,
+    );
+    final envelope = decodeEnvelope(response, (raw) => asMap(raw));
+    return envelope.data;
+  }
+
+  @override
+  Future<void> deleteAvailabilityRule(String ruleId) async {
+    await _dioClient.delete(ApiEndpoints.providerAvailabilityRule(ruleId));
+  }
+
+  @override
   Future<UserProfile> saveLocation(ServiceLocation serviceLocation) async {
     final dto = ProviderLocationDto(
       id: serviceLocation.id,

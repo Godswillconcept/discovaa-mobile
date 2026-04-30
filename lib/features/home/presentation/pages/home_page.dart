@@ -2,6 +2,7 @@ import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/features/authentication/presentation/widgets/identity_verification_reminder_widget.dart';
 import 'package:discovaa/features/home/presentation/widgets/artisan_card.dart';
 import 'package:discovaa/features/home/presentation/widgets/category_item.dart';
+import 'package:discovaa/features/home/presentation/widgets/filter_bottom_sheet.dart';
 import 'package:discovaa/features/home/presentation/widgets/pagination_button.dart';
 import 'package:discovaa/features/home/presentation/widgets/sort_dropdown.dart';
 import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
@@ -33,6 +34,7 @@ class HomePage extends ConsumerWidget {
                 onRefresh: () async {
                   ref.invalidate(categoriesProvider);
                   ref.invalidate(filteredArtisansProvider);
+                  // Note: We don't invalidate artisanFilterProvider to preserve filter state
                   // Allow states to reload safely
                   await Future.delayed(const Duration(milliseconds: 100));
                 },
@@ -114,57 +116,19 @@ class _BrowseByCategorySection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categories = ref.watch(categoriesProvider);
     final filter = ref.watch(artisanFilterProvider);
-    final hasActiveFilter = filter.selectedCategory != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Browse by Category',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              if (hasActiveFilter)
-                GestureDetector(
-                  onTap: () {
-                    ref.read(artisanFilterProvider.notifier).setCategory(null);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.clear, size: 16, color: Colors.black),
-                        SizedBox(width: 4),
-                        Text(
-                          'Clear filter',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
+          child: const Text(
+            'Browse by Category',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
           ),
         ),
         const SizedBox(height: 20),
@@ -264,17 +228,26 @@ class _ServiceProvidersSection extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+
             children: [
-              const Text(
+              Text(
                 'Service Providers',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
               ),
-              SortDropdown(filter: filter),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _FilterButton(filter: filter),
+                  const SizedBox(width: 8),
+                  SortDropdown(filter: filter),
+                ],
+              ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           artisansAsync.when(
             data: (artisans) {
               if (artisans.isEmpty) {
@@ -371,6 +344,53 @@ class _ExploreSearchField extends ConsumerWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _FilterButton extends ConsumerWidget {
+  final ArtisanFilterState filter;
+
+  const _FilterButton({required this.filter});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeFilterCount = filter.activeFilterCount;
+    final hasActiveFilters = activeFilterCount > 0;
+
+    return GestureDetector(
+      onTap: () => FilterBottomSheet.show(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: hasActiveFilters ? Colors.white : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: hasActiveFilters ? Colors.black : Colors.grey.shade300,
+            width: hasActiveFilters ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.tune,
+              color: hasActiveFilters ? Colors.black : Colors.grey.shade600,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Filters${activeFilterCount > 0 ? ' ($activeFilterCount)' : ''}',
+              style: TextStyle(
+                color: hasActiveFilters ? Colors.black : Colors.grey.shade600,
+                fontSize: 12,
+                fontWeight: hasActiveFilters
+                    ? FontWeight.w600
+                    : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

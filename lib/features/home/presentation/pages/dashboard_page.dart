@@ -50,7 +50,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
 
     final filter = ref.read(dashboardFilterProvider);
-    ref.read(dashboardProvider.notifier).loadDashboard(roleName, filter: filter);
+    ref
+        .read(dashboardProvider.notifier)
+        .loadDashboard(roleName, filter: filter);
   }
 
   Future<void> _refreshDashboard() async {
@@ -65,7 +67,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
 
     final filter = ref.read(dashboardFilterProvider);
-    await ref.read(dashboardProvider.notifier).refresh(roleName, filter: filter);
+    await ref
+        .read(dashboardProvider.notifier)
+        .refresh(roleName, filter: filter);
   }
 
   @override
@@ -762,7 +766,9 @@ class _SpendingTrendChart extends StatelessWidget {
     final points = data.points as List<dynamic>;
     if (points.isEmpty) return const SizedBox.shrink();
 
-    final maxY = points.map((p) => p.amount as double).fold(0.0, (max, val) => val > max ? val : max);
+    final maxY = points
+        .map((p) => p.amount as double)
+        .fold(0.0, (max, val) => val > max ? val : max);
 
     return SizedBox(
       height: 150,
@@ -818,12 +824,13 @@ class _SpendingTrendChart extends StatelessWidget {
                   if (index < 0 || index >= points.length) {
                     return const SizedBox.shrink();
                   }
-                  
+
                   // Show labels for every 2nd or 3rd point to avoid crowding
-                  if (points.length > 7 && index % (points.length > 15 ? 4 : 2) != 0) {
+                  if (points.length > 7 &&
+                      index % (points.length > 15 ? 4 : 2) != 0) {
                     return const SizedBox.shrink();
                   }
-                  
+
                   final date = points[index].date as DateTime;
                   return Padding(
                     padding: const EdgeInsets.only(top: 8.0),
@@ -1440,10 +1447,7 @@ class _RecentBookingsCard extends ConsumerWidget {
       actionText: "View all",
       child: Column(
         children: bookings.take(3).map((booking) {
-          return _RecentBookingItem(
-            booking: booking,
-            isProvider: isProvider,
-          );
+          return _RecentBookingItem(booking: booking, isProvider: isProvider);
         }).toList(),
       ),
     );
@@ -1454,10 +1458,7 @@ class _RecentBookingItem extends StatelessWidget {
   final RecentBookingEntity booking;
   final bool isProvider;
 
-  const _RecentBookingItem({
-    required this.booking,
-    required this.isProvider,
-  });
+  const _RecentBookingItem({required this.booking, required this.isProvider});
 
   @override
   Widget build(BuildContext context) {
@@ -1471,32 +1472,30 @@ class _RecentBookingItem extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (booking.serviceImage != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                booking.serviceImage!,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: 48,
-                  height: 48,
-                  color: Colors.grey.shade300,
-                  child: const Icon(Icons.image_not_supported, size: 20),
-                ),
-              ),
-            )
-          else
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.home_repair_service, size: 20),
-            ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child:
+                booking.serviceImage != null &&
+                    booking.serviceImage!.startsWith('http')
+                ? Image.network(
+                    booking.serviceImage!,
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                      AppAssets.servicePlaceholder(booking.id),
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
+                    ),
+                  )
+                : Image.asset(
+                    AppAssets.servicePlaceholder(booking.id),
+                    width: 48,
+                    height: 48,
+                    fit: BoxFit.cover,
+                  ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

@@ -56,9 +56,13 @@ class ServicesRepositoryImpl implements ServicesRepository {
       final categories = await _categoryMap();
       // Use public API endpoint with provider filtering
       // Pass providerId as query parameter to filter by the authenticated user's provider ID
+      // If providerId is null or empty, return empty list since we can't filter
+      if (providerId == null || providerId.isEmpty) {
+        return [];
+      }
       final response = await _dioClient.get(
         ApiEndpoints.services,
-        queryParameters: providerId != null ? {'provider': providerId} : null,
+        queryParameters: {'provider': providerId},
       );
       final envelope = decodeListEnvelope(
         response,

@@ -143,7 +143,7 @@ class IdentificationPageState {
 class IdentificationNotifier extends StateNotifier<IdentificationPageState> {
   final NetworkInfo? networkInfo;
   final Ref ref;
-  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   IdentificationNotifier({this.networkInfo, required this.ref})
     : super(const IdentificationPageState()) {
@@ -176,8 +176,8 @@ class IdentificationNotifier extends StateNotifier<IdentificationPageState> {
   }
 
   /// Update connectivity state based on result
-  void _updateConnectivityState(ConnectivityResult result) {
-    final hasConnection = result != ConnectivityResult.none;
+  void _updateConnectivityState(List<ConnectivityResult> result) {
+    final hasConnection = !result.contains(ConnectivityResult.none);
     final connectivityState = hasConnection
         ? ConnectivityState.connected
         : ConnectivityState.disconnected;
