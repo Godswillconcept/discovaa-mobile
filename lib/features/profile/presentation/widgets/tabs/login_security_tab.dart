@@ -19,7 +19,14 @@ class LoginSecurityTab extends ConsumerStatefulWidget {
 
 class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
   bool _isLoading = false;
-  bool _is2FAEnabled = false;
+  // Password visibility states for dialog
+  bool _obscureCurrentPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
+  // Password update loading state
+  bool _isUpdatingPassword = false;
+  // Password mismatch error state
+  bool _passwordsDoNotMatch = false;
   late TextEditingController currentPasswordController;
   late TextEditingController newPasswordController;
   late TextEditingController confirmPasswordController;
@@ -94,13 +101,6 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
                 ),
               ),
             ],
-          ),
-
-          // Two-Factor Authentication (2FA)
-          ProfileSectionCard(
-            title: 'Two-Factor Authentication',
-            subtitle: 'Add an extra layer of security',
-            children: [_build2FARow(context)],
           ),
 
           // Active Sessions
@@ -302,20 +302,10 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
             children: [
               _buildSecurityCheck(
                 icon: Icons.verified_user,
-                label: 'Email verified',
-                isComplete: true,
-              ),
-              const SizedBox(width: 24),
-              _buildSecurityCheck(
-                icon: Icons.password,
-                label: 'Strong password',
-                isComplete: true,
-              ),
-              const SizedBox(width: 24),
-              _buildSecurityCheck(
-                icon: Icons.phonelink_lock,
-                label: '2FA',
-                isComplete: false,
+                label: profile.emailVerified
+                    ? 'Email verified'
+                    : 'Email not verified',
+                isComplete: profile.emailVerified,
               ),
             ],
           ),
@@ -346,71 +336,6 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _build2FARow(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFF111827).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.phonelink_lock,
-              color: Color(0xFF111827),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Two-Factor Authentication',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Protect your account with 2FA',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: _is2FAEnabled,
-            onChanged: (value) {
-              setState(() => _is2FAEnabled = value);
-              // NOTE: 2FA API integration pending backend implementation
-              // Currently shows UI feedback only
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    value
-                        ? 'Two-factor authentication enabled'
-                        : 'Two-factor authentication disabled',
-                  ),
-                ),
-              );
-            },
-            activeThumbColor: const Color(0xFF111827),
-          ),
-        ],
-      ),
     );
   }
 
@@ -553,6 +478,12 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
   }
 
   void _showChangePasswordDialog(BuildContext context) {
+    // Reset error states
+    setState(() {
+      _passwordsDoNotMatch = false;
+      _isUpdatingPassword = false;
+    });
+
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -563,9 +494,6 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          bool obscureCurrent = true;
-          bool obscureNew = true;
-          bool obscureConfirm = true;
           final connectivityState = ref.read(profileConnectivityProvider);
           final isConnected =
               connectivityState == ProfileConnectivityState.connected;
@@ -594,7 +522,7 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: currentPasswordController,
-                    obscureText: obscureCurrent,
+                    obscureText: _obscureCurrentPassword,
                     decoration: InputDecoration(
                       labelText: 'Current password',
                       border: OutlineInputBorder(
@@ -602,19 +530,20 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          obscureCurrent
+                          _obscureCurrentPassword
                               ? Icons.visibility_off
                               : Icons.visibility,
                         ),
-                        onPressed: () =>
-                            setState(() => obscureCurrent = !obscureCurrent),
+                        onPressed: () => setState(() {
+                          _obscureCurrentPassword = !_obscureCurrentPassword;
+                        }),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: newPasswordController,
-                    obscureText: obscureNew,
+                    obscureText: _obscureNewPassword,
                     decoration: InputDecoration(
                       labelText: 'New password',
                       border: OutlineInputBorder(
@@ -622,32 +551,59 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
-                          obscureNew ? Icons.visibility_off : Icons.visibility,
+                          _obscureNewPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                         ),
-                        onPressed: () =>
-                            setState(() => obscureNew = !obscureNew),
+                        onPressed: () => setState(() {
+                          _obscureNewPassword = !_obscureNewPassword;
+                        }),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: confirmPasswordController,
-                    obscureText: obscureConfirm,
+                    obscureText: _obscureConfirmPassword,
                     decoration: InputDecoration(
                       labelText: 'Confirm new password',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 2,
+                        ),
+                      ),
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 2,
+                        ),
+                      ),
+                      errorText: _passwordsDoNotMatch
+                          ? 'Passwords do not match'
+                          : null,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          obscureConfirm
+                          _obscureConfirmPassword
                               ? Icons.visibility_off
                               : Icons.visibility,
                         ),
-                        onPressed: () =>
-                            setState(() => obscureConfirm = !obscureConfirm),
+                        onPressed: () => setState(() {
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                        }),
                       ),
                     ),
+                    onChanged: (value) {
+                      // Clear error when user types
+                      if (_passwordsDoNotMatch) {
+                        setState(() => _passwordsDoNotMatch = false);
+                      }
+                    },
                   ),
                   if (!isConnected) ...[
                     const SizedBox(height: 12),
@@ -682,7 +638,7 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: isConnected
+                      onPressed: isConnected && !_isUpdatingPassword
                           ? () async {
                               final currentPassword = currentPasswordController
                                   .text
@@ -716,19 +672,18 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
                               }
 
                               if (newPassword != confirmPassword) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('New passwords do not match'),
-                                  ),
-                                );
+                                setState(() => _passwordsDoNotMatch = true);
                                 return;
                               }
+
+                              setState(() => _isUpdatingPassword = true);
 
                               final success = await ref
                                   .read(userProfileProvider.notifier)
                                   .updatePassword(currentPassword, newPassword);
 
                               if (context.mounted) {
+                                setState(() => _isUpdatingPassword = false);
                                 Navigator.pop(context);
                                 if (success) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -764,7 +719,18 @@ class _LoginSecurityTabState extends ConsumerState<LoginSecurityTab> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text('Update Password'),
+                      child: _isUpdatingPassword
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text('Update Password'),
                     ),
                   ),
                   const SizedBox(height: 12),

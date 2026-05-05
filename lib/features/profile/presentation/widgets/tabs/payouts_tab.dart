@@ -1,7 +1,9 @@
 import 'package:discovaa/features/profile/domain/entities/payout_account.dart';
 import 'package:discovaa/features/profile/domain/entities/provider_payout.dart';
 import 'package:discovaa/features/profile/domain/entities/profile_enums.dart';
+import 'package:discovaa/features/profile/domain/entities/user_profile.dart';
 import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -72,7 +74,7 @@ class PayoutsTab extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 16),
-            const _PayoutSummarySection(account: null),
+            _PayoutSummarySection(account: null, profile: profile),
             const SizedBox(height: 20),
             if (isNigeria)
               _PaystackOnboardingCard(
@@ -148,7 +150,7 @@ class PayoutsTab extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _PayoutSummarySection(account: account),
+          _PayoutSummarySection(account: account, profile: profile),
           const SizedBox(height: 20),
           // Account Overview Card
           _PayoutAccountCard(account: account),
@@ -590,8 +592,9 @@ class _InfoCard extends StatelessWidget {
 
 class _PayoutSummarySection extends StatelessWidget {
   final PayoutAccount? account;
+  final UserProfile? profile;
 
-  const _PayoutSummarySection({required this.account});
+  const _PayoutSummarySection({required this.account, this.profile});
 
   String _fmt(String symbol, double? v) =>
       v == null ? '—' : '$symbol${v.toStringAsFixed(2)}';
@@ -619,13 +622,24 @@ class _PayoutSummarySection extends StatelessWidget {
     final statusText = account?.status.displayName ?? 'Not Connected';
     final available = account?.availableBalance;
 
+    // Determine payment provider based on account gateway or user country
+    final isNigeria =
+        profile?.countryCode?.toUpperCase() == 'NG' ||
+        profile?.country?.toLowerCase() == 'nigeria';
+    final isPaystack = account?.gateway == PayoutGateway.paystack || isNigeria;
+
+    final providerName = isPaystack ? 'PAYSTACK' : 'STRIPE';
+    final providerSubtitle = isPaystack
+        ? 'Secure payouts via Paystack'
+        : 'Secure payouts via Stripe Connect';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _InfoCard(
           title: 'Provider',
-          value: 'STRIPE',
-          subtitle: 'Secure payouts via Stripe Connect',
+          value: providerName,
+          subtitle: providerSubtitle,
         ),
         _InfoCard(
           title: 'Status',
@@ -1172,6 +1186,8 @@ class _PaystackOnboardingCard extends ConsumerStatefulWidget {
 class _PaystackOnboardingCardState
     extends ConsumerState<_PaystackOnboardingCard> {
   final _accountNumberController = TextEditingController();
+  final _accountNameController = TextEditingController();
+  final _bankSearchController = TextEditingController();
   String? _selectedBankCode;
   String? _resolvedAccountName;
   List<dynamic> _banks = [];
@@ -1188,6 +1204,8 @@ class _PaystackOnboardingCardState
   @override
   void dispose() {
     _accountNumberController.dispose();
+    _accountNameController.dispose();
+    _bankSearchController.dispose();
     super.dispose();
   }
 
@@ -1207,16 +1225,44 @@ class _PaystackOnboardingCardState
     if (accountNumber.length != 10 || _selectedBankCode == null) return;
 
     setState(() => _isResolvingAccount = true);
-    final accountName = await ref
-        .read(userProfileProvider.notifier)
-        .resolvePaystackAccount(
-          accountNumber: accountNumber,
-          bankCode: _selectedBankCode!,
+    try {
+      final accountName = await ref
+          .read(userProfileProvider.notifier)
+          .resolvePaystackAccount(
+            accountNumber: accountNumber,
+            bankCode: _selectedBankCode!,
+          );
+      setState(() {
+        _resolvedAccountName = accountName;
+        _accountNameController.text = accountName ?? '';
+        _isResolvingAccount = false;
+      });
+
+      if (accountName == null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to verify account. Please check the account number and try again.',
+            ),
+            backgroundColor: Color(0xFFEF4444),
+          ),
         );
-    setState(() {
-      _resolvedAccountName = accountName;
-      _isResolvingAccount = false;
-    });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _resolvedAccountName = null;
+          _accountNameController.clear();
+          _isResolvingAccount = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error verifying account: ${e.toString()}'),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _submitPaystackSetup() async {
@@ -1361,27 +1407,80 @@ class _PaystackOnboardingCardState
           ),
           const SizedBox(height: 12),
 
-          // Bank Selection
+          // Bank Selection with Search
           _isLoadingBanks
               ? const Center(child: CircularProgressIndicator())
-              : DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
+              : DropdownButtonFormField2<String>(
+                  isExpanded: true,
+                  decoration: InputDecoration(
                     labelText: 'Bank',
-                    prefixIcon: Icon(Icons.business, size: 20),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.business, size: 20),
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 12,
+                    ),
                   ),
-                  hint: const Text('Select a bank'),
+                  hint: const Text('Search and select a bank'),
                   items: _banks.map((bank) {
                     return DropdownMenuItem<String>(
                       value: bank['code']?.toString(),
-                      child: Text(bank['name']?.toString() ?? ''),
+                      child: Text(
+                        bank['name']?.toString() ?? '',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     );
                   }).toList(),
+                  value: _selectedBankCode,
                   onChanged: (value) {
                     setState(() {
                       _selectedBankCode = value;
                     });
                     _resolveAccountName();
+                  },
+                  dropdownSearchData: DropdownSearchData(
+                    searchController: _bankSearchController,
+                    searchInnerWidget: Padding(
+                      padding: const EdgeInsets.only(
+                        top: 8,
+                        bottom: 4,
+                        left: 8,
+                        right: 8,
+                      ),
+                      child: TextFormField(
+                        controller: _bankSearchController,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
+                          ),
+                          hintText: 'Search for a bank...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    searchMatchFn: (item, searchValue) {
+                      final bankName =
+                          _banks
+                              .firstWhere(
+                                (bank) =>
+                                    bank['code']?.toString() == item.value,
+                                orElse: () => null,
+                              )?['name']
+                              ?.toString()
+                              .toLowerCase() ??
+                          '';
+                      return bankName.contains(searchValue.toLowerCase());
+                    },
+                  ),
+                  onMenuStateChange: (isOpen) {
+                    if (!isOpen) {
+                      _bankSearchController.clear();
+                    }
                   },
                 ),
           const SizedBox(height: 12),
@@ -1389,7 +1488,7 @@ class _PaystackOnboardingCardState
           // Account Name (auto-filled)
           TextFormField(
             enabled: false,
-            initialValue: _resolvedAccountName,
+            controller: _accountNameController,
             decoration: InputDecoration(
               labelText: 'Account Name',
               prefixIcon: const Icon(Icons.person, size: 20),

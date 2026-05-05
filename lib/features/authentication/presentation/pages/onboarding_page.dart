@@ -1,3 +1,4 @@
+import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/core/widgets/custom_buttons.dart';
 import 'package:flutter/material.dart';
@@ -173,7 +174,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               child: Column(
                 children: [
                   AppPrimaryButton(
-                    onPressed: () => context.push('/signup-selection'),
+                    onPressed: () => context.push(RouteNames.signupSelection),
                     child: const Text(
                       "Sign Up",
                       style: TextStyle(color: Colors.white, fontSize: 16),
@@ -181,8 +182,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   ),
                   const SizedBox(height: 15),
                   AppOutlinedButton(
-                    onPressed: () =>
-                        context.push('/login', extra: {'fromOnboarding': true}),
+                    onPressed: () => context.push(
+                      RouteNames.login,
+                      extra: {'fromOnboarding': true},
+                    ),
                     child: RichText(
                       text: TextSpan(
                         text: "Already have an account? ",

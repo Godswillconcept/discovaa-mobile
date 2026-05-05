@@ -68,6 +68,7 @@ abstract class AuthRepository {
     required String lastName,
     required String displayName,
     required String phone,
+    required String address,
     required String? countryIso2,
     String? businessName,
     String? businessDescription,

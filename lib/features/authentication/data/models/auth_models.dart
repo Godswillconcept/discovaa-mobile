@@ -1,7 +1,7 @@
 // OpenAPI Authentication Models
 // Based on Headless API specification
 
-import '../../presentation/providers/signup_provider.dart';
+import '../../presentation/providers/registration_flow_provider.dart';
 
 // ============================================================================
 // Request DTOs
@@ -172,9 +172,11 @@ class AuthUser {
         explicitProfileComplete ??
         // If backend explicitly sends is_profile_complete, use it
         // Otherwise, consider profile complete if display is set and doesn't look auto-generated
+        // Auto-generated display names equal the username (derived from email prefix)
         (display.isNotEmpty &&
             !display.contains('@') &&
-            display.toLowerCase() != email.toLowerCase());
+            display.toLowerCase() != email.toLowerCase() &&
+            display.toLowerCase() != username.toLowerCase());
 
     return AuthUser(
       id: json['id']?.toString() ?? '',

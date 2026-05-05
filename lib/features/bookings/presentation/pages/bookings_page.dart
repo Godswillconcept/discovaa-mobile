@@ -32,7 +32,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final userRole = authState.user?.role;
+    final userRole = authState.value?.user?.role;
     final isProvider = isProviderRole(userRole);
     final pageTitle = isProvider ? 'My Bookings' : 'Booking History';
 

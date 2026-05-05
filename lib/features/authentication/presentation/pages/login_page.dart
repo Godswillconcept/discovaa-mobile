@@ -1,17 +1,16 @@
 import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/core/utils/form_validation.dart';
-import 'package:discovaa/features/authentication/presentation/providers/auth_initializer_provider.dart';
+import 'package:discovaa/core/widgets/app_alert_message.dart';
 import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/authentication/presentation/providers/identity_verification_reminder_provider.dart';
-import 'package:discovaa/features/authentication/presentation/providers/session_provider.dart';
-import 'package:discovaa/features/authentication/presentation/providers/signup_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
+import 'dart:developer';
 import '../../../../core/utils/clippers.dart';
 import '../../../../core/widgets/custom_buttons.dart';
 
@@ -74,6 +73,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   void dispose() {
     _timer?.cancel();
+    _timer = null; // Clear reference to prevent memory leaks
     if (widget.fromOnboarding) _pageController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -91,7 +91,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     try {
       // Call auth repository via provider
-      final success = await ref
+      await ref
           .read(authProvider.notifier)
           .login(
             email: _emailController.text,
@@ -99,102 +99,94 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           );
 
       if (mounted) {
-        if (success) {
-          // Fetch full user profile from accounts/me endpoint to get accurate isProfileComplete status
-          await ref.read(authProvider.notifier).fetchFullProfile();
-          final user = ref.read(authProvider).user;
-          if (user != null) {
-            // Check if profile is incomplete - redirect to complete profile
-            if (!user.isProfileComplete) {
-              // Navigate to complete profile with fromLogin flag
-              if (mounted) {
-                context.push(
-                  RouteNames.completeProfile,
-                  extra: {'fromLogin': true, 'email': user.email},
-                );
+        final authState = ref.read(authProvider);
+
+        authState.when(
+          data: (state) {
+            log(state.toString());
+            // Mutually exclusive status checks — order matters:
+            // requiresProfile and requiresVerification are NOT isAuthenticated.
+            if (state.needsProfile) {
+              // Check if user has pending email verification (empty ID indicates pending state)
+              final isPendingEmailVerification =
+                  state.user?.id.isEmpty ?? false;
+              if (isPendingEmailVerification) {
+                // Navigate to OTP for email verification first
+                if (mounted) {
+                  context.push(
+                    RouteNames.otp,
+                    extra: {
+                      'email': _emailController.text,
+                      'type': 'login_verify',
+                    },
+                  );
+                }
+              } else {
+                // Navigate to complete profile
+                if (mounted) {
+                  context.go(
+                    RouteNames.completeProfile,
+                    extra: {'fromLogin': true},
+                  );
+                }
               }
               return;
             }
 
-            // Profile is complete - proceed with normal flow
-            // Map user role to UserRole enum
-            UserRole userRole;
-            if (user.isIndividualProvider || user.role == 'provider') {
-              userRole = UserRole.individualProvider;
-            } else if (user.isBusinessProvider || user.role == 'business') {
-              userRole = UserRole.businessProvider;
-            } else {
-              userRole = UserRole.user;
-            }
-            ref.read(sessionProvider.notifier).signIn(userRole);
-
-            // Get tokens from storage (already saved by AuthRemoteDataSource)
-            final storage = ref.read(secureTokenStorageProvider);
-            final accessToken = await storage.getAccessToken();
-            final sessionToken = await storage.getSessionToken();
-            final refreshToken = await storage.getRefreshToken();
-
-            // Log token summary for observability
-            debugPrint(
-              '[LoginPage] Tokens from storage: access=${accessToken != null}, '
-              'session=${sessionToken != null}, refresh=${refreshToken != null}',
-            );
-
-            // Log warning if refresh token is missing
-            if (refreshToken == null || refreshToken.isEmpty) {
-              debugPrint(
-                '[LoginPage] WARNING: Login succeeded but no refresh_token found in storage. '
-                'Subsequent 401s will not be recoverable via token refresh.',
-              );
+            if (state.needsVerification) {
+              if (mounted) {
+                context.go(RouteNames.identification);
+              }
+              return;
             }
 
-            // Persist auth state and user data for next app launch
-            await ref
-                .read(authInitializerProvider.notifier)
-                .setAuthenticated(
-                  accessToken: accessToken ?? '',
-                  sessionToken: sessionToken,
-                  refreshToken: refreshToken,
-                  role: user.role,
-                  user: user,
+            if (state.isAuthenticated) {
+              // Register device token after successful login
+              _registerDeviceToken();
+
+              // Check identity verification status after login
+              // This will trigger the reminder banner if verification is pending
+              ref
+                  .read(identityVerificationReminderProvider.notifier)
+                  .checkVerificationStatus();
+
+              if (mounted) {
+                if (widget.fromRegistration) {
+                  context.go(RouteNames.identification);
+                } else {
+                  context.go(RouteNames.home);
+                }
+              }
+              return;
+            }
+
+            if (state.errorMessage != null) {
+              if (state.errorMessage == 'VERIFICATION_PENDING') {
+                // Redirect to OTP page for unverified account
+                if (mounted) {
+                  context.go(
+                    RouteNames.otp,
+                    extra: {
+                      'email': _emailController.text,
+                      'type':
+                          'login_verify', // Distinct from 'register' — navigates to home after success
+                    },
+                  );
+                }
+              } else {
+                _showErrorSnackBar(
+                  state.errorMessage ?? 'Login failed. Please try again.',
                 );
-
-            // Register device token after successful login
-            await _registerDeviceToken();
-
-            // Check identity verification status after login
-            // This will trigger the reminder banner if verification is pending
-            await ref
-                .read(identityVerificationReminderProvider.notifier)
-                .checkVerificationStatus();
-          }
-
-          if (mounted) {
-            if (widget.fromRegistration) {
-              context.go(RouteNames.identification);
-            } else {
-              context.go(RouteNames.home);
+              }
             }
-          }
-        } else {
-          final error = ref.read(authProvider).errorMessage;
-
-          if (error == 'VERIFICATION_PENDING') {
-            // Redirect to OTP page for unverified account
-            if (mounted) {
-              context.push(
-                RouteNames.otp,
-                extra: {
-                  'email': _emailController.text,
-                  'type':
-                      'login_verify', // Distinct from 'register' — navigates to home after success
-                },
-              );
-            }
-          } else {
-            _showErrorSnackBar(error ?? 'Login failed. Please try again.');
-          }
-        }
+          },
+          loading: () {
+            // Still loading, do nothing
+          },
+          error: (error, _) {
+            _showErrorSnackBar('Login failed. Please try again.');
+          },
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -249,6 +241,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: AppColors.background,
@@ -293,7 +287,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       GestureDetector(
                         onLongPress: () {
                           // DEV: Show role info from auth state
-                          final user = ref.read(authProvider).user;
+                          final user = authState.value?.user;
                           if (user != null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -444,6 +438,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               ],
                             ),
                             const SizedBox(height: 12),
+                            // Show error message if login failed
+                            if (authState.hasError ||
+                                (authState.value?.errorMessage != null))
+                              Builder(
+                                builder: (context) {
+                                  final errorMessage =
+                                      authState.value?.errorMessage ??
+                                      authState.error.toString();
+                                  return AppAlertMessage(
+                                    type: AlertType.error,
+                                    message: errorMessage,
+                                    onDismiss: () {
+                                      ref
+                                          .read(authProvider.notifier)
+                                          .clearError();
+                                    },
+                                  );
+                                },
+                              ),
+                            const SizedBox(height: 12),
                             AppPrimaryButton(
                               onPressed: _isLoading ? null : _performLogin,
                               child: _isLoading
@@ -489,11 +503,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               child: GestureDetector(
                                 onTap: () {
                                   // Navigate to signup selection
-                                  context.push(RouteNames.signupSelection);
+                                  context.go(RouteNames.signupSelection);
                                 },
                                 child: RichText(
                                   text: const TextSpan(
-                                    text: "Don’t have an account? ",
+                                    text: "Don't have an account? ",
                                     style: TextStyle(color: Colors.black),
                                     children: [
                                       TextSpan(

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pinput/pinput.dart';
 import '../../../../core/utils/form_validation.dart';
-import '../providers/signup_provider.dart';
+import '../providers/registration_flow_provider.dart';
 
 class OtpInputField extends StatelessWidget {
   final TextEditingController controller;
@@ -74,7 +74,8 @@ class OtpInputField extends StatelessWidget {
       defaultPinTheme: defaultPinTheme,
       focusedPinTheme: focusedPinTheme,
       submittedPinTheme: submittedPinTheme,
-      validator: (value) => FormValidationRules.validateOtp(value, length: length),
+      validator: (value) =>
+          FormValidationRules.validateOtp(value, length: length),
       onChanged: onChanged,
       onCompleted: onCompleted,
       keyboardType: TextInputType.text,

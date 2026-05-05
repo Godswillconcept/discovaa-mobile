@@ -1,15 +1,15 @@
+import 'package:discovaa/app/router/route_names.dart';
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:discovaa/features/authentication/presentation/providers/registration_flow_provider.dart';
 import 'package:discovaa/features/authentication/presentation/widgets/auth_header.dart';
 import 'package:discovaa/features/authentication/presentation/widgets/otp_input_field.dart';
+import 'package:discovaa/features/authentication/presentation/widgets/verification_success_modal.dart';
+import 'package:discovaa/core/utils/form_validation.dart';
+import 'package:discovaa/core/widgets/app_alert_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:discovaa/core/utils/form_validation.dart';
-import 'package:discovaa/core/widgets/app_alert_message.dart';
-import 'package:discovaa/core/widgets/app_snackbar.dart';
-import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
-import 'package:discovaa/features/authentication/presentation/widgets/verification_success_modal.dart';
-import '../providers/signup_provider.dart';
 
 class OtpPage extends ConsumerStatefulWidget {
   const OtpPage({super.key});
@@ -21,9 +21,10 @@ class OtpPage extends ConsumerStatefulWidget {
 class _OtpPageState extends ConsumerState<OtpPage> {
   final TextEditingController _pinController = TextEditingController();
   final FocusNode _pinFocusNode = FocusNode();
-  // ignore: prefer_final_fields
   bool _isLoading = false;
   DateTime? _lastResendTime;
+  String? _resendSuccessMessage;
+  String? _resendErrorMessage;
 
   @override
   void dispose() {
@@ -46,113 +47,113 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     return remaining > 0 ? ' (${remaining}s)' : '';
   }
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final notifier = ref.read(signupProvider.notifier);
-      notifier.updateOtpState(OtpState.neutral);
-      notifier.goToOtp();
-    });
-  }
-
   void _onOtpChanged(String value, int length) {
+    // Don't change state while loading to prevent false errors
+    if (_isLoading) return;
+
     // Validate OTP as user types
     final validation = FormValidationRules.validateOtp(value, length: length);
 
     if (value.length == length) {
       // OTP is complete, validate it
       if (validation == null) {
-        // Valid OTP - set success state
-        ref.read(signupProvider.notifier).updateOtpState(OtpState.success);
-
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _verifyOtp();
-        });
-      } else {
-        // Invalid OTP - set error state
-        ref.read(signupProvider.notifier).updateOtpState(OtpState.error);
+        // Valid OTP - verify it
+        _verifyOtp();
       }
-    } else {
-      // Reset to neutral state when OTP is incomplete
-      ref.read(signupProvider.notifier).updateOtpState(OtpState.neutral);
     }
   }
 
   Future<void> _verifyOtp() async {
-    final state = ref.read(signupProvider);
-    if (state.otpState != OtpState.success) return;
+    if (_isLoading) return;
 
     // Determine navigation target based on source
-    final Map<String, dynamic>? data =
-        GoRouterState.of(context).extra as Map<String, dynamic>?;
+    final data = GoRouterState.of(context).extra as Map<String, dynamic>?;
     final String type = data?['type'] ?? 'register';
     final bool isForgot = type == 'forgot_password';
-    final bool isLoginVerify =
-        type == 'login_verify'; // came from unverified login
+    final bool isLoginVerify = type == 'login_verify';
     final String email = data?['email'] ?? '';
+
+    debugPrint(
+      '[OtpPage] Verifying OTP - type: $type, isForgot: $isForgot, email: $email',
+    );
+    debugPrint('[OtpPage] OTP code entered: ${_pinController.text}');
+
+    // For forgot password flow, DON'T verify OTP here
+    // Just navigate to reset password page with the code
+    if (isForgot) {
+      debugPrint(
+        '[OtpPage] Forgot password flow - skipping OTP verification, navigating directly to reset password',
+      );
+      if (mounted) {
+        context.go(
+          RouteNames.resetPassword,
+          extra: {'email': email, 'code': _pinController.text},
+        );
+      }
+      return;
+    }
+
+    // Validate email is not empty
+    if (email.isEmpty) {
+      setState(() {
+        _resendErrorMessage = 'Email is required for verification';
+      });
+      // Auto-clear error after 5 seconds
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted) {
+          setState(() {
+            _resendErrorMessage = null;
+          });
+        }
+      });
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      bool success = true;
-      if (!isForgot) {
-        // Call auth repository to verify OTP (only for email verification/signup)
-        success = await ref
-            .read(authProvider.notifier)
-            .verifyOtp(email: email, otpCode: _pinController.text);
-      }
+      // Call auth repository to verify OTP (only for register/login_verify flows)
+      final success = await ref
+          .read(authProvider.notifier)
+          .verifyOtp(email: email, otpCode: _pinController.text);
 
       if (mounted) {
         if (success) {
-          // Call config endpoint (best-effort)
-          await ref.read(authProvider.notifier).fetchConfig();
-
-          // Register device token (best-effort)
-          // TODO: Integrate with Firebase Messaging to get actual FCM token
-          // const String? fcmToken = null;
-          // if (fcmToken != null && fcmToken.isNotEmpty) {
-          //   await ref.read(authProvider.notifier).registerDeviceToken(token: fcmToken);
-          // }
-
           // Show verification success modal
-          if (mounted) {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => const VerificationSuccessModal(),
-            );
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => const VerificationSuccessModal(),
+          );
 
-            // Auto-navigate after delay to allow modal to show
-            Future.delayed(const Duration(seconds: 3), () {
-              if (mounted) {
-                Navigator.of(context).pop(); // Close modal
-                // Navigate based on source
-                if (isForgot) {
-                  context.push(
-                    '/reset-password',
-                    extra: {'email': email, 'code': _pinController.text},
-                  );
-                } else if (isLoginVerify) {
-                  // User verified from login — go straight to home
-                  context.go('/home');
-                } else {
-                  ref.read(signupProvider.notifier).goToProfile();
-                  context.push('/complete-profile');
-                }
+          // Auto-navigate after delay to allow modal to show
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted) {
+              Navigator.of(context).pop(); // Close modal
+
+              if (isLoginVerify) {
+                // User verified from login — need to re-login to get fresh tokens
+                context.go(RouteNames.login);
+              } else {
+                // Registration flow - clear registration flow state
+                ref
+                    .read(registrationFlowProvider.notifier)
+                    .moveToProfileCompletion();
+
+                // Navigate to complete profile
+                context.go(RouteNames.completeProfile);
               }
-            });
-          }
+            }
+          });
         } else {
-          final error = ref.read(authProvider).errorMessage;
-          ref.read(signupProvider.notifier).updateOtpState(OtpState.error);
-          _showErrorSnackBar(error ?? 'Verification failed. Please try again.');
+          // Get error message from API response
+          final errorMessage = ref.read(authProvider).value?.errorMessage;
+          debugPrint('[OtpPage] OTP verification failed: $errorMessage');
         }
       }
     } catch (e) {
       if (mounted) {
-        ref.read(signupProvider.notifier).updateOtpState(OtpState.error);
-        _showErrorSnackBar('Verification failed. Please try again.');
+        debugPrint('[OtpPage] OTP verification error: $e');
       }
     } finally {
       if (mounted) {
@@ -165,8 +166,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     if (!_canResend) return;
 
     // Get email from route extras before any async operations
-    final Map<String, dynamic>? data =
-        GoRouterState.of(context).extra as Map<String, dynamic>?;
+    final data = GoRouterState.of(context).extra as Map<String, dynamic>?;
     final String type = data?['type'] ?? 'register';
     final bool isForgot = type == 'forgot_password';
     final String email = data?['email'] ?? '';
@@ -175,7 +175,6 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
     // Reset OTP state and clear input
     _pinController.clear();
-    ref.read(signupProvider.notifier).updateOtpState(OtpState.neutral);
 
     // Call correct repository method based on flow
     final success = isForgot
@@ -185,51 +184,50 @@ class _OtpPageState extends ConsumerState<OtpPage> {
     if (!mounted) return;
 
     if (success) {
-      AppSnackbar.showOtpSuccess(
-        context,
-        message: 'OTP resent successfully',
-        onDismiss: () {},
-      );
+      // Show success message using AppAlertMessage
+      setState(() {
+        _resendSuccessMessage = 'OTP resent successfully to $email';
+      });
+      // Auto-clear success message after 3 seconds
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) {
+          setState(() {
+            _resendSuccessMessage = null;
+          });
+        }
+      });
     } else {
-      final error = ref.read(authProvider).errorMessage;
-      _showErrorSnackBar(error ?? 'Failed to resend code. Please try again.');
+      final error = ref.read(authProvider).value?.errorMessage;
+      setState(() {
+        _resendErrorMessage =
+            error ?? 'Failed to resend code. Please try again.';
+      });
+      // Auto-clear error message after 5 seconds
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted) {
+          setState(() {
+            _resendErrorMessage = null;
+          });
+        }
+      });
     }
-  }
-
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: Colors.red.shade800,
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, dynamic>? data =
-        GoRouterState.of(context).extra as Map<String, dynamic>?;
+    final data = GoRouterState.of(context).extra as Map<String, dynamic>?;
     final String type = data?['type'] ?? 'register';
     final bool isForgot = type == 'forgot_password';
     final String email = data?['email'] ?? '';
-    final String phone = data?['phone'] ?? '';
-    final state = ref.watch(signupProvider);
-    final otpState = state.otpState;
     final int otpLength = isForgot ? 8 : 6;
+
+    final authState = ref.watch(authProvider);
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        ref.read(signupProvider.notifier).goToRegistration();
+        ref.read(registrationFlowProvider.notifier).reset();
         context.pop();
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -243,8 +241,14 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                   subtitle: isForgot ? null : "Verification code",
                   step: isForgot ? null : "02/03",
                   onBack: () {
-                    ref.read(signupProvider.notifier).goToRegistration();
-                    context.pop();
+                    ref.read(registrationFlowProvider.notifier).reset();
+                    // Check if we can pop to avoid "nothing to pop" error
+                    if (GoRouter.of(context).canPop()) {
+                      context.pop();
+                    } else {
+                      // Fallback: navigate to login page if nothing to pop
+                      context.go(RouteNames.login);
+                    }
                   },
                 ),
                 Padding(
@@ -255,11 +259,11 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                         TextSpan(
                           text: isForgot
                               ? "Please Enter the $otpLength digit verification code sent to "
-                              : "We’ve sent a $otpLength-digit confirmation code to",
+                              : "We've sent a $otpLength-digit confirmation code to ",
                           style: const TextStyle(fontSize: 14),
                           children: [
                             TextSpan(
-                              text: isForgot ? phone : " $email",
+                              text: " $email",
                               style: const TextStyle(
                                 color: Colors.blue,
                                 fontWeight: FontWeight.w500,
@@ -272,14 +276,16 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                         ),
                         textAlign: TextAlign.left,
                       ),
-                      Divider(color: Colors.grey.shade300, thickness: 1),
+                      const Divider(color: Colors.grey, thickness: 1),
                       const SizedBox(height: 40),
 
                       // OTP Input
                       OtpInputField(
                         controller: _pinController,
                         focusNode: _pinFocusNode,
-                        otpState: otpState,
+                        otpState: authState.hasError
+                            ? OtpState.error
+                            : OtpState.neutral,
                         length: otpLength,
                         onChanged: (val) => _onOtpChanged(val, otpLength),
                         onCompleted: (pin) => _verifyOtp(),
@@ -287,40 +293,58 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
                       const SizedBox(height: 20),
 
-                      // OTP State Message
-                      if (otpState == OtpState.error)
-                        AppAlertMessage(
-                          type: AlertType.error,
-                          message:
-                              'Invalid verification code. Please check your email and enter the $otpLength-character code (letters and numbers).',
-                          onDismiss: () {
-                            ref
-                                .read(signupProvider.notifier)
-                                .updateOtpState(OtpState.neutral);
+                      // OTP State Message - Show API error if available
+                      if (authState.hasError ||
+                          (authState.value?.errorMessage != null))
+                        Builder(
+                          builder: (context) {
+                            final errorMessage =
+                                authState.value?.errorMessage ??
+                                'Invalid verification code. Please check and try again.';
+                            return AppAlertMessage(
+                              type: AlertType.error,
+                              message: errorMessage,
+                              onDismiss: () {
+                                ref.read(authProvider.notifier).clearError();
+                              },
+                            );
                           },
                         ),
 
-                      if (otpState == OtpState.success)
+                      // Resend success/error messages
+                      if (_resendSuccessMessage != null) ...[
+                        const SizedBox(height: 12),
                         AppAlertMessage(
                           type: AlertType.success,
-                          message: 'OTP verified successfully!',
+                          message: _resendSuccessMessage!,
                           onDismiss: () {
-                            ref
-                                .read(signupProvider.notifier)
-                                .updateOtpState(OtpState.neutral);
+                            setState(() {
+                              _resendSuccessMessage = null;
+                            });
                           },
                         ),
+                      ],
+
+                      if (_resendErrorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        AppAlertMessage(
+                          type: AlertType.error,
+                          message: _resendErrorMessage!,
+                          onDismiss: () {
+                            setState(() {
+                              _resendErrorMessage = null;
+                            });
+                          },
+                        ),
+                      ],
 
                       const SizedBox(height: 40),
 
                       // Verify Button
                       ElevatedButton(
-                        onPressed: (otpState == OtpState.success && !_isLoading)
-                            ? _verifyOtp
-                            : null,
+                        onPressed: !_isLoading ? _verifyOtp : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              (otpState == OtpState.success && !_isLoading)
+                          backgroundColor: !_isLoading
                               ? Colors.black
                               : Colors.grey,
                           minimumSize: const Size(double.infinity, 55),
@@ -336,11 +360,9 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                                   ),
                                 ),
                               )
-                            : Text(
-                                otpState == OtpState.error
-                                    ? "Re-enter Code"
-                                    : "Verify",
-                                style: const TextStyle(
+                            : const Text(
+                                "Verify",
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
                                 ),

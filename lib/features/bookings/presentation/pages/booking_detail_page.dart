@@ -1,10 +1,11 @@
 import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/core/constants/app_constants.dart';
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/presentation/providers/bookings_provider.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/messaging/presentation/providers/messaging_provider.dart';
-import 'package:discovaa/features/authentication/presentation/providers/session_provider.dart';
+import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +15,29 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility Functions
 // ─────────────────────────────────────────────────────────────────────────────
+
+/// Represents the current user's role in a specific booking
+enum BookingUserRole { client, provider }
+
+/// Determines the current user's role in a specific booking
+BookingUserRole? resolveBookingUserRole({
+  required String? currentUserId,
+  required String? currentUserProviderId,
+  required BookingModel booking,
+}) {
+  // Check if current user is the CLIENT for this booking
+  if (currentUserId != null && currentUserId == booking.clientId) {
+    return BookingUserRole.client;
+  }
+
+  // Check if current user is the PROVIDER for this booking
+  if (currentUserProviderId != null &&
+      currentUserProviderId == booking.providerId) {
+    return BookingUserRole.provider;
+  }
+
+  return null; // User is not part of this booking
+}
 
 /// Formats a DateTime to a readable string like "4/29/2026, 3:30 PM"
 String formatBookingDate(DateTime date) {
@@ -190,7 +214,22 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
   Widget build(BuildContext context) {
     final booking = _booking;
     final status = booking.status;
-    final isProvider = ref.watch(isServiceProvider);
+
+    // Get current user info for role resolution
+    final authState = ref.watch(authProvider);
+    final currentUserId = authState.value?.user?.id;
+    final currentUserProviderId = ref.watch(
+      userProfileProvider.select((state) => state.profile?.providerId),
+    );
+
+    // Resolve user's role in THIS booking
+    final userRoleInBooking = resolveBookingUserRole(
+      currentUserId: currentUserId,
+      currentUserProviderId: currentUserProviderId,
+      booking: booking,
+    );
+
+    final isBookingProvider = userRoleInBooking == BookingUserRole.provider;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -257,18 +296,24 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                           // Title Row
                           _TitleSection(
                             booking: booking,
-                            isProvider: isProvider,
+                            isProvider: isBookingProvider,
                           ),
                           const SizedBox(height: 24),
 
                           // Header Card (User/Provider details)
-                          _HeaderCard(booking: booking, isProvider: isProvider),
+                          _HeaderCard(
+                            booking: booking,
+                            isProvider: isBookingProvider,
+                          ),
                           const SizedBox(height: 16),
 
                           // Items Card
                           _SectionLabel('Items'),
                           const SizedBox(height: 8),
-                          _ItemsCard(booking: booking, isProvider: isProvider),
+                          _ItemsCard(
+                            booking: booking,
+                            isProvider: isBookingProvider,
+                          ),
                           const SizedBox(height: 16),
 
                           // Booking info Card
@@ -278,7 +323,7 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                           const SizedBox(height: 16),
 
                           // Adjust time Card - only allow before booking is confirmed
-                          if (isProvider &&
+                          if (isBookingProvider &&
                               booking.status == BookingStatus.requested) ...[
                             _SectionLabel('Adjust time'),
                             const SizedBox(height: 8),
@@ -287,7 +332,7 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                           ],
 
                           // Payment Action (User only)
-                          if (!isProvider &&
+                          if (!isBookingProvider &&
                               booking.paymentStatus == 'REQUIRES_ACTION') ...[
                             _PaymentActionSection(booking: booking),
                             const SizedBox(height: 16),
@@ -298,12 +343,12 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                           const SizedBox(height: 8),
                           _ActionsCard(
                             booking: booking,
-                            isProvider: isProvider,
+                            isProvider: isBookingProvider,
                           ),
                           const SizedBox(height: 16),
 
                           // Variable price warning
-                          if (isProvider &&
+                          if (isBookingProvider &&
                               booking.service.priceType ==
                                   PriceType.variable) ...[
                             _VariablePriceWarning(),
@@ -1708,6 +1753,7 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
           // Check page title for error messages
           final title = await controller.getTitle();
           if (_isPaymentError(title ?? '')) {
+            if (!mounted) return;
             // Show feedback to user
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1768,7 +1814,8 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
       'success=true',
       'payment/verify',
       'reference=', // Paystack reference parameter indicates callback
-      'trxref=', // Paystack transaction reference
+      'trx'
+          'ref=', // Paystack transaction reference
       '/payment/complete',
       '/payment/successful',
     ];

@@ -11,10 +11,10 @@ class IdentityVerificationReminderWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reminderState = ref.watch(identityVerificationReminderProvider);
+    final showReminder = ref.watch(showIdentityVerificationReminderProvider);
 
     // Don't show if already verified or permanently skipped
-    if (!reminderState.showReminder) {
+    if (!showReminder) {
       return const SizedBox.shrink();
     }
 
@@ -118,10 +118,7 @@ class IdentityVerificationReminderWidget extends ConsumerWidget {
                   ),
                   child: const Text(
                     'Verify Now',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

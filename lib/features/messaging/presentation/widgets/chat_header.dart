@@ -77,8 +77,7 @@ class ChatHeader extends ConsumerWidget {
                 (a) => a.id == conversation.artisanId,
                 orElse: () => artisans.first,
               );
-              ref.read(bookingProvider.notifier).selectArtisan(artisan);
-              context.push(RouteNames.artisanProfile);
+              context.push('${RouteNames.artisanProfile}/${artisan.id}');
             },
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,

@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 
@@ -40,39 +42,47 @@ class IdentityVerificationReminderNotifier
   IdentityVerificationReminderNotifier()
     : super(const IdentityVerificationReminderState());
 
+  Timer? _debounceTimer;
+  static const Duration _debounceTime = Duration(milliseconds: 300);
+
   /// Check verification status and update reminder state
   /// Call this after user logs in
   Future<void> checkVerificationStatus() async {
-    try {
-      final hiveService = HiveService.instance;
-      final data = hiveService.getMap('identity_verification');
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(_debounceTime, () async {
+      try {
+        final hiveService = HiveService.instance;
+        final data = hiveService.getMap('identity_verification');
 
-      if (data != null) {
-        final isVerified = data['isIdentityVerified'] as bool? ?? false;
-        final wasSkipped = data['skippedVerification'] as bool? ?? false;
-        final skippedAt = data['skippedAt'] != null
-            ? DateTime.tryParse(data['skippedAt'] as String)
-            : null;
-        final idType = data['idType'] as String?;
+        if (data != null) {
+          final isVerified = data['isIdentityVerified'] as bool? ?? false;
+          final wasSkipped = data['skippedVerification'] as bool? ?? false;
+          final skippedAt = data['skippedAt'] != null
+              ? DateTime.tryParse(data['skippedAt'] as String)
+              : null;
+          final idType = data['idType'] as String?;
 
-        // Show reminder if not verified and not permanently skipped
-        final showReminder = !isVerified && !wasSkipped;
+          // Show reminder if not verified and not permanently skipped
+          final showReminder = !isVerified && !wasSkipped;
 
-        state = state.copyWith(
-          showReminder: showReminder,
-          isVerified: isVerified,
-          wasSkipped: wasSkipped,
-          idType: idType,
-          skippedAt: skippedAt,
-        );
-      } else {
-        // No verification data - show reminder for new users
+          state = state.copyWith(
+            showReminder: showReminder,
+            isVerified: isVerified,
+            wasSkipped: wasSkipped,
+            idType: idType,
+            skippedAt: skippedAt,
+          );
+        } else {
+          // No verification data - show reminder for new users
+          state = state.copyWith(showReminder: true);
+        }
+      } catch (error) {
+        // Default to showing reminder if check fails
         state = state.copyWith(showReminder: true);
+      } finally {
+        _debounceTimer = null;
       }
-    } catch (e) {
-      // Default to showing reminder if check fails
-      state = state.copyWith(showReminder: true);
-    }
+    });
   }
 
   /// Mark reminder as dismissed (temporary)
@@ -98,13 +108,26 @@ class IdentityVerificationReminderNotifier
         skippedAt: DateTime.now(),
       );
     } catch (e) {
-      // Silently fail
+      // Log error but don't crash the app
+      debugPrint('Error saving reminder preference: $e');
+      // Show user feedback that something went wrong
+      state = state.copyWith(showReminder: false);
     }
   }
 
   /// Reset state (e.g., on logout)
   void reset() {
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
     state = const IdentityVerificationReminderState();
+  }
+
+  /// Clean up resources
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+    super.dispose();
   }
 }
 

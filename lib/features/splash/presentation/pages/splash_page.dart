@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../features/authentication/presentation/providers/auth_initializer_provider.dart';
+import '../../../../features/authentication/presentation/providers/auth_provider.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -71,15 +71,18 @@ class _SplashPageState extends ConsumerState<SplashPage>
   /// Wait for auth initialization to complete.
   ///
   /// This ensures we have the authentication status before navigating.
+  /// Polling authProvider (used by the router redirect) avoids a redirect
+  /// loop where the splash navigates to onboarding while authProvider is
+  /// still loading, causing the router to send the user back to splash.
   Future<void> _waitForAuthInitialization() async {
-    // Wait for up to 5 seconds for auth to initialize
-    const maxWaitDuration = Duration(seconds: 5);
+    // Wait for up to 10 seconds for auth provider to resolve
+    const maxWaitDuration = Duration(seconds: 10);
     const checkInterval = Duration(milliseconds: 100);
     final stopwatch = Stopwatch()..start();
 
     while (stopwatch.elapsed < maxWaitDuration) {
-      final isInitialized = ref.read(isAuthInitializedProvider);
-      if (isInitialized) {
+      final authState = ref.read(authProvider);
+      if (!authState.isLoading && !authState.isRefreshing) {
         break;
       }
       await Future.delayed(checkInterval);
@@ -89,21 +92,32 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   /// Navigate based on the current authentication status.
   ///
-  /// - If authenticated: Go to home
+  /// - If authenticated (or needs profile/verification): Go to home
+  ///   (the router redirect will send them to /complete-profile or
+  ///   /identification if those steps are still required).
   /// - If unauthenticated: Go to onboarding
   void _navigateBasedOnAuthStatus() {
-    final authState = ref.read(authInitializerProvider);
+    final authState = ref.read(authProvider);
 
-    switch (authState.status) {
-      case AuthStatus.authenticated:
-        // User is logged in, navigate to home
-        context.go(RouteNames.home);
-        break;
-      case AuthStatus.unauthenticated:
-      case AuthStatus.unknown:
-        // User is not logged in, navigate to onboarding
-        context.go(RouteNames.onboarding);
-        break;
+    final value = authState.value;
+    if (value == null) {
+      // Auth state unavailable, default to onboarding
+      context.go(RouteNames.onboarding);
+      return;
+    }
+
+    final isAuthenticated = value.isAuthenticated;
+    final needsProfile = value.needsProfile;
+    final needsVerification = value.needsVerification;
+
+    if (isAuthenticated || needsProfile || needsVerification) {
+      // User is logged in or has pending auth requirements.
+      // Navigate to home and let the router redirect enforce
+      // /complete-profile or /identification when needed.
+      context.go(RouteNames.home);
+    } else {
+      // User is not logged in, navigate to onboarding
+      context.go(RouteNames.onboarding);
     }
   }
 

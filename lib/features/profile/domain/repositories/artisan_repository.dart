@@ -13,6 +13,9 @@ abstract class ArtisanRepository {
     double? maxPrice,
     String? location,
     bool? isAvailableOnly,
+    String? providerType,
+    bool? isVerifiedOnly,
+    double? radiusKm,
   });
 
   /// Search or filter artisans from the backend.
@@ -25,6 +28,9 @@ abstract class ArtisanRepository {
   /// - [maxPrice]: maximum hourly rate filter.
   /// - [location]: location search string (city/state).
   /// - [isAvailableOnly]: filter for available providers only.
+  /// - [providerType]: filter by provider type ('Individual' or 'Business').
+  /// - [isVerifiedOnly]: filter to verified providers only.
+  /// - [radiusKm]: radius in kilometers for geo-based filtering.
   Future<List<Artisan>> searchArtisans({
     String? search,
     String? category,
@@ -34,5 +40,8 @@ abstract class ArtisanRepository {
     double? maxPrice,
     String? location,
     bool? isAvailableOnly,
+    String? providerType,
+    bool? isVerifiedOnly,
+    double? radiusKm,
   });
 }

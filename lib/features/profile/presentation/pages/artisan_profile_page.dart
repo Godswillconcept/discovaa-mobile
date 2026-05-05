@@ -1,6 +1,7 @@
-import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
+import 'package:discovaa/features/profile/domain/entities/artisan_entity.dart';
 import 'package:discovaa/features/profile/presentation/providers/artisan_detail_provider.dart';
 import 'package:discovaa/features/profile/presentation/widgets/artisan_profile_sections.dart';
+import 'package:discovaa/features/profile/presentation/widgets/artisan_profile_shimmer.dart';
 import 'package:discovaa/shared/presentation/widgets/main_header.dart';
 import 'package:discovaa/shared/presentation/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
@@ -19,11 +20,8 @@ class ArtisanProfilePage extends ConsumerStatefulWidget {
 class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
   @override
   Widget build(BuildContext context) {
-    // Read booking provider once to get base artisan ID (no continuous watch)
-    final baseArtisan = ref.read(bookingProvider).selectedArtisan;
-
     // Determine which artisan ID to use
-    final String? targetArtisanId = widget.artisanId ?? baseArtisan?.id;
+    final String? targetArtisanId = widget.artisanId;
 
     if (targetArtisanId == null) {
       return const Scaffold(body: Center(child: Text('No artisan selected')));
@@ -40,55 +38,41 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
       ),
       child: Scaffold(
         backgroundColor: Colors.white,
-        body: detailAsync.when(
-          data: (detailState) {
-            // Use populated artisan data
-            final artisan = detailState.populatedArtisan;
-            return _buildProfileContent(
-              artisan,
-              services: detailState.services,
-            );
+        body: RefreshIndicator(
+          onRefresh: () async {
+            await ref
+                .read(artisanDetailProvider(targetArtisanId).notifier)
+                .refresh();
           },
-          loading: () {
-            // Show base artisan data while loading details
-            if (baseArtisan != null) {
+          child: detailAsync.when(
+            data: (detailState) {
+              // Check if we have complete data
+              if (!detailState.isComplete && detailState.error == null) {
+                // Data is not complete, show shimmer
+                return const ArtisanProfileShimmer();
+              }
+
+              // Use populated artisan data
+              final artisan = detailState.populatedArtisan;
               return _buildProfileContent(
-                baseArtisan,
-                isLoading: true,
-                services: const [],
+                artisan,
+                services: detailState.services,
+                errorMessage: detailState.error,
               );
-            }
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          },
-          error: (error, stack) {
-            // Show base artisan data on error, with retry option
-            if (baseArtisan != null) {
-              return _buildProfileContent(
-                baseArtisan,
-                errorMessage: 'Failed to load full profile. Pull to retry.',
-                services: const [],
+            },
+            loading: () {
+              // Show shimmer while loading (no partial content)
+              return const ArtisanProfileShimmer();
+            },
+            error: (error, stack) {
+              return _buildErrorView(
+                context,
+                ref,
+                targetArtisanId,
+                error.toString(),
               );
-            }
-            return Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Failed to load profile'),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        ref.invalidate(artisanDetailProvider(targetArtisanId));
-                      },
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -96,28 +80,46 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
 
   Widget _buildProfileContent(
     Artisan artisan, {
-    bool isLoading = false,
-    String? errorMessage,
     List<ArtisanService> services = const [],
+    String? errorMessage,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const MainHeader(),
-        if (isLoading) const LinearProgressIndicator(minHeight: 2),
         if (errorMessage != null)
           Container(
             width: double.infinity,
             color: Colors.orange.shade100,
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: Text(
-              errorMessage,
-              style: TextStyle(color: Colors.orange.shade800, fontSize: 12),
-              textAlign: TextAlign.center,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    errorMessage,
+                    style: TextStyle(
+                      color: Colors.orange.shade800,
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    ref.invalidate(
+                      artisanDetailProvider(widget.artisanId ?? ''),
+                    );
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
             ),
           ),
         Expanded(
           child: SingleChildScrollView(
+            key: PageStorageKey<String>('artisan_profile_${artisan.id}'),
+            physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
                 const CustomHeader(),
@@ -176,6 +178,43 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildErrorView(
+    BuildContext context,
+    WidgetRef ref,
+    String artisanId,
+    String error,
+  ) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              'Failed to load profile',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              style: const TextStyle(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                ref.invalidate(artisanDetailProvider(artisanId));
+              },
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

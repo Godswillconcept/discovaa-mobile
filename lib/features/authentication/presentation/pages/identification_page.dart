@@ -1,8 +1,9 @@
 import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/core/constants/app_theme.dart' as app_theme;
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/authentication/presentation/providers/identification_provider.dart';
+import 'package:discovaa/features/authentication/presentation/providers/registration_flow_provider.dart';
 import 'package:discovaa/shared/presentation/widgets/main_header.dart';
-import 'package:discovaa/features/authentication/presentation/providers/signup_provider.dart';
 import 'package:discovaa/features/home/presentation/providers/image_upload_provider.dart';
 import 'package:discovaa/features/home/presentation/providers/verification_provider.dart';
 import 'package:discovaa/features/home/presentation/widgets/verification_flow.dart';
@@ -46,8 +47,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
   @override
   Widget build(BuildContext context) {
     final identificationState = ref.watch(identificationProvider);
-    final signupState = ref.watch(signupProvider);
-    final isProvider = signupState.selectedRole.isProvider;
+    final isProvider = _effectiveRole.isProvider;
 
     // Listen to image upload state
     final imageUploadState = ref.watch(imageUploadProvider);
@@ -116,6 +116,14 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
         ),
       ),
     );
+  }
+
+  UserRole get _effectiveRole {
+    final authRole = ref.watch(authProvider).value?.userRole;
+    if (authRole != null) return authRole;
+
+    final registrationRole = ref.watch(registrationFlowProvider).selectedRole;
+    return registrationRole ?? UserRole.user;
   }
 
   /// Sync uploaded images from imageUploadProvider to identificationProvider
@@ -187,14 +195,16 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      'Upload a valid ID to verify your account. You can skip this step and complete it later.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                        height: 1.5,
+                    // Only show this prompt if not already verified
+                    if (!idVerified)
+                      Text(
+                        'Upload a valid ID to verify your account. You can skip this step and complete it later.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                          height: 1.5,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -235,7 +245,15 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
           // Back link
           const SizedBox(height: 16),
           TextButton(
-            onPressed: () => context.pop(),
+            onPressed: () {
+              // Check if we can pop to avoid "nothing to pop" error
+              if (GoRouter.of(context).canPop()) {
+                context.pop();
+              } else {
+                // Fallback: navigate to complete profile page if nothing to pop
+                context.go(RouteNames.completeProfile);
+              }
+            },
             style: TextButton.styleFrom(
               padding: EdgeInsets.zero,
               minimumSize: const Size(0, 0),
@@ -509,6 +527,8 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
                       await ref
                           .read(identificationProvider.notifier)
                           .permanentlySkipVerification();
+                      // Update auth state to allow navigation to home
+                      ref.read(authProvider.notifier).skipVerification();
                       if (context.mounted) {
                         context.go(RouteNames.home);
                       }
@@ -579,6 +599,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
 
     // If already verified, just navigate home
     if (allVerified) {
+      ref.read(authProvider.notifier).markIdentityVerified();
       context.go(RouteNames.home);
       return;
     }
@@ -589,6 +610,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
     if (!mounted) return;
 
     if (success) {
+      ref.read(authProvider.notifier).markIdentityVerified();
       // ignore: use_build_context_synchronously
       context.go(RouteNames.home);
     }

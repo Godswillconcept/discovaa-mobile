@@ -1,6 +1,6 @@
 import 'dart:io';
-import '../../../../core/errors/exceptions.dart';
-import '../../../../core/errors/failures.dart';
+import 'package:discovaa/core/errors/exceptions.dart';
+import 'package:discovaa/core/errors/failures.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/entities/registration_entity.dart';
 import '../../domain/entities/profile_entity.dart';
@@ -69,10 +69,12 @@ class AuthRepositoryImpl implements AuthRepository {
       return Result.error(NetworkFailure(message: e.message, code: e.code));
     } on ServerException catch (e) {
       return Result.error(ServerFailure(message: e.message, code: e.code));
+    } on UnknownException catch (e) {
+      return Result.error(UnknownFailure(message: e.message, code: e.code));
     } catch (e) {
       return Result.error(
         UnknownFailure(
-          message: 'Unexpected error during email verification',
+          message: 'Unexpected error during email verification: $e',
           code: 'UNKNOWN_EMAIL_VERIFICATION_ERROR',
         ),
       );
@@ -209,6 +211,8 @@ class AuthRepositoryImpl implements AuthRepository {
       return Result.success(null);
     } on NetworkException catch (e) {
       return Result.error(NetworkFailure(message: e.message, code: e.code));
+    } on ConflictException catch (e) {
+      return Result.error(ConflictFailure(message: e.message, code: e.code));
     } on ValidationException catch (e) {
       return Result.error(ValidationFailure(message: e.message, code: e.code));
     } catch (e) {
@@ -275,6 +279,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String lastName,
     required String displayName,
     required String phone,
+    required String address,
     required String? countryIso2,
     String? businessName,
     String? businessDescription,
@@ -286,6 +291,7 @@ class AuthRepositoryImpl implements AuthRepository {
         lastName: lastName,
         displayName: displayName,
         phone: phone,
+        address: address,
         countryIso2: countryIso2,
         businessName: businessName,
         businessDescription: businessDescription,

@@ -121,12 +121,14 @@ class BookingModel {
   final BookedServiceSnapshot service;
 
   /// Client who placed the booking (user side)
+  final String clientId; // NEW: User ID of the client
   final String clientName;
   final String? clientAvatarPath;
   final String? userDisplayName;
   final String? userProfilePhoto;
 
   /// Provider who will perform the service (provider side)
+  final String providerId;
   final String? providerName;
   final String? providerAvatarPath;
   final String? providerEmail;
@@ -176,10 +178,12 @@ class BookingModel {
   const BookingModel({
     required this.id,
     required this.service,
+    required this.clientId, // NEW
     required this.clientName,
     this.clientAvatarPath,
     this.userDisplayName,
     this.userProfilePhoto,
+    required this.providerId,
     this.providerName,
     this.providerAvatarPath,
     this.providerEmail,
@@ -210,10 +214,12 @@ class BookingModel {
   BookingModel copyWith({
     String? id,
     BookedServiceSnapshot? service,
+    String? clientId,
     String? clientName,
     String? clientAvatarPath,
     String? userDisplayName,
     String? userProfilePhoto,
+    String? providerId,
     String? providerName,
     String? providerAvatarPath,
     String? providerEmail,
@@ -243,10 +249,12 @@ class BookingModel {
     return BookingModel(
       id: id ?? this.id,
       service: service ?? this.service,
+      clientId: clientId ?? this.clientId,
       clientName: clientName ?? this.clientName,
       clientAvatarPath: clientAvatarPath ?? this.clientAvatarPath,
       userDisplayName: userDisplayName ?? this.userDisplayName,
       userProfilePhoto: userProfilePhoto ?? this.userProfilePhoto,
+      providerId: providerId ?? this.providerId,
       providerName: providerName ?? this.providerName,
       providerAvatarPath: providerAvatarPath ?? this.providerAvatarPath,
       providerEmail: providerEmail ?? this.providerEmail,
@@ -306,10 +314,12 @@ class BookingModel {
   Map<String, dynamic> toJson() => {
     'id': id,
     'service': service.toJson(),
+    'clientId': clientId,
     'clientName': clientName,
     'clientAvatarPath': clientAvatarPath,
     'userDisplayName': userDisplayName,
     'userProfilePhoto': userProfilePhoto,
+    'providerId': providerId,
     'providerName': providerName,
     'providerAvatarPath': providerAvatarPath,
     'providerEmail': providerEmail,
@@ -353,10 +363,12 @@ class BookingModel {
                 formattedPrice: '\$0.00',
                 pricingModel: PricingModel.fixed,
               ),
+        clientId: json['clientId']?.toString() ?? '',
         clientName: json['clientName']?.toString() ?? 'Client',
         clientAvatarPath: json['clientAvatarPath'] as String?,
         userDisplayName: json['userDisplayName'] as String?,
         userProfilePhoto: json['userProfilePhoto'] as String?,
+        providerId: json['providerId']?.toString() ?? '',
         providerName: json['providerName'] as String?,
         providerAvatarPath: json['providerAvatarPath'] as String?,
         providerEmail: json['providerEmail'] as String?,
@@ -409,7 +421,9 @@ class BookingModel {
           pricingModel: PricingModel.fixed,
           priceType: PriceType.fixed,
         ),
+        clientId: json['clientId']?.toString() ?? '',
         clientName: 'Client',
+        providerId: json['providerId']?.toString() ?? '',
         scheduledDate: DateTime.now(),
         scheduledTime: const TimeOfDay(hour: 0, minute: 0),
         status: BookingStatus.requested,

@@ -1,15 +1,17 @@
+import 'package:discovaa/app/router/route_names.dart';
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:discovaa/features/authentication/presentation/providers/registration_flow_provider.dart';
 import 'package:discovaa/features/authentication/presentation/widgets/auth_field_label.dart';
 import 'package:discovaa/features/authentication/presentation/widgets/auth_header.dart';
 import 'package:discovaa/features/authentication/presentation/widgets/social_auth_section.dart';
-import 'package:flutter/gestures.dart';
 import 'package:discovaa/core/utils/form_validation.dart';
 import 'package:discovaa/core/widgets/custom_buttons.dart';
-import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
-import 'package:discovaa/features/authentication/presentation/providers/signup_provider.dart';
+import 'package:discovaa/core/widgets/app_alert_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/gestures.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -22,7 +24,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
   bool _agreeToTerms = false;
   bool _isLoading = false;
 
@@ -40,8 +45,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
-      // Get selected role from signup provider
-      final signupState = ref.read(signupProvider);
+      // Get selected role from registration flow provider
+      final registrationState = ref.read(registrationFlowProvider);
 
       // Call auth repository via provider
       final success = await ref
@@ -49,24 +54,27 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           .register(
             email: _emailController.text,
             password: _passwordController.text,
-            role: signupState.selectedRole,
+            role: registrationState.selectedRole ?? UserRole.user,
           );
 
       if (mounted) {
         if (success) {
-          final notifier = ref.read(signupProvider.notifier);
-          notifier.updateRegistrationInfo(
-            email: _emailController.text,
-            password: _passwordController.text,
-          );
-          notifier.updateOtpState(OtpState.neutral);
+          // Store email in registration flow provider (not password - security fix)
+          ref
+              .read(registrationFlowProvider.notifier)
+              .setEmail(_emailController.text);
+
+          // Navigate to OTP page
           context.push(
-            '/otp',
+            RouteNames.otp,
             extra: {'type': 'register', 'email': _emailController.text},
           );
         } else {
-          final error = ref.read(authProvider).errorMessage;
-          _showErrorSnackBar(error ?? 'Registration failed. Please try again.');
+          final authState = ref.read(authProvider);
+          final errorMessage =
+              authState.value?.errorMessage ??
+              'Registration failed. Please try again.';
+          _showErrorSnackBar(errorMessage);
         }
       }
     } catch (e) {
@@ -106,8 +114,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       final roleString = routerState.extra as String?;
 
       if (roleString != null) {
-        // Parse the role string and update signup provider
-        // Handle both uppercase (API spec) and lowercase (legacy) values
+        // Parse the role string and update registration flow provider
         UserRole? role;
         switch (roleString.toUpperCase()) {
           case 'USER':
@@ -123,11 +130,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         }
 
         if (role != null) {
-          ref.read(signupProvider.notifier).selectRole(role);
+          ref.read(registrationFlowProvider.notifier).setRole(role);
         }
       }
-
-      ref.read(signupProvider.notifier).goToRegistration();
     });
   }
 
@@ -135,19 +140,26 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(signupProvider);
+    final registrationState = ref.watch(registrationFlowProvider);
+    final authState = ref.watch(authProvider);
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        ref.read(signupProvider.notifier).goBackFromRegistration();
-        context.pop();
+        ref.read(registrationFlowProvider.notifier).reset();
+        // Check if we can pop to avoid "nothing to pop" error
+        if (GoRouter.of(context).canPop()) {
+          context.pop();
+        } else {
+          context.go(RouteNames.signupSelection);
+        }
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
@@ -155,16 +167,22 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           body: Column(
             children: [
               AuthHeader(
-                title: state.selectedRole == UserRole.user
+                title: registrationState.selectedRole == UserRole.user
                     ? "Register User Account!"
-                    : state.selectedRole == UserRole.individualProvider
+                    : registrationState.selectedRole ==
+                          UserRole.individualProvider
                     ? "Individual Service Provider"
                     : "Business Service Provider",
                 subtitle: "Personal Info.",
                 step: "01/03",
                 onBack: () {
-                  ref.read(signupProvider.notifier).goBackFromRegistration();
-                  context.pop();
+                  ref.read(registrationFlowProvider.notifier).reset();
+                  // Check if we can pop to avoid "nothing to pop" error
+                  if (GoRouter.of(context).canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(RouteNames.signupSelection);
+                  }
                 },
               ),
               Expanded(
@@ -215,6 +233,40 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 20),
+                        const AuthFieldLabel(label: "Confirm password"),
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          obscureText: !_isConfirmPasswordVisible,
+                          keyboardType: TextInputType.visiblePassword,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please confirm your password';
+                            }
+                            if (value != _passwordController.text) {
+                              return 'Passwords do not match';
+                            }
+                            return null;
+                          },
+                          decoration: InputDecoration(
+                            hintText: "Confirm password",
+                            suffixIcon: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                foregroundColor: Colors.black,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isConfirmPasswordVisible =
+                                      !_isConfirmPasswordVisible;
+                                });
+                              },
+                              child: Text(
+                                _isConfirmPasswordVisible ? "Hide" : "Show",
+                              ),
+                            ),
+                          ),
+                        ),
                         const SizedBox(height: 10),
                         Row(
                           children: [
@@ -228,56 +280,55 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               activeColor: Colors.black,
                             ),
                             Expanded(
-                              child: state.selectedRole == UserRole.user
-                                  ? RichText(
-                                      text: TextSpan(
-                                        text:
-                                            "By signing up, you are creating a ",
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey,
-                                        ),
-                                        children: [
-                                          const TextSpan(
-                                            text: "Discovaa ",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                          const TextSpan(
-                                            text: "account and agree to ",
-                                          ),
-                                          const TextSpan(
-                                            text: "Discovaa’s ",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                            ),
-                                          ),
-                                          const TextSpan(text: "Terms and "),
-                                          TextSpan(
-                                            text: "Privacy Policy.",
-                                            style: const TextStyle(
-                                              color: Colors.blue,
-                                            ),
-                                            recognizer: TapGestureRecognizer()
-                                              ..onTap = () {
-                                                // Handle link
-                                              },
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : const Text(
-                                      "I agree to terms & conditions",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.black,
-                                      ),
+                              child: RichText(
+                                text: TextSpan(
+                                  text: "By signing up, you agree to ",
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                  children: [
+                                    const TextSpan(
+                                      text: "Discovaa's ",
+                                      style: TextStyle(color: Colors.black),
                                     ),
+                                    const TextSpan(text: "Terms and "),
+                                    TextSpan(
+                                      text: "Privacy Policy.",
+                                      style: const TextStyle(
+                                        color: Colors.blue,
+                                      ),
+                                      recognizer: TapGestureRecognizer()
+                                        ..onTap = () {
+                                          // TODO: Implement privacy policy link
+                                          debugPrint('Privacy Policy tapped');
+                                        },
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 30),
+                        // Show error message if registration failed
+                        if (authState.hasError ||
+                            (authState.value?.errorMessage != null))
+                          Builder(
+                            builder: (context) {
+                              final errorMessage =
+                                  authState.value?.errorMessage ??
+                                  authState.error.toString();
+                              return AppAlertMessage(
+                                type: AlertType.error,
+                                message: errorMessage,
+                                onDismiss: () {
+                                  ref.read(authProvider.notifier).clearError();
+                                },
+                              );
+                            },
+                          ),
+                        const SizedBox(height: 12),
                         AppPrimaryButton(
                           onPressed: _canSubmit() ? _performRegistration : null,
                           child: _isLoading

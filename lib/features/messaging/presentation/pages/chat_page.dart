@@ -132,7 +132,7 @@ class ChatPage extends ConsumerWidget {
                   primaryColor: const Color(0xFF666666),
                   secondaryColor: const Color(0xFFE5E5EA),
                   backgroundColor: Colors.white,
-                  inputBackgroundColor: Colors.white,
+                  inputBackgroundColor: const Color(0xFFF9FAFB),
                   inputTextColor: Colors.black,
                   inputTextCursorColor: Colors.black,
                   inputTextStyle: const TextStyle(

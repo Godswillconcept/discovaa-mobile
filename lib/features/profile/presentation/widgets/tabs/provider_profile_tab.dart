@@ -9,8 +9,11 @@ import 'package:discovaa/features/profile/presentation/widgets/shared/profile_fi
 import 'package:discovaa/features/profile/presentation/widgets/shared/status_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 /// Provider Profile Tab - Provider-specific information
 class ProviderProfileTab extends ConsumerWidget {
@@ -216,28 +219,20 @@ class ProviderProfileTab extends ConsumerWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: location.isPrimary
-              ? const Color(0xFF10B981)
-              : const Color(0xFFE5E7EB),
-        ),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: location.isPrimary
-                  ? const Color(0xFF10B981).withValues(alpha: 0.1)
-                  : const Color(0xFFE5E7EB),
+              color: const Color(0xFFE5E7EB),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.location_on,
               size: 20,
-              color: location.isPrimary
-                  ? const Color(0xFF10B981)
-                  : const Color(0xFF6B7280),
+              color: Color(0xFF6B7280),
             ),
           ),
           const SizedBox(width: 12),
@@ -245,38 +240,13 @@ class ProviderProfileTab extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      location.name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    if (location.isPrimary) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Text(
-                          'Primary',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF10B981),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+                Text(
+                  location.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF111827),
+                  ),
                 ),
                 if (location.formattedAddress.isNotEmpty) ...[
                   const SizedBox(height: 2),
@@ -685,7 +655,6 @@ class ProviderProfileTab extends ConsumerWidget {
     final radiusController = TextEditingController(
       text: existingLocation?.serviceRadius?.toString() ?? '50',
     );
-    bool isPrimary = existingLocation?.isPrimary ?? false;
     bool isLoading = false;
 
     showModalBottomSheet(
@@ -766,27 +735,22 @@ class ProviderProfileTab extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: radiusController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: 'Service Radius (km)',
-                        hintText: '50',
-                        prefixIcon: const Icon(Icons.radar_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    // Only show service radius for new locations, not when editing
+                    if (!isEditing) ...[
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: radiusController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Service Radius (km)',
+                          hintText: '50',
+                          prefixIcon: const Icon(Icons.radar_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text('Primary Location'),
-                      subtitle: const Text('Set as your main service location'),
-                      value: isPrimary,
-                      onChanged: (value) => setState(() => isPrimary = value),
-                      activeThumbColor: const Color(0xFF111827),
-                    ),
+                    ],
                     if (!isConnected) ...[
                       const SizedBox(height: 12),
                       Container(
@@ -858,7 +822,6 @@ class ProviderProfileTab extends ConsumerWidget {
                                   address: address,
                                   city: city,
                                   country: profile.country,
-                                  isPrimary: isPrimary,
                                   serviceRadius: radius.toDouble(),
                                 );
 
@@ -1444,13 +1407,13 @@ class ProviderProfileTab extends ConsumerWidget {
 }
 
 /// Provider Info Card - Header card showing provider status
-class _ProviderInfoCard extends StatelessWidget {
+class _ProviderInfoCard extends ConsumerWidget {
   final UserProfile profile;
 
   const _ProviderInfoCard({required this.profile});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -1473,19 +1436,119 @@ class _ProviderInfoCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.business,
-                  color: Colors.white,
-                  size: 24,
+              // Provider Photo with Camera Icon
+              GestureDetector(
+                onTap: () {
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(24),
+                          topRight: Radius.circular(24),
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Update Provider Photo',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          ListTile(
+                            leading: const Icon(Icons.camera_alt),
+                            title: const Text('Take Photo'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _ProviderProfileTabHelper.pickAndCropImage(
+                                context,
+                                ref,
+                                ImageSource.camera,
+                              );
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.photo_library),
+                            title: const Text('Choose from Gallery'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _ProviderProfileTabHelper.pickAndCropImage(
+                                context,
+                                ref,
+                                ImageSource.gallery,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      clipBehavior: Clip.hardEdge,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.1),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 2,
+                        ),
+                      ),
+                      child:
+                          profile.profileImage != null &&
+                              profile.profileImage!.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: profile.profileImage!,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => const Icon(
+                                Icons.business,
+                                size: 32,
+                                color: Colors.white54,
+                              ),
+                              errorWidget: (context, url, error) => const Icon(
+                                Icons.business,
+                                size: 32,
+                                color: Colors.white54,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.business,
+                              size: 32,
+                              color: Colors.white54,
+                            ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF111827),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1567,6 +1630,64 @@ class _ProviderInfoCard extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// Helper class to handle image picking and cropping for ProviderProfileTab
+class _ProviderProfileTabHelper {
+  static Future<void> pickAndCropImage(
+    BuildContext context,
+    WidgetRef ref,
+    ImageSource source,
+  ) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source);
+    if (pickedFile == null) return;
+
+    CroppedFile? croppedFile;
+    try {
+      croppedFile = await ImageCropper().cropImage(
+        sourcePath: pickedFile.path,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Image',
+            toolbarColor: const Color(0xFF111827),
+            toolbarWidgetColor: Colors.white,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(title: 'Crop Image', aspectRatioLockEnabled: true),
+        ],
+      );
+    } on PlatformException catch (e) {
+      debugPrint('Image cropper platform error: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image cropping is not available on this device.'),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (croppedFile == null) return;
+
+    // Check connection
+    final connectivityState = ref.read(profileConnectivityProvider);
+    if (connectivityState != ProfileConnectivityState.connected &&
+        context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No internet connection. Cannot upload image.'),
+        ),
+      );
+      return;
+    }
+
+    await ref
+        .read(userProfileProvider.notifier)
+        .uploadProviderPhoto(croppedFile.path);
   }
 }
 

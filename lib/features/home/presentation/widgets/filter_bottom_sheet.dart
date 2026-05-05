@@ -32,6 +32,14 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
   final List<String> _providerTypes = ['All', 'Individual', 'Business'];
   final List<String> _distances = ['5 km', '10 km', '25 km', '50 km'];
 
+  double? _parseDistanceToKm(String distance) {
+    final match = RegExp(r'(\d+)').firstMatch(distance);
+    if (match != null) {
+      return double.parse(match.group(1)!);
+    }
+    return null;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -49,8 +57,17 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
     final filter = ref.read(artisanFilterProvider);
     _nameController.text = filter.searchQuery;
     _areaController.text = filter.location ?? '';
-    _isVerified = filter.minRating != null && filter.minRating! >= 4.0;
+    _providerType = filter.providerType;
+    _isVerified = filter.isVerifiedOnly;
     _nearMe = filter.isAvailableOnly;
+    if (filter.radiusKm != null) {
+      _distance = '${filter.radiusKm!.toInt()} km';
+      if (!_distances.contains(_distance)) {
+        _distance = '10 km';
+      }
+    } else {
+      _distance = '10 km';
+    }
   }
 
   void _applyFilters() {
@@ -64,10 +81,11 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
               ? null
               : _areaController.text.trim(),
         );
-    ref
-        .read(artisanFilterProvider.notifier)
-        .setMinRating(_isVerified ? 4.0 : null);
+    ref.read(artisanFilterProvider.notifier).setProviderType(_providerType);
+    ref.read(artisanFilterProvider.notifier).setVerifiedOnly(_isVerified);
     ref.read(artisanFilterProvider.notifier).setAvailableOnly(_nearMe);
+    final radiusKm = _nearMe ? _parseDistanceToKm(_distance) : null;
+    ref.read(artisanFilterProvider.notifier).setRadiusKm(radiusKm);
     Navigator.of(context).pop();
   }
 
@@ -347,7 +365,7 @@ class _FilterBottomSheetState extends ConsumerState<FilterBottomSheet> {
             Switch(
               value: value,
               onChanged: onChanged,
-              activeColor: Colors.black,
+              activeThumbColor: Colors.black,
               activeTrackColor: Colors.grey.shade400,
               inactiveThumbColor: Colors.white,
               inactiveTrackColor: Colors.grey.shade300,

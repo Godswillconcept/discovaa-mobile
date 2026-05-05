@@ -1,6 +1,6 @@
 import 'package:country_picker/country_picker.dart';
 import 'package:discovaa/core/widgets/custom_buttons.dart';
-import 'package:discovaa/features/authentication/presentation/providers/signup_provider.dart';
+import 'package:discovaa/features/authentication/presentation/providers/registration_flow_provider.dart';
 import 'package:discovaa/features/profile/domain/entities/user_profile.dart';
 import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
 import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
@@ -14,9 +14,9 @@ class PersonalInfoTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final signupState = ref.watch(signupProvider);
-    final isProvider = signupState.selectedRole.isProvider;
-    final isBSV = signupState.selectedRole == UserRole.businessProvider;
+    final registrationState = ref.watch(registrationFlowProvider);
+    final isProvider = registrationState.selectedRole?.isProvider ?? false;
+    final isBSV = registrationState.selectedRole == UserRole.businessProvider;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -189,8 +189,8 @@ class PersonalInfoTab extends ConsumerWidget {
     bool isPhone = false,
     bool isDropdown = false,
   }) {
-    final signupState = ref.watch(signupProvider);
-    final isBSV = signupState.selectedRole == UserRole.businessProvider;
+    final registrationState = ref.watch(registrationFlowProvider);
+    final isBSV = registrationState.selectedRole == UserRole.businessProvider;
     final bool isServiceEdit = label == 'Services offered';
     final bool isBlackButton = isServiceEdit && isBSV;
 

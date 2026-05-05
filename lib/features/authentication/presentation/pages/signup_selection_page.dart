@@ -3,24 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../providers/signup_provider.dart';
-import '../../../../core/utils/clippers.dart';
+import 'package:discovaa/app/router/route_names.dart';
+import 'package:discovaa/features/authentication/presentation/providers/registration_flow_provider.dart';
+import 'package:discovaa/core/utils/clippers.dart';
+
+/// Simple state provider for managing the two-level selection UI
+final _selectionLevelProvider = StateProvider<bool>((ref) => true);
 
 class SignupSelectionPage extends ConsumerWidget {
   const SignupSelectionPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(signupProvider);
-    final notifier = ref.read(signupProvider.notifier);
-    final isInitialLevel = state.currentLevel == SignupSelectionLevel.initial;
+    final registrationState = ref.watch(registrationFlowProvider);
+    final isInitialLevel = ref.watch(_selectionLevelProvider);
+    final selectedRole = registrationState.selectedRole;
 
     return PopScope(
       canPop: isInitialLevel,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
         if (!isInitialLevel) {
-          notifier.goBackToInitial();
+          ref.read(_selectionLevelProvider.notifier).state = true;
         }
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -46,9 +50,15 @@ class SignupSelectionPage extends ConsumerWidget {
                       child: InkWell(
                         onTap: () {
                           if (isInitialLevel) {
-                            context.pop();
+                            // Check if we can pop to avoid "nothing to pop" error
+                            if (GoRouter.of(context).canPop()) {
+                              context.pop();
+                            } else {
+                              context.go(RouteNames.onboarding);
+                            }
                           } else {
-                            notifier.goBackToInitial();
+                            ref.read(_selectionLevelProvider.notifier).state =
+                                true;
                           }
                         },
                         child: Padding(
@@ -130,9 +140,8 @@ class SignupSelectionPage extends ConsumerWidget {
                               ? UserRole.user
                               : UserRole.individualProvider,
                           isSelected: isInitialLevel
-                              ? state.selectedRole == UserRole.user
-                              : state.selectedRole ==
-                                    UserRole.individualProvider,
+                              ? selectedRole == UserRole.user
+                              : selectedRole == UserRole.individualProvider,
                           icon: Icons.person_outline,
                           title: isInitialLevel
                               ? "User"
@@ -142,37 +151,38 @@ class SignupSelectionPage extends ConsumerWidget {
                           onTap: () {
                             if (isInitialLevel) {
                               // Just select the role, arrow handles navigation
-                              notifier.selectRole(UserRole.user);
+                              ref
+                                  .read(registrationFlowProvider.notifier)
+                                  .setRole(UserRole.user);
                             } else {
-                              if (state.selectedRole ==
-                                  UserRole.individualProvider) {
-                                notifier.goToRegistration();
+                              if (selectedRole == UserRole.individualProvider) {
                                 context.push(
-                                  '/register',
+                                  RouteNames.register,
                                   extra: UserRole.individualProvider.name,
                                 );
                               } else {
-                                notifier.selectRole(
-                                  UserRole.individualProvider,
-                                );
+                                ref
+                                    .read(registrationFlowProvider.notifier)
+                                    .setRole(UserRole.individualProvider);
                               }
                             }
                           },
                           onArrowTap: () {
                             if (isInitialLevel) {
                               // User selected → navigate directly to register
-                              // Don't call goToRegistration() here to avoid
-                              // flashing provider sub-options during rebuild
-                              notifier.selectRole(UserRole.user);
+                              ref
+                                  .read(registrationFlowProvider.notifier)
+                                  .setRole(UserRole.user);
                               context.push(
-                                '/register',
+                                RouteNames.register,
                                 extra: UserRole.user.name,
                               );
                             } else {
-                              notifier.selectRole(UserRole.individualProvider);
-                              notifier.goToRegistration();
+                              ref
+                                  .read(registrationFlowProvider.notifier)
+                                  .setRole(UserRole.individualProvider);
                               context.push(
-                                '/register',
+                                RouteNames.register,
                                 extra: UserRole.individualProvider.name,
                               );
                             }
@@ -188,11 +198,9 @@ class SignupSelectionPage extends ConsumerWidget {
                               ? UserRole.individualProvider
                               : UserRole.businessProvider,
                           isSelected: isInitialLevel
-                              ? (state.selectedRole ==
-                                        UserRole.individualProvider ||
-                                    state.selectedRole ==
-                                        UserRole.businessProvider)
-                              : state.selectedRole == UserRole.businessProvider,
+                              ? (selectedRole == UserRole.individualProvider ||
+                                    selectedRole == UserRole.businessProvider)
+                              : selectedRole == UserRole.businessProvider,
                           icon: Icons.business_center_outlined,
                           title: isInitialLevel
                               ? "Service Provider"
@@ -201,31 +209,39 @@ class SignupSelectionPage extends ConsumerWidget {
                               "Own or belong to a company? This is for you.",
                           onTap: () {
                             if (isInitialLevel) {
-                              // Just select the role, arrow handles navigation
-                              notifier.selectRole(UserRole.individualProvider);
+                              // Show provider sub-selection
+                              ref.read(_selectionLevelProvider.notifier).state =
+                                  false;
+                              ref
+                                  .read(registrationFlowProvider.notifier)
+                                  .setRole(UserRole.individualProvider);
                             } else {
-                              if (state.selectedRole ==
-                                  UserRole.businessProvider) {
-                                notifier.goToRegistration();
+                              if (selectedRole == UserRole.businessProvider) {
                                 context.push(
-                                  '/register',
+                                  RouteNames.register,
                                   extra: UserRole.businessProvider.name,
                                 );
                               } else {
-                                notifier.selectRole(UserRole.businessProvider);
+                                ref
+                                    .read(registrationFlowProvider.notifier)
+                                    .setRole(UserRole.businessProvider);
                               }
                             }
                           },
                           onArrowTap: () {
                             if (isInitialLevel) {
-                              // Service Provider selected → navigate to provider sub-selection
-                              notifier.selectRole(UserRole.individualProvider);
-                              notifier.goToProviderSelection();
+                              // Service Provider selected → show provider sub-selection
+                              ref.read(_selectionLevelProvider.notifier).state =
+                                  false;
+                              ref
+                                  .read(registrationFlowProvider.notifier)
+                                  .setRole(UserRole.individualProvider);
                             } else {
-                              notifier.selectRole(UserRole.businessProvider);
-                              notifier.goToRegistration();
+                              ref
+                                  .read(registrationFlowProvider.notifier)
+                                  .setRole(UserRole.businessProvider);
                               context.push(
-                                '/register',
+                                RouteNames.register,
                                 extra: UserRole.businessProvider.name,
                               );
                             }
@@ -254,7 +270,7 @@ class SignupSelectionPage extends ConsumerWidget {
                             ),
                             recognizer: TapGestureRecognizer()
                               ..onTap = () {
-                                context.go('/login');
+                                context.push(RouteNames.login);
                               },
                           ),
                         ],

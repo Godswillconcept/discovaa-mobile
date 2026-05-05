@@ -29,14 +29,12 @@ final artisanDetailProvider =
     >(() => ArtisanDetailNotifier());
 
 /// State class for artisan detail
+/// Uses unified loading - all data is fetched before state is emitted
 class ArtisanDetailState {
   final Artisan artisan;
   final List<ArtisanService> services;
   final List<Review> reviews;
   final Map<String, String> availability;
-  final bool isLoadingServices;
-  final bool isLoadingReviews;
-  final bool isLoadingAvailability;
   final String? error;
 
   const ArtisanDetailState({
@@ -44,9 +42,6 @@ class ArtisanDetailState {
     this.services = const [],
     this.reviews = const [],
     this.availability = const {},
-    this.isLoadingServices = false,
-    this.isLoadingReviews = false,
-    this.isLoadingAvailability = false,
     this.error,
   });
 
@@ -55,9 +50,6 @@ class ArtisanDetailState {
     List<ArtisanService>? services,
     List<Review>? reviews,
     Map<String, String>? availability,
-    bool? isLoadingServices,
-    bool? isLoadingReviews,
-    bool? isLoadingAvailability,
     String? error,
   }) {
     return ArtisanDetailState(
@@ -65,13 +57,14 @@ class ArtisanDetailState {
       services: services ?? this.services,
       reviews: reviews ?? this.reviews,
       availability: availability ?? this.availability,
-      isLoadingServices: isLoadingServices ?? this.isLoadingServices,
-      isLoadingReviews: isLoadingReviews ?? this.isLoadingReviews,
-      isLoadingAvailability:
-          isLoadingAvailability ?? this.isLoadingAvailability,
       error: error ?? this.error,
     );
   }
+
+  /// Check if all required data is loaded
+  /// We check that artisan data exists (fetched) rather than checking non-empty lists
+  /// (an artisan may legitimately have no reviews or empty availability)
+  bool get isComplete => artisan.id.isNotEmpty;
 
   /// Get combined artisan with populated services, reviews, and availability
   Artisan get populatedArtisan {
@@ -130,171 +123,102 @@ class ArtisanDetailNotifier
   Future<ArtisanDetailState> build(String artisanId) async {
     final repository = ref.read(artisanDetailRepositoryProvider);
 
-    // Hydrate from cache and return early if present to avoid redundant network calls
+    // Try to load from cache first
     final cachedArtisan = repository.getCachedArtisanDetail(artisanId);
-    if (cachedArtisan != null) {
-      final cachedServices = repository.getCachedArtisanServices(artisanId);
-      final cachedReviews = repository.getCachedArtisanReviews(artisanId);
-      final cachedAvailability = repository.getCachedArtisanAvailability(
-        artisanId,
-      );
-      state = AsyncData(
-        ArtisanDetailState(
-          artisan: cachedArtisan,
-          services: cachedServices,
-          reviews: cachedReviews,
-          availability: cachedAvailability,
-        ),
-      );
-      // No need to refetch; return early
-      return ArtisanDetailState(
+    final cachedServices = repository.getCachedArtisanServices(artisanId);
+    final cachedReviews = repository.getCachedArtisanReviews(artisanId);
+    final cachedAvailability = repository.getCachedArtisanAvailability(
+      artisanId,
+    );
+
+    // If we have complete cached data, return it immediately
+    // Cache will be validated - if data is stale, it will be refreshed below
+    if (cachedArtisan != null &&
+        cachedServices.isNotEmpty &&
+        cachedReviews.isNotEmpty) {
+      final cachedState = ArtisanDetailState(
         artisan: cachedArtisan,
         services: cachedServices,
         reviews: cachedReviews,
         availability: cachedAvailability,
       );
+
+      // Emit cached data immediately
+      state = AsyncData(cachedState);
+
+      // Continue to fetch fresh data in background (will update state when complete)
+      _fetchAllData(artisanId, useCache: false);
+      return cachedState;
     }
-    // If no cache, proceed to fetch fresh data
-    final artisan = await repository.getArtisanDetail(artisanId);
 
-    // Initialize AsyncValue state with base data before loading extras
-    final baseState = ArtisanDetailState(artisan: artisan);
-    state = AsyncData(baseState);
-
-    // Load additional data in parallel (updates state incrementally)
-    await Future.wait([
-      _loadServices(artisanId),
-      _loadReviews(artisanId),
-      _loadAvailability(artisanId),
-    ]);
-
-    return state.requireValue;
+    // No valid cache, fetch all data
+    return _fetchAllData(artisanId, useCache: true);
   }
 
-  Future<void> _loadServices(String artisanId) async {
-    try {
-      state = AsyncData(
-        state.value?.copyWith(isLoadingServices: true) ??
-            ArtisanDetailState(
-              artisan: state.value!.artisan,
-              isLoadingServices: true,
-            ),
-      );
-
-      final repository = ref.read(artisanDetailRepositoryProvider);
-      final services = await repository.getArtisanServices(artisanId);
-
-      state = AsyncData(
-        state.value?.copyWith(services: services, isLoadingServices: false) ??
-            ArtisanDetailState(
-              artisan: state.value!.artisan,
-              services: services,
-            ),
-      );
-    } catch (e) {
-      state = AsyncData(
-        state.value?.copyWith(
-              isLoadingServices: false,
-              error: 'Failed to load services',
-            ) ??
-            ArtisanDetailState(
-              artisan: state.value!.artisan,
-              error: 'Failed to load services',
-            ),
-      );
-    }
-  }
-
-  Future<void> _loadReviews(String artisanId) async {
-    try {
-      state = AsyncData(
-        state.value?.copyWith(isLoadingReviews: true) ??
-            ArtisanDetailState(
-              artisan: state.value!.artisan,
-              isLoadingReviews: true,
-            ),
-      );
-
-      final repository = ref.read(artisanDetailRepositoryProvider);
-      final reviews = await repository.getArtisanReviews(artisanId);
-
-      state = AsyncData(
-        state.value?.copyWith(reviews: reviews, isLoadingReviews: false) ??
-            ArtisanDetailState(artisan: state.value!.artisan, reviews: reviews),
-      );
-    } catch (e) {
-      state = AsyncData(
-        state.value?.copyWith(
-              isLoadingReviews: false,
-              error: 'Failed to load reviews',
-            ) ??
-            ArtisanDetailState(
-              artisan: state.value!.artisan,
-              error: 'Failed to load reviews',
-            ),
-      );
-    }
-  }
-
-  Future<void> _loadAvailability(String artisanId) async {
-    try {
-      state = AsyncData(
-        state.value?.copyWith(isLoadingAvailability: true) ??
-            ArtisanDetailState(
-              artisan: state.value!.artisan,
-              isLoadingAvailability: true,
-            ),
-      );
-
-      final repository = ref.read(artisanDetailRepositoryProvider);
-      final availability = await repository.getArtisanAvailability(artisanId);
-
-      state = AsyncData(
-        state.value?.copyWith(
-              availability: availability,
-              isLoadingAvailability: false,
-            ) ??
-            ArtisanDetailState(
-              artisan: state.value!.artisan,
-              availability: availability,
-            ),
-      );
-    } catch (e) {
-      state = AsyncData(
-        state.value?.copyWith(
-              isLoadingAvailability: false,
-              error: 'Failed to load availability',
-            ) ??
-            ArtisanDetailState(
-              artisan: state.value!.artisan,
-              error: 'Failed to load availability',
-            ),
-      );
-    }
-  }
-
-  Future<void> refresh() async {
-    final artisanId = arg;
+  /// Fetch all required data in parallel using Future.wait()
+  /// This ensures all-or-nothing loading - state is only emitted when ALL data is ready
+  Future<ArtisanDetailState> _fetchAllData(
+    String artisanId, {
+    required bool useCache,
+  }) async {
     final repository = ref.read(artisanDetailRepositoryProvider);
 
+    try {
+      // Fetch all data in parallel
+      final results = await Future.wait([
+        repository.getArtisanDetail(artisanId),
+        repository.getArtisanServices(artisanId),
+        repository.getArtisanReviews(artisanId),
+        repository.getArtisanAvailability(artisanId),
+      ]);
+
+      final artisan = results[0] as Artisan;
+      final services = results[1] as List<ArtisanService>;
+      final reviews = results[2] as List<Review>;
+      final availability = results[3] as Map<String, String>;
+
+      final state = ArtisanDetailState(
+        artisan: artisan,
+        services: services,
+        reviews: reviews,
+        availability: availability,
+      );
+
+      return state;
+    } catch (e) {
+      // If we have cached data, return it with error
+      final cachedArtisan = repository.getCachedArtisanDetail(artisanId);
+      if (cachedArtisan != null) {
+        return ArtisanDetailState(
+          artisan: cachedArtisan,
+          services: repository.getCachedArtisanServices(artisanId),
+          reviews: repository.getCachedArtisanReviews(artisanId),
+          availability: repository.getCachedArtisanAvailability(artisanId),
+          error: 'Failed to refresh data. Showing cached version.',
+        );
+      }
+
+      // No cache available, rethrow to let AsyncNotifier handle the error state
+      rethrow;
+    }
+  }
+
+  /// Refresh data by clearing cache and refetching all data
+  Future<void> refresh() async {
+    final artisanId = arg;
+
+    // Clear cache to force fresh fetch
+    final repository = ref.read(artisanDetailRepositoryProvider);
     await repository.clearCache(artisanId);
 
+    // Set loading state
     state = const AsyncLoading();
 
     try {
-      final artisan = await repository.getArtisanDetail(artisanId);
-      final newState = ArtisanDetailState(artisan: artisan);
-
-      // Set base state first to avoid null access during section loads
+      final newState = await _fetchAllData(artisanId, useCache: false);
       state = AsyncData(newState);
-
-      await Future.wait([
-        _loadServices(artisanId),
-        _loadReviews(artisanId),
-        _loadAvailability(artisanId),
-      ]);
-    } catch (e, stackTrace) {
-      state = AsyncError(e, stackTrace);
+    } catch (e) {
+      state = AsyncError(e, StackTrace.current);
     }
   }
 }

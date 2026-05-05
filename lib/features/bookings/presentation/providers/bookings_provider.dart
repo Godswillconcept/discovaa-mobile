@@ -3,9 +3,11 @@ import 'package:discovaa/core/network/dio_client.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:discovaa/features/bookings/data/models/booking_api_models.dart';
 import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/data/repositories/bookings_repository_impl.dart';
 import 'package:discovaa/features/bookings/domain/repositories/bookings_repository.dart';
+import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:discovaa/features/services/presentation/providers/services_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,26 +85,67 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
   final BookingsRepository _repository;
   final Ref _ref;
 
+  // Track pending operations to prevent double charges
+  final Set<String> _pendingChargeOperations = {};
+  // Loading flag to prevent concurrent state mutations
+  bool _isLoading = false;
+
+  String? _providerIdForBookings(String? userRole) {
+    if (!isProviderRole(userRole)) return null;
+
+    final providerId = _ref.read(userProfileProvider).profile?.providerId;
+    if (providerId == null || providerId.isEmpty) {
+      debugPrint(
+        '[Bookings] Provider role detected, but providerId is missing. '
+        'Skipping provider booking fetch.',
+      );
+      return null;
+    }
+    return providerId;
+  }
+
+  bool _shouldSkipProviderFetch(String? userRole, String? providerId) {
+    return isProviderRole(userRole) && (providerId == null || providerId.isEmpty);
+  }
+
   Future<void> loadBookings() async {
-    if (state.bookings.isNotEmpty) return;
+    // Prevent concurrent execution
+    if (_isLoading) return;
+    _isLoading = true;
 
     final authState = _ref.read(authProvider);
-    final user = authState.user;
+    final user = authState.value?.user;
     final userRole = user?.role;
 
     final cached = _repository.getCachedBookings(userRole: userRole);
-    if (cached.isNotEmpty) {
-      state = state.copyWith(
-        bookings: cached,
-        status: BookingsLoadStatus.success,
-      );
-    } else {
-      state = state.copyWith(status: BookingsLoadStatus.loading);
+
+    // Show cached data immediately if available
+    if (cached.isNotEmpty && state.bookings.isEmpty) {
+      if (mounted) {
+        state = state.copyWith(
+          bookings: cached,
+          status: BookingsLoadStatus.success,
+        );
+      }
+    } else if (state.bookings.isEmpty) {
+      if (mounted) {
+        state = state.copyWith(status: BookingsLoadStatus.loading);
+      }
     }
 
     try {
-      final providerId =
-          user?.id; // For providers, the user ID is the provider ID
+      final providerId = _providerIdForBookings(userRole);
+      if (_shouldSkipProviderFetch(userRole, providerId)) {
+        if (mounted) {
+          state = state.copyWith(
+            bookings: [],
+            status: BookingsLoadStatus.success,
+            currentPage: 1,
+            hasMore: false,
+          );
+        }
+        return;
+      }
 
       final data = await _repository.listBookings(
         userRole: userRole,
@@ -122,7 +165,7 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
             bookings: cached,
             status: BookingsLoadStatus.success,
           );
-        } else {
+        } else if (state.bookings.isEmpty) {
           // Only show error state if it's a genuine network/API error
           // Empty data should be treated as success (no bookings yet)
           state = state.copyWith(
@@ -131,18 +174,36 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
           );
         }
       }
+    } finally {
+      _isLoading = false;
     }
   }
 
   /// Force reload bookings from server (ignores cache check)
   Future<void> refreshBookings() async {
-    state = state.copyWith(status: BookingsLoadStatus.loading);
+    // Prevent concurrent execution
+    if (_isLoading) return;
+    _isLoading = true;
+
+    if (mounted) {
+      state = state.copyWith(status: BookingsLoadStatus.loading);
+    }
     try {
       final authState = _ref.read(authProvider);
-      final user = authState.user;
+      final user = authState.value?.user;
       final userRole = user?.role;
-      final providerId =
-          user?.id; // For providers, the user ID is the provider ID
+      final providerId = _providerIdForBookings(userRole);
+      if (_shouldSkipProviderFetch(userRole, providerId)) {
+        if (mounted) {
+          state = state.copyWith(
+            bookings: [],
+            status: BookingsLoadStatus.success,
+            currentPage: 1,
+            hasMore: false,
+          );
+        }
+        return;
+      }
 
       final data = await _repository.listBookings(
         userRole: userRole,
@@ -150,32 +211,53 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
         page: 1,
         pageSize: state.pageSize,
       );
-      state = state.copyWith(
-        bookings: data,
-        status: BookingsLoadStatus.success,
-        currentPage: 1,
-        hasMore: data.length >= state.pageSize,
-      );
+      if (mounted) {
+        state = state.copyWith(
+          bookings: data,
+          status: BookingsLoadStatus.success,
+          currentPage: 1,
+          hasMore: data.length >= state.pageSize,
+        );
+      }
     } catch (e) {
       // On refresh failure, keep existing bookings and show error
       // Empty data should still be treated as success
-      state = state.copyWith(
-        bookings: state.bookings,
-        status: BookingsLoadStatus.success,
-      );
+      if (mounted) {
+        state = state.copyWith(
+          bookings: state.bookings,
+          status: BookingsLoadStatus.success,
+        );
+      }
+    } finally {
+      _isLoading = false;
     }
   }
 
   /// Load more bookings (pagination)
   Future<void> loadMoreBookings() async {
-    if (!state.hasMore || state.status == BookingsLoadStatus.loading) return;
+    // Prevent concurrent execution
+    if (_isLoading) return;
+    if (!state.hasMore) return;
 
-    state = state.copyWith(status: BookingsLoadStatus.loading);
+    _isLoading = true;
+
+    if (mounted) {
+      state = state.copyWith(status: BookingsLoadStatus.loading);
+    }
     try {
       final authState = _ref.read(authProvider);
-      final user = authState.user;
+      final user = authState.value?.user;
       final userRole = user?.role;
-      final providerId = user?.id;
+      final providerId = _providerIdForBookings(userRole);
+      if (_shouldSkipProviderFetch(userRole, providerId)) {
+        if (mounted) {
+          state = state.copyWith(
+            status: BookingsLoadStatus.success,
+            hasMore: false,
+          );
+        }
+        return;
+      }
 
       final nextPage = state.currentPage + 1;
       final data = await _repository.listBookings(
@@ -197,6 +279,8 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
       if (mounted) {
         state = state.copyWith(status: BookingsLoadStatus.success);
       }
+    } finally {
+      _isLoading = false;
     }
   }
 
@@ -220,6 +304,7 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     double? longitude,
     required List<Map<String, dynamic>> items,
   }) async {
+    // Create booking on server first (safer approach to avoid complex BookingModel construction)
     final booking = await _repository.placeBooking(
       providerId: providerId,
       scheduledStart: scheduledStart,
@@ -232,10 +317,14 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
       longitude: longitude,
       items: items,
     );
-    state = state.copyWith(
-      bookings: [booking, ...state.bookings],
-      status: BookingsLoadStatus.success,
-    );
+
+    // Add to state after successful server confirmation
+    if (mounted) {
+      state = state.copyWith(
+        bookings: [booking, ...state.bookings],
+        status: BookingsLoadStatus.success,
+      );
+    }
     return booking;
   }
 
@@ -248,14 +337,18 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     // Refresh from server to get server-truth status
     try {
       final updated = await _repository.retrieveBooking(id);
-      _replaceBooking(updated);
+      if (mounted) {
+        _replaceBooking(updated);
+      }
     } catch (e) {
       // Fallback to optimistic update if refresh fails
-      final updated = current.copyWith(
-        status: BookingStatus.cancelled,
-        updatedAt: DateTime.now(),
-      );
-      _replaceBooking(updated);
+      if (mounted) {
+        final updated = current.copyWith(
+          status: BookingStatus.cancelled,
+          updatedAt: DateTime.now(),
+        );
+        _replaceBooking(updated);
+      }
     }
   }
 
@@ -265,25 +358,45 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     final current = matches.isEmpty ? null : matches.first;
     if (current == null) return;
     await _repository.deleteBooking(current);
-    state = state.copyWith(
-      bookings: state.bookings.where((b) => b.id != id).toList(),
-    );
+    if (mounted) {
+      state = state.copyWith(
+        bookings: state.bookings.where((b) => b.id != id).toList(),
+      );
+    }
   }
 
   /// Charge a booking for payment.
   Future<void> chargeBooking(String id) async {
+    // Prevent double charge - check if already processing
+    if (_pendingChargeOperations.contains(id)) {
+      debugPrint('[chargeBooking] Charge already in progress for booking: $id');
+      return;
+    }
+
     final matches = state.bookings.where((b) => b.id == id);
     final current = matches.isEmpty ? null : matches.first;
     if (current == null) return;
-    await _repository.chargeBooking(current);
-    // Refresh from server to get server-truth status
+
+    // Track pending charge operation
+    _pendingChargeOperations.add(id);
+
     try {
-      final updated = await _repository.retrieveBooking(id);
-      _replaceBooking(updated);
-    } catch (e) {
-      // Fallback to optimistic update if refresh fails
-      final updated = await _repository.chargeBooking(current);
-      _replaceBooking(updated);
+      await _repository.chargeBooking(current);
+      // Refresh from server to get server-truth status
+      try {
+        final updated = await _repository.retrieveBooking(id);
+        _replaceBooking(updated);
+      } catch (e) {
+        // Fallback to optimistic update if refresh fails
+        final updated = current.copyWith(
+          status: BookingStatus.confirmed,
+          updatedAt: DateTime.now(),
+        );
+        _replaceBooking(updated);
+      }
+    } finally {
+      // Remove from pending operations
+      _pendingChargeOperations.remove(id);
     }
   }
 

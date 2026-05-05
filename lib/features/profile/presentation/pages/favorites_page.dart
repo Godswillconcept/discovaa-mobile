@@ -293,9 +293,8 @@ class _FavoriteArtisanTile extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         onTap: () {
-          // Select artisan and navigate to profile page
-          ref.read(bookingProvider.notifier).selectArtisan(artisan);
-          context.push(RouteNames.artisanProfile);
+          // Navigate to artisan profile with ID
+          context.push('${RouteNames.artisanProfile}/${artisan.id}');
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(

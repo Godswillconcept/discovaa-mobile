@@ -103,7 +103,7 @@ class BookingDto {
   final String providerId;
   final String status;
   final String serviceType;
-  final DateTime scheduledStart;
+  final DateTime? scheduledStart;
   final DateTime? scheduledEnd;
   final String? addressText;
   final dynamic locationPoint;
@@ -124,7 +124,7 @@ class BookingDto {
     required this.providerId,
     required this.status,
     required this.serviceType,
-    required this.scheduledStart,
+    this.scheduledStart,
     this.scheduledEnd,
     this.addressText,
     this.locationPoint,
@@ -373,6 +373,40 @@ class UserNestedDto {
   }
 }
 
+// DTO for provider media data (expanded from API)
+class ProviderMediaDto {
+  final String id;
+  final String service;
+  final String url;
+  final String caption;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const ProviderMediaDto({
+    required this.id,
+    required this.service,
+    required this.url,
+    this.caption = '',
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  factory ProviderMediaDto.fromJson(Map<String, dynamic> json) {
+    return ProviderMediaDto(
+      id: json['id']?.toString() ?? '',
+      service: json['service']?.toString() ?? '',
+      url: json['url']?.toString() ?? '',
+      caption: json['caption']?.toString() ?? '',
+      createdAt:
+          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+          DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(json['updated_at']?.toString() ?? '') ??
+          DateTime.now(),
+    );
+  }
+}
+
 // DTO for nested provider data from expand parameter
 class ProviderNestedDto {
   final String id;
@@ -391,7 +425,7 @@ class ProviderNestedDto {
   final Map<String, dynamic>? country;
   final String? countryIso2;
   final List<LocationDto> locations;
-  final List<dynamic> media;
+  final List<ProviderMediaDto> media;
   final List<CertificationDto> certifications;
   final List<AvailabilityRuleDto> availabilityRules;
   final double? avgRating;
@@ -448,7 +482,10 @@ class ProviderNestedDto {
           .whereType<Map<String, dynamic>>()
           .map(LocationDto.fromJson)
           .toList(growable: false),
-      media: json['media'] as List<dynamic>? ?? [],
+      media: (json['media'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map(ProviderMediaDto.fromJson)
+          .toList(growable: false),
       certifications: (json['certifications'] as List<dynamic>? ?? [])
           .whereType<Map<String, dynamic>>()
           .map(CertificationDto.fromJson)
@@ -709,19 +746,26 @@ BookingModel mapBookingDto(
                 ),
               )
             : BookedServiceSnapshot(
+                // Fallback when service data is not available
+                // This happens when API doesn't return expanded service data
+                // and service is not in the serviceMap cache
                 serviceId: dto.items.isNotEmpty
                     ? dto.items.first.serviceId
                     : dto.id,
-                title: 'Booked Service',
-                category: 'General',
+                title:
+                    'Service #${dto.items.isNotEmpty ? dto.items.first.serviceId : dto.id}',
+                category: 'Service',
                 imagePath: AppAssets.servicePlaceholder(
                   dto.items.isNotEmpty ? dto.items.first.serviceId : dto.id,
                 ),
                 formattedPrice: _formatAmount(dto.totalAmount, dto.currency),
                 pricingModel: PricingModel.fixed,
-                durationMinutes: dto.scheduledEnd
-                    ?.difference(dto.scheduledStart)
-                    .inMinutes,
+                durationMinutes:
+                    dto.scheduledStart != null && dto.scheduledEnd != null
+                    ? dto.scheduledEnd!
+                          .difference(dto.scheduledStart!)
+                          .inMinutes
+                    : null,
               ));
 
   // Extract user info from nested user object
@@ -753,10 +797,12 @@ BookingModel mapBookingDto(
   return BookingModel(
     id: dto.id,
     service: snapshot,
+    clientId: dto.userId, // NEW: Map userId from DTO to clientId in model
     clientName: userDisplayName,
     clientAvatarPath: userProfilePhoto,
     userDisplayName: userDisplayName,
     userProfilePhoto: userProfilePhoto,
+    providerId: dto.providerId,
     providerName: providerName,
     providerAvatarPath: providerAvatarPath,
     providerEmail: providerEmail,
@@ -766,8 +812,8 @@ BookingModel mapBookingDto(
     providerAvgRating: providerAvgRating,
     providerReviewCount: providerReviewCount,
     providerHiresCount: providerHiresCount,
-    scheduledDate: dto.scheduledStart,
-    scheduledTime: TimeOfDay.fromDateTime(dto.scheduledStart),
+    scheduledDate: dto.scheduledStart ?? DateTime.now(),
+    scheduledTime: TimeOfDay.fromDateTime(dto.scheduledStart ?? DateTime.now()),
     scheduledEnd: dto.scheduledEnd,
     status: bookingStatusFromString(dto.status),
     serviceType: dto.serviceType,
@@ -819,11 +865,9 @@ String? _extractServiceImagePath(
   // 1. Check provider's media array since API expands full media objects there
   if (provider != null) {
     for (final mediaItem in provider.media) {
-      if (mediaItem is Map<String, dynamic> &&
-          mediaItem['service'] == service.id) {
-        final url = mediaItem['url']?.toString();
-        if (_isRenderableImagePath(url)) {
-          return url;
+      if (mediaItem.service == service.id) {
+        if (_isRenderableImagePath(mediaItem.url)) {
+          return mediaItem.url;
         }
       }
     }

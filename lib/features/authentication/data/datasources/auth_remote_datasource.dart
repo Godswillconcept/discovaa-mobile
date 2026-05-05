@@ -3,13 +3,13 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
-import '../../../../core/errors/exceptions.dart';
-import '../../../../core/network/dio_client.dart';
-import '../../../../core/storage/secure_token_storage.dart';
+import 'package:discovaa/core/errors/exceptions.dart';
+import 'package:discovaa/core/network/dio_client.dart';
+import 'package:discovaa/core/storage/secure_token_storage.dart';
 import '../models/auth_models.dart';
 import '../models/user_model.dart';
 import '../models/registration_model.dart';
-import '../../presentation/providers/signup_provider.dart';
+import '../../presentation/providers/registration_flow_provider.dart';
 
 /// Abstract remote data source for authentication using OpenAPI
 abstract class AuthRemoteDataSource {
@@ -49,6 +49,7 @@ abstract class AuthRemoteDataSource {
     required String lastName,
     required String displayName,
     required String phone,
+    required String address,
     required String? countryIso2,
     String? businessName,
     String? businessDescription,
@@ -148,6 +149,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   /// Map User to UserModel
+  /// Note: This is a minimal mapping for the auth endpoint response.
+  /// The full profile is fetched separately via fetchFullProfile() which contains
+  /// the correct role field from accounts/me endpoint.
   UserModel _mapAuthUserToUserModel(AuthUser user) {
     return UserModel(
       id: user.id,
@@ -157,7 +161,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       address: null,
       country: null,
       photoUrl: null,
-      role: 'user',
+      role: 'USER', // Default to USER, will be overridden by full profile fetch
       isEmailVerified: true, // OpenAPI handles this separately
       isProfileComplete: user.isProfileComplete,
       createdAt: DateTime.now(),
@@ -339,9 +343,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       throw _handleError(response.data, 'Registration failed');
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
-    } on ServerException {
+    } on ServerException catch (_) {
       rethrow;
     } catch (e) {
       throw UnknownException(
@@ -358,11 +362,25 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String code,
   }) async {
     try {
+      // Validate inputs
+      if (email.isEmpty) {
+        throw ServerException(
+          message: 'Email is required for verification',
+          code: 'MISSING_EMAIL',
+        );
+      }
+      if (code.isEmpty) {
+        throw ServerException(
+          message: 'Verification code is required',
+          code: 'MISSING_CODE',
+        );
+      }
+
       final sessionToken = await _tokenStorage.getSessionToken();
       final request = EmailVerifyRequest(key: code);
 
-      debugPrint('Verifying email: $email with code: $code');
-      debugPrint('Using Session Token: $sessionToken');
+      debugPrint('[verifyEmail] Verifying email: $email with code: $code');
+      debugPrint('[verifyEmail] Using Session Token: $sessionToken');
 
       // Use direct Dio call to allow 409 status code (already verified)
       final dio = Dio(
@@ -436,13 +454,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       throw _handleError(response.data, 'Email verification failed');
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
-    } on ServerException {
+    } on ServerException catch (_) {
       rethrow;
-    } catch (e) {
+    } on ConflictException catch (_) {
+      rethrow;
+    } catch (e, stackTrace) {
+      debugPrint('[verifyEmail] Unexpected error: $e');
+      debugPrint('[verifyEmail] Stack trace: $stackTrace');
       throw UnknownException(
-        message: 'Unexpected error during email verification',
+        message: 'Unexpected error during email verification: $e',
         code: 'UNKNOWN_EMAIL_VERIFICATION_ERROR',
         details: e,
       );
@@ -520,21 +542,31 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             );
 
             if (authResponse.isFlowPending('verify_email')) {
-              throw const AuthenticationException(
-                message: 'Your email is not verified. Please check your inbox.',
-                code: 'VERIFICATION_PENDING',
+              debugPrint(
+                '[AuthRemoteDataSource] Login successful, pending email verification',
               );
+              // Create minimal user model for email verification flow
+              // Use email from the credentials we just sent
+              final userModel = UserModel(
+                id: '',
+                email: email,
+                displayName: '',
+                role: 'user',
+                isProfileComplete: false,
+                isIdentityVerified: false,
+              );
+              return userModel;
             }
           }
         }
       }
 
       throw _handleError(response.data, 'Login failed');
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
-    } on AuthenticationException {
+    } on AuthenticationException catch (_) {
       rethrow;
-    } on ServerException {
+    } on ServerException catch (_) {
       rethrow;
     } catch (e) {
       if (e is AuthenticationException) rethrow;
@@ -615,7 +647,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return null;
     } on AuthenticationException {
       return null;
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
     } catch (e) {
       throw UnknownException(
@@ -681,9 +713,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       throw _handleError(response.data, 'Failed to send reset email');
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
-    } on ServerException {
+    } on ServerException catch (_) {
       rethrow;
     } catch (e) {
       throw UnknownException(
@@ -700,21 +732,81 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String newPassword,
   }) async {
     try {
-      final request = PasswordResetRequest(key: key, password: newPassword);
+      debugPrint('[resetPassword] Starting password reset with key: $key');
+      debugPrint('[resetPassword] New password length: ${newPassword.length}');
 
-      final response = await _dioClient.post(
+      final request = PasswordResetRequest(key: key, password: newPassword);
+      debugPrint('[resetPassword] Request payload: ${request.toJson()}');
+
+      // Retrieve session token stored during password reset flow
+      final sessionToken = await _tokenStorage.getSessionToken();
+      debugPrint(
+        '[resetPassword] Session token: ${sessionToken != null ? "present" : "MISSING"}',
+      );
+
+      // Use direct Dio call to allow 409 status code (invalid/expired key)
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: ApiEndpoints.baseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Session-Token': ?sessionToken,
+          },
+          validateStatus: (status) => status == 200 || status == 409,
+        ),
+      );
+
+      debugPrint(
+        '[resetPassword] Making POST request to: ${ApiEndpoints.authPasswordReset}',
+      );
+
+      final response = await dio.post(
         ApiEndpoints.authPasswordReset,
         data: request.toJson(),
       );
 
-      if (response.statusCode != 200) {
-        throw _handleError(response.data, 'Failed to reset password');
+      debugPrint('[resetPassword] Response status: ${response.statusCode}');
+      debugPrint('[resetPassword] Response data: ${response.data}');
+
+      // 200 = success
+      if (response.statusCode == 200) {
+        debugPrint('[resetPassword] Password reset successful');
+        return;
       }
-    } on NetworkException {
+
+      // 409 = invalid/expired reset key
+      if (response.statusCode == 409) {
+        final responseData = response.data;
+        String message =
+            'Password reset link is invalid or has expired. Please request a new one.';
+        if (responseData is Map<String, dynamic>) {
+          message =
+              responseData['message']?.toString() ??
+              responseData['detail']?.toString() ??
+              responseData['error']?.toString() ??
+              message;
+        }
+        debugPrint('[resetPassword] 409 Conflict: $message');
+        throw ConflictException(message: message, code: 'RESET_KEY_INVALID');
+      }
+
+      throw _handleError(response.data, 'Failed to reset password');
+    } on NetworkException catch (_) {
       rethrow;
-    } on ServerException {
-      rethrow;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      // Handle specific exceptions
+      if (e is ConflictException) {
+        rethrow;
+      }
+      if (e is ServerException) {
+        rethrow;
+      }
+      debugPrint('[resetPassword] Unexpected error: $e');
+      debugPrint('[resetPassword] Stack trace: $stackTrace');
       throw UnknownException(
         message: 'Unexpected error resetting password',
         code: 'UNKNOWN_PASSWORD_RESET_ERROR',
@@ -743,9 +835,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'Failed to resend verification email',
         );
       }
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
-    } on ServerException {
+    } on ServerException catch (_) {
       rethrow;
     } catch (e) {
       throw UnknownException(
@@ -797,7 +889,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       return null;
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
     } catch (e) {
       throw UnknownException(
@@ -814,6 +906,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String lastName,
     required String displayName,
     required String phone,
+    required String address,
     required String? countryIso2,
     String? businessName,
     String? businessDescription,
@@ -824,6 +917,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'last_name': lastName,
         'display_name': displayName,
         'phone': phone,
+        'address': address,
         ...countryIso2 != null ? {'country_iso2': countryIso2} : {},
         ...businessName != null ? {'business_name': businessName} : {},
         ...businessDescription != null
@@ -839,6 +933,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.statusCode == 200) {
         final responseData = response.data;
         if (responseData is Map<String, dynamic>) {
+          if ((businessName?.trim().isNotEmpty ?? false) ||
+              (businessDescription?.trim().isNotEmpty ?? false)) {
+            await _updateProviderProfile(
+              displayName: businessName?.trim().isNotEmpty == true
+                  ? businessName!.trim()
+                  : displayName,
+              bio: businessDescription?.trim().isNotEmpty == true
+                  ? businessDescription!.trim()
+                  : null,
+              phone: phone,
+              countryIso2: countryIso2,
+            );
+          }
+
           // Check if response has the expected envelope format
           if (responseData.containsKey('data')) {
             final data = responseData['data'] as Map<String, dynamic>;
@@ -856,9 +964,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       throw _handleError(response.data, 'Failed to update profile');
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
-    } on ServerException {
+    } on ServerException catch (_) {
       rethrow;
     } catch (e) {
       throw UnknownException(
@@ -867,6 +975,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         details: e,
       );
     }
+  }
+
+  Future<void> _updateProviderProfile({
+    required String displayName,
+    String? bio,
+    required String phone,
+    required String? countryIso2,
+  }) async {
+    await _dioClient.patch(
+      ApiEndpoints.providersMeProfile,
+      data: {
+        'display_name': displayName,
+        'bio': ?bio,
+        'phone': phone,
+        'country_iso2': ?countryIso2,
+      },
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
   }
 
   @override
@@ -894,9 +1020,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       return null;
-    } on NetworkException {
+    } on NetworkException catch (_) {
       return null;
-    } on ServerException {
+    } on ServerException catch (_) {
       return null;
     } catch (e) {
       debugPrint('Error fetching full profile: $e');
@@ -926,20 +1052,45 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     // Profile is considered complete if display_name and phone are filled
     final isProfileComplete = displayName.isNotEmpty && phone.isNotEmpty;
 
+    // Map verification_status to isIdentityVerified
+    // VERIFIED = identity verification complete
+    // UNVERIFIED, PENDING, REJECTED = identity verification needed
+    final isIdentityVerified = verificationStatus == 'VERIFIED';
+
     return UserModel(
       id: data['id'] as String,
       email: data['email'] as String,
       displayName: displayName,
       phone: phone,
-      address: null, // accounts/me doesn't return address
+      address: data['address'] as String?,
       country: country,
       photoUrl: data['profile_photo'] as String?,
-      role: data['role'] as String? ?? 'USER',
+      role: _normalizeAccountRole(data),
       isEmailVerified: verificationStatus == 'VERIFIED',
+      isIdentityVerified: isIdentityVerified,
       isProfileComplete: isProfileComplete,
       createdAt: null,
       updatedAt: null,
     );
+  }
+
+  String _normalizeAccountRole(Map<String, dynamic> data) {
+    final rawRole = data['role']?.toString().trim().toUpperCase();
+    final accountType = data['account_type']?.toString().trim().toLowerCase();
+    final providerType = data['provider_type']?.toString().trim().toLowerCase();
+
+    if (accountType == 'service_provider' || accountType == 'provider') {
+      return providerType == 'business' ? 'BUSINESS' : 'INDIVIDUAL';
+    }
+
+    if (rawRole == 'INDIVIDUAL' || rawRole == 'BUSINESS' || rawRole == 'USER') {
+      return rawRole!;
+    }
+
+    if (providerType == 'business') return 'BUSINESS';
+    if (providerType == 'individual') return 'INDIVIDUAL';
+
+    return 'USER';
   }
 
   @override
@@ -998,9 +1149,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         message: 'Failed to upload ID document front',
         code: 'ID_DOCUMENT_FRONT_UPLOAD_FAILED',
       );
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
-    } on ServerException {
+    } on ServerException catch (_) {
       rethrow;
     } catch (e) {
       throw UnknownException(
@@ -1043,9 +1194,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         message: 'Failed to upload ID document back',
         code: 'ID_DOCUMENT_BACK_UPLOAD_FAILED',
       );
-    } on NetworkException {
+    } on NetworkException catch (_) {
       rethrow;
-    } on ServerException {
+    } on ServerException catch (_) {
       rethrow;
     } catch (e) {
       throw UnknownException(

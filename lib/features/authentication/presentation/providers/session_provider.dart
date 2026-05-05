@@ -1,10 +1,10 @@
 import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
-import 'package:discovaa/features/authentication/presentation/providers/signup_provider.dart';
+import 'package:discovaa/features/authentication/presentation/providers/registration_flow_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Holds the authenticated session state for the currently logged-in user.
 /// This is the single source of truth for role-gated UI after login/registration.
-/// It is separate from [signupProvider] which is only a registration flow state machine.
+/// It is separate from [registrationFlowProvider] which is only a registration flow state machine.
 class SessionState {
   final UserRole role;
   final bool isLoggedIn;
@@ -89,8 +89,9 @@ final effectiveUserRoleProvider = Provider<UserRole>((ref) {
   }
 
   // Otherwise, derive from current user entity if available
-  if (authState.user != null) {
-    final roleStr = authState.user!.role;
+  final user = authState.value?.user;
+  if (user != null) {
+    final roleStr = user.role.trim().toUpperCase();
     switch (roleStr) {
       case 'INDIVIDUAL':
         return UserRole.individualProvider;

@@ -1,38 +1,36 @@
-import 'package:discovaa/features/notifications/presentation/pages/notifications_page.dart';
-import 'package:discovaa/features/messaging/presentation/pages/chat_page.dart';
-import 'package:discovaa/features/messaging/presentation/pages/messages_list_page.dart';
-import 'package:discovaa/features/messaging/domain/entities/conversation.dart';
-import 'package:discovaa/features/profile/presentation/pages/favorites_page.dart';
-import 'package:discovaa/features/profile/presentation/pages/user_profile_page.dart';
-import 'package:discovaa/features/profile/presentation/pages/artisan_profile_page.dart';
-import 'package:discovaa/features/home/presentation/pages/home_page.dart';
-import 'package:discovaa/features/home/presentation/pages/dashboard_page.dart';
-import 'package:discovaa/features/bookings/presentation/pages/bookings_page.dart';
-import 'package:discovaa/features/services/presentation/pages/services_page.dart';
-import 'package:discovaa/features/authentication/presentation/pages/identification_page.dart';
-import 'package:discovaa/shared/presentation/pages/main_navigation_page.dart';
-import 'package:discovaa/shared/presentation/pages/coming_soon_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:discovaa/core/storage/secure_token_storage.dart';
-import 'package:discovaa/core/storage/hive_service.dart';
+import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/core/constants/feature_flags.dart';
 import 'package:discovaa/features/authentication/presentation/pages/complete_profile_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/forgot_password_page.dart';
+import 'package:discovaa/features/authentication/presentation/pages/identification_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/login_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/onboarding_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/otp_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/register_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/reset_password_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/signup_selection_page.dart';
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
+import 'package:discovaa/features/bookings/presentation/pages/bookings_page.dart';
 import 'package:discovaa/features/contact_us/presentation/pages/contact_us_page.dart';
+import 'package:discovaa/features/home/presentation/pages/dashboard_page.dart';
+import 'package:discovaa/features/home/presentation/pages/home_page.dart';
+import 'package:discovaa/features/messaging/presentation/pages/chat_page.dart';
+import 'package:discovaa/features/messaging/presentation/pages/messages_list_page.dart';
+import 'package:discovaa/features/messaging/domain/entities/conversation.dart';
+import 'package:discovaa/features/notifications/presentation/pages/notifications_page.dart';
+import 'package:discovaa/features/profile/presentation/pages/artisan_profile_page.dart';
+import 'package:discovaa/features/profile/presentation/pages/favorites_page.dart';
+import 'package:discovaa/features/profile/presentation/pages/user_profile_page.dart';
+import 'package:discovaa/features/services/presentation/pages/services_page.dart';
 import 'package:discovaa/features/splash/presentation/pages/splash_page.dart';
-import 'package:discovaa/app/router/route_names.dart';
+import 'package:discovaa/shared/presentation/pages/main_navigation_page.dart';
+import 'package:discovaa/shared/presentation/pages/coming_soon_page.dart';
 
-/// List of routes that don't require authentication.
-/// Users can access these routes without being logged in.
+/// List of public routes that don't require authentication
 const List<String> _publicRoutes = [
   RouteNames.splash,
   RouteNames.onboarding,
@@ -43,11 +41,20 @@ const List<String> _publicRoutes = [
   RouteNames.otp,
   RouteNames.forgotPassword,
   RouteNames.resetPassword,
-  RouteNames.completeProfile,
   RouteNames.contactUs,
 ];
 
-/// Check if a route is public (doesn't require authentication).
+/// List of auth routes (login, register, etc.)
+const List<String> _authRoutes = [
+  RouteNames.login,
+  RouteNames.signin,
+  RouteNames.register,
+  RouteNames.otp,
+  RouteNames.forgotPassword,
+  RouteNames.resetPassword,
+];
+
+/// Check if a route is public
 bool _isPublicRoute(String location) {
   for (final route in _publicRoutes) {
     if (location == route || location.startsWith('$route/')) {
@@ -57,14 +64,14 @@ bool _isPublicRoute(String location) {
   return false;
 }
 
-/// Global instance of SecureTokenStorage for router auth checks.
-/// This is initialized lazily when first accessed.
-SecureTokenStorage? _tokenStorage;
-SecureTokenStorage get _routerTokenStorage {
-  return _tokenStorage ??= SecureTokenStorage(
-    hiveService: HiveService.instance,
-    secureStorage: const FlutterSecureStorage(aOptions: AndroidOptions()),
-  );
+/// Check if a route is an auth route
+bool _isAuthRoute(String location) {
+  for (final route in _authRoutes) {
+    if (location == route || location.startsWith('$route/')) {
+      return true;
+    }
+  }
+  return false;
 }
 
 class AppRouter {
@@ -73,25 +80,64 @@ class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: RouteNames.splash,
     debugLogDiagnostics: true,
-    redirect: (context, state) async {
+    refreshListenable: authRefreshNotifier,
+    redirect: (context, state) {
       final location = state.uri.path;
+
+      // Get the auth state from Riverpod
+      final container = ProviderScope.containerOf(context);
+      final authState = container.read(authProvider);
+
+      // Wait for auth initialization
+      if (authState.isLoading || authState.isRefreshing) {
+        return RouteNames.splash;
+      }
+
+      final value = authState.value;
+      if (value == null) {
+        // Still loading or error, stay on splash
+        return RouteNames.splash;
+      }
+
+      final isAuthenticated = value.isAuthenticated;
+      final needsProfile = value.needsProfile;
+      final needsVerification = value.needsVerification;
+
+      // Check profile completion FIRST - before any other checks
+      // Users with requiresProfile status must be redirected to /complete-profile
+      // BUT allow OTP route for email verification (prerequisite to profile completion)
+      if (needsProfile &&
+          location != RouteNames.completeProfile &&
+          location != RouteNames.otp) {
+        return RouteNames.completeProfile;
+      }
+
+      // Check identity verification SECOND - before any other checks
+      // ALL users with requiresVerification status must be redirected to /identification
+      if (needsVerification && location != RouteNames.identification) {
+        return RouteNames.identification;
+      }
 
       // Allow access to public routes
       if (_isPublicRoute(location)) {
+        // If already authenticated (or needs profile/verification handled above), redirect to home
+        if (isAuthenticated) {
+          return RouteNames.home;
+        }
         return null;
       }
 
-      // Check if user is authenticated
-      final isAuthenticated =
-          _routerTokenStorage.isAuthenticated() &&
-          await _routerTokenStorage.hasValidTokens();
-
-      // Redirect unauthenticated users to login
-      if (!isAuthenticated) {
+      // Check if user is authenticated (also consider profile/verification states as "authenticated enough")
+      if (!isAuthenticated && !needsProfile && !needsVerification) {
         return RouteNames.onboarding;
       }
 
-      // User is authenticated, allow access
+      // Prevent authenticated users from accessing auth routes
+      if ((isAuthenticated || needsProfile || needsVerification) &&
+          _isAuthRoute(location)) {
+        return RouteNames.home;
+      }
+
       return null;
     },
     routes: [
@@ -110,7 +156,7 @@ class AppRouter {
         path: RouteNames.login,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          final fromOnboarding = extra?['fromOnboarding'] as bool? ?? false;
+          final fromOnboarding = extra?['fromOnboarding'] as bool? ?? true;
           final fromRegistration = extra?['fromRegistration'] as bool? ?? false;
           return LoginPage(
             fromOnboarding: fromOnboarding,
@@ -122,7 +168,7 @@ class AppRouter {
         path: RouteNames.signin,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          final fromOnboarding = extra?['fromOnboarding'] as bool? ?? false;
+          final fromOnboarding = extra?['fromOnboarding'] as bool? ?? true;
           final fromRegistration = extra?['fromRegistration'] as bool? ?? false;
           return LoginPage(
             fromOnboarding: fromOnboarding,
@@ -158,13 +204,12 @@ class AppRouter {
         path: RouteNames.resetPassword,
         builder: (context, state) => const ResetPasswordPage(),
       ),
+
       // Contact Us
       GoRoute(
         path: RouteNames.contactUs,
         builder: (context, state) => const ContactUsPage(),
       ),
-
-      // Dashboard is now inside ShellRoute
 
       // Verification/Identification
       GoRoute(
@@ -225,8 +270,16 @@ List<StatefulShellBranch> _buildShellBranches() {
               builder: (context, state) => const UserProfilePage(),
             ),
             GoRoute(
-              path: 'artisan-profile',
-              builder: (context, state) => const ArtisanProfilePage(),
+              path: 'artisan-profile/:id',
+              builder: (context, state) {
+                final artisanId = state.pathParameters['id'];
+                if (artisanId == null) {
+                  return const Scaffold(
+                    body: Center(child: Text('No artisan selected')),
+                  );
+                }
+                return ArtisanProfilePage(artisanId: artisanId);
+              },
             ),
             GoRoute(
               path: 'notifications',

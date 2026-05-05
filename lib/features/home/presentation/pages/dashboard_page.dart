@@ -1,5 +1,5 @@
 import 'package:discovaa/core/constants/app_constants.dart';
-import 'package:discovaa/features/authentication/presentation/providers/signup_provider.dart';
+import 'package:discovaa/features/authentication/presentation/providers/registration_flow_provider.dart';
 import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
 import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:discovaa/features/home/presentation/providers/dashboard_provider.dart';
@@ -39,14 +39,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     }
 
     final profileState = ref.read(userProfileProvider);
-    final signupState = ref.read(signupProvider);
+    final registrationState = ref.read(registrationFlowProvider);
 
-    // Determine role: Profile role (source of truth) > Signup state (fallback)
+    // Determine role: Profile role (source of truth) > Registration state (fallback)
     String roleName = 'client';
     if (profileState.profile != null) {
       roleName = profileState.profile!.isProvider ? 'provider' : 'client';
     } else {
-      roleName = signupState.selectedRole.isProvider ? 'provider' : 'client';
+      roleName = registrationState.selectedRole?.isProvider ?? false
+          ? 'provider'
+          : 'client';
     }
 
     final filter = ref.read(dashboardFilterProvider);
@@ -57,13 +59,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Future<void> _refreshDashboard() async {
     final profileState = ref.read(userProfileProvider);
-    final signupState = ref.read(signupProvider);
+    final registrationState = ref.read(registrationFlowProvider);
 
     String roleName = 'client';
     if (profileState.profile != null) {
       roleName = profileState.profile!.isProvider ? 'provider' : 'client';
     } else {
-      roleName = signupState.selectedRole.isProvider ? 'provider' : 'client';
+      roleName = registrationState.selectedRole?.isProvider ?? false
+          ? 'provider'
+          : 'client';
     }
 
     final filter = ref.read(dashboardFilterProvider);
@@ -80,25 +84,22 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       }
     });
 
-    final signupState = ref.watch(signupProvider);
+    final registrationState = ref.watch(registrationFlowProvider);
     final profileState = ref.watch(userProfileProvider);
 
     // Reactive role detection
     final isProvider = profileState.profile != null
         ? profileState.profile!.isProvider
-        : signupState.selectedRole.isProvider;
-
+        : (registrationState.selectedRole?.isProvider ?? false);
     final isISV = profileState.profile != null
         ? profileState.profile!.accountType == AccountType.provider
-        : signupState.selectedRole == UserRole.individualProvider;
+        : registrationState.selectedRole == UserRole.individualProvider;
     final dashboardState = ref.watch(dashboardProvider);
     final unreadCount = ref.watch(unreadMessagesProvider);
     final displayName =
         profileState.profile?.displayName?.trim().isNotEmpty == true
         ? profileState.profile!.displayName!.trim()
-        : ((signupState.displayName?.trim().isNotEmpty == true)
-              ? signupState.displayName!.trim()
-              : 'Welcome');
+        : 'Welcome';
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -130,6 +131,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         onViewBookings: () => context.go(RouteNames.bookings),
                         onMessages: () => context.go(RouteNames.messages),
                         unreadCount: unreadCount,
+                        isProvider: isProvider,
                       ),
                       const SizedBox(height: 20),
 
@@ -209,12 +211,14 @@ class _DashboardWelcomeCard extends StatelessWidget {
   final VoidCallback onViewBookings;
   final VoidCallback onMessages;
   final int unreadCount;
+  final bool isProvider;
 
   const _DashboardWelcomeCard({
     required this.name,
     required this.onViewBookings,
     required this.onMessages,
     this.unreadCount = 0,
+    this.isProvider = false,
   });
 
   @override
@@ -283,7 +287,7 @@ class _DashboardWelcomeCard extends StatelessWidget {
                 Icon(Icons.star, color: Colors.white, size: 14),
                 SizedBox(width: 6),
                 Text(
-                  "For service providers",
+                  isProvider ? "For service providers" : "For end users",
                   style: TextStyle(color: Colors.white, fontSize: 12),
                 ),
               ],

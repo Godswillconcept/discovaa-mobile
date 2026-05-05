@@ -9,6 +9,7 @@ class UserEntity {
   final String? photoUrl;
   final String role;
   final bool isEmailVerified;
+  final bool isIdentityVerified;
   final bool isProfileComplete;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -23,22 +24,26 @@ class UserEntity {
     this.photoUrl,
     required this.role,
     this.isEmailVerified = false,
+    this.isIdentityVerified = false,
     this.isProfileComplete = false,
     this.createdAt,
     this.updatedAt,
   });
 
   /// True if the user is any kind of service provider
-  bool get isProvider => role == 'INDIVIDUAL' || role == 'BUSINESS';
+  String get normalizedRole => role.trim().toUpperCase();
+
+  bool get isProvider =>
+      normalizedRole == 'INDIVIDUAL' || normalizedRole == 'BUSINESS';
 
   /// True if the user is specifically an individual service provider
-  bool get isIndividualProvider => role == 'INDIVIDUAL';
+  bool get isIndividualProvider => normalizedRole == 'INDIVIDUAL';
 
   /// True if the user is specifically a business service provider
-  bool get isBusinessProvider => role == 'BUSINESS';
+  bool get isBusinessProvider => normalizedRole == 'BUSINESS';
 
   /// True if the user is a standard user
-  bool get isOrdinaryUser => role == 'USER';
+  bool get isOrdinaryUser => normalizedRole == 'USER';
 
   UserEntity copyWith({
     String? id,
@@ -50,6 +55,7 @@ class UserEntity {
     String? photoUrl,
     String? role,
     bool? isEmailVerified,
+    bool? isIdentityVerified,
     bool? isProfileComplete,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -64,6 +70,7 @@ class UserEntity {
       photoUrl: photoUrl ?? this.photoUrl,
       role: role ?? this.role,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+      isIdentityVerified: isIdentityVerified ?? this.isIdentityVerified,
       isProfileComplete: isProfileComplete ?? this.isProfileComplete,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

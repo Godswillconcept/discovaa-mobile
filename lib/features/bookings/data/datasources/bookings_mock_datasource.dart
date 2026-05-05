@@ -12,7 +12,7 @@ class BookingsMockDatasource {
   }
 
   static final List<BookingModel> _mockBookings = [
-    // ── Upcoming ──────────────────────────────────────────────────────────
+    // ── Upcoming ──────────────────────────────────────────────────
     BookingModel(
       id: 'bk-001',
       service: BookedServiceSnapshot(
@@ -24,8 +24,10 @@ class BookingsMockDatasource {
         pricingModel: PricingModel.fixed,
         durationMinutes: 90,
       ),
+      clientId: 'user-001',
       clientName: 'Amara Nwosu',
       clientAvatarPath: 'assets/images/placeholders/artisan_01.png',
+      providerId: 'prov-001',
       scheduledDate: DateTime.now().add(const Duration(days: 3)),
       scheduledTime: const TimeOfDay(hour: 10, minute: 0),
       status: BookingStatus.confirmed,
@@ -43,8 +45,10 @@ class BookingsMockDatasource {
         pricingModel: PricingModel.package,
         durationMinutes: 480,
       ),
+      clientId: 'user-002',
       clientName: 'Chukwuemeka Obi',
       clientAvatarPath: 'assets/images/placeholders/artisan_02.png',
+      providerId: 'prov-002',
       scheduledDate: DateTime.now().add(const Duration(days: 7)),
       scheduledTime: const TimeOfDay(hour: 8, minute: 0),
       status: BookingStatus.confirmed,
@@ -52,7 +56,7 @@ class BookingsMockDatasource {
       createdAt: DateTime.now().subtract(const Duration(days: 2)),
     ),
 
-    // ── Pending ───────────────────────────────────────────────────────────
+    // ── Pending ───────────────────────────────────────────────────
     BookingModel(
       id: 'bk-003',
       service: BookedServiceSnapshot(
@@ -64,8 +68,10 @@ class BookingsMockDatasource {
         pricingModel: PricingModel.package,
         durationMinutes: 300,
       ),
+      clientId: 'user-003',
       clientName: 'Fatima Bello',
       clientAvatarPath: 'assets/images/placeholders/artisan_03.png',
+      providerId: 'prov-003',
       scheduledDate: DateTime.now().add(const Duration(days: 1)),
       scheduledTime: const TimeOfDay(hour: 9, minute: 0),
       status: BookingStatus.requested,
@@ -83,8 +89,10 @@ class BookingsMockDatasource {
         pricingModel: PricingModel.package,
         durationMinutes: 360,
       ),
+      clientId: 'user-004',
       clientName: 'Ngozi Eze',
       clientAvatarPath: 'assets/images/placeholders/artisan_04.png',
+      providerId: 'prov-004',
       scheduledDate: DateTime.now().add(const Duration(days: 14)),
       scheduledTime: const TimeOfDay(hour: 14, minute: 0),
       status: BookingStatus.requested,
@@ -92,7 +100,7 @@ class BookingsMockDatasource {
       createdAt: DateTime.now().subtract(const Duration(hours: 2)),
     ),
 
-    // ── Ongoing ───────────────────────────────────────────────────────────
+    // ── Ongoing ───────────────────────────────────────────────────
     BookingModel(
       id: 'bk-005',
       service: BookedServiceSnapshot(
@@ -104,8 +112,10 @@ class BookingsMockDatasource {
         pricingModel: PricingModel.hourly,
         durationMinutes: 60,
       ),
+      clientId: 'user-005',
       clientName: 'Usman Garba',
       clientAvatarPath: 'assets/images/placeholders/artisan_05.png',
+      providerId: 'prov-005',
       scheduledDate: DateTime.now(),
       scheduledTime: TimeOfDay(hour: DateTime.now().hour - 1, minute: 0),
       status: BookingStatus.ongoing,
@@ -113,7 +123,7 @@ class BookingsMockDatasource {
       createdAt: DateTime.now().subtract(const Duration(days: 0)),
     ),
 
-    // ── Completed ─────────────────────────────────────────────────────────
+    // ── Completed ─────────────────────────────────────────────────
     BookingModel(
       id: 'bk-006',
       service: BookedServiceSnapshot(
@@ -125,8 +135,10 @@ class BookingsMockDatasource {
         pricingModel: PricingModel.fixed,
         durationMinutes: 120,
       ),
+      clientId: 'user-006',
       clientName: 'Blessing Adeyemi',
       clientAvatarPath: 'assets/images/placeholders/artisan_06.png',
+      providerId: 'prov-006',
       scheduledDate: DateTime.now().subtract(const Duration(days: 5)),
       scheduledTime: const TimeOfDay(hour: 10, minute: 0),
       status: BookingStatus.completed,
@@ -146,8 +158,10 @@ class BookingsMockDatasource {
         pricingModel: PricingModel.hourly,
         durationMinutes: 60,
       ),
+      clientId: 'user-007',
       clientName: 'Tunde Fashola',
       clientAvatarPath: 'assets/images/placeholders/artisan_07.png',
+      providerId: 'prov-007',
       scheduledDate: DateTime.now().subtract(const Duration(days: 10)),
       scheduledTime: const TimeOfDay(hour: 11, minute: 0),
       status: BookingStatus.completed,
@@ -167,8 +181,10 @@ class BookingsMockDatasource {
         pricingModel: PricingModel.fixed,
         durationMinutes: 90,
       ),
+      clientId: 'user-008',
       clientName: 'Chiamaka Okeke',
       clientAvatarPath: 'assets/images/placeholders/artisan_08.png',
+      providerId: 'prov-008',
       scheduledDate: DateTime.now().subtract(const Duration(days: 20)),
       scheduledTime: const TimeOfDay(hour: 9, minute: 30),
       status: BookingStatus.completed,
@@ -178,7 +194,7 @@ class BookingsMockDatasource {
       review: 'AC is ice cold now. Will definitely book again.',
     ),
 
-    // ── Cancelled ─────────────────────────────────────────────────────────
+    // ── Cancelled ─────────────────────────────────────────────────
     BookingModel(
       id: 'bk-009',
       service: BookedServiceSnapshot(
@@ -190,8 +206,10 @@ class BookingsMockDatasource {
         pricingModel: PricingModel.package,
         durationMinutes: 180,
       ),
+      clientId: 'user-009',
       clientName: 'Emeka Dike',
       clientAvatarPath: 'assets/images/placeholders/artisan_01.png',
+      providerId: 'prov-009',
       scheduledDate: DateTime.now().subtract(const Duration(days: 3)),
       scheduledTime: const TimeOfDay(hour: 7, minute: 0),
       status: BookingStatus.cancelled,

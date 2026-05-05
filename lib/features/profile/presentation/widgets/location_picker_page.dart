@@ -32,7 +32,8 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
   @override
   void initState() {
     super.initState();
-    _selectedLocation = widget.initialLatitude != null && widget.initialLongitude != null
+    _selectedLocation =
+        widget.initialLatitude != null && widget.initialLongitude != null
         ? LatLng(widget.initialLatitude!, widget.initialLongitude!)
         : _defaultLocation;
     _address = widget.initialAddress ?? '';
@@ -76,7 +77,8 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
           placemark.street,
           if (placemark.subLocality?.isNotEmpty == true) placemark.subLocality,
           if (placemark.locality?.isNotEmpty == true) placemark.locality,
-          if (placemark.administrativeArea?.isNotEmpty == true) placemark.administrativeArea,
+          if (placemark.administrativeArea?.isNotEmpty == true)
+            placemark.administrativeArea,
           if (placemark.country?.isNotEmpty == true) placemark.country,
         ].where((part) => part != null && part.isNotEmpty).join(', ');
         setState(() {
@@ -159,12 +161,8 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Select Location'),
-        ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        appBar: AppBar(title: const Text('Select Location')),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -202,7 +200,7 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -230,10 +228,7 @@ class _LocationPickerPageState extends ConsumerState<LocationPickerPage> {
                 const SizedBox(height: 4),
                 Text(
                   'Lat: ${_selectedLocation!.latitude.toStringAsFixed(6)}, Lng: ${_selectedLocation!.longitude.toStringAsFixed(6)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(

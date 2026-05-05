@@ -9,7 +9,6 @@ class ServiceLocation {
   final String? postalCode;
   final double? latitude;
   final double? longitude;
-  final bool isPrimary;
   final double? serviceRadius; // in kilometers
 
   const ServiceLocation({
@@ -22,7 +21,6 @@ class ServiceLocation {
     this.postalCode,
     this.latitude,
     this.longitude,
-    this.isPrimary = false,
     this.serviceRadius,
   });
 
@@ -36,7 +34,6 @@ class ServiceLocation {
     String? postalCode,
     double? latitude,
     double? longitude,
-    bool? isPrimary,
     double? serviceRadius,
   }) {
     return ServiceLocation(
@@ -49,7 +46,6 @@ class ServiceLocation {
       postalCode: postalCode ?? this.postalCode,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-      isPrimary: isPrimary ?? this.isPrimary,
       serviceRadius: serviceRadius ?? this.serviceRadius,
     );
   }
@@ -65,7 +61,6 @@ class ServiceLocation {
       'postalCode': postalCode,
       'latitude': latitude,
       'longitude': longitude,
-      'isPrimary': isPrimary,
       'serviceRadius': serviceRadius,
     };
   }
@@ -81,15 +76,17 @@ class ServiceLocation {
       postalCode: json['postalCode'],
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
-      isPrimary: json['isPrimary'] ?? false,
       serviceRadius: json['serviceRadius']?.toDouble(),
     );
   }
 
   String get formattedAddress {
-    final parts = [address, city, state, country]
-        .where((p) => p != null && p.isNotEmpty)
-        .toList();
+    final parts = [
+      address,
+      city,
+      state,
+      country,
+    ].where((p) => p != null && p.isNotEmpty).toList();
     return parts.join(', ');
   }
 }

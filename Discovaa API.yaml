@@ -6292,6 +6292,12 @@ paths:
           format: uuid
         description: Filter providers by service category id.
       - in: query
+        name: currency
+        schema:
+          type: string
+        description: Optional 3-letter currency code used for matched service price
+          comparison.
+      - in: query
         name: is_verified
         schema:
           type: boolean
@@ -6346,6 +6352,12 @@ paths:
           type: string
           format: uuid
         description: Filter providers that offer a specific service id.
+      - in: query
+        name: service_text_id
+        schema:
+          type: string
+          format: uuid
+        description: Filter providers that offer a specific shared service text id.
       tags:
       - api
       security:
@@ -8741,6 +8753,122 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/service-texts/:
+    get:
+      operationId: api_service_texts_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ServiceTextSuggestion'
+                  meta:
+                    type: object
+                    properties:
+                      pagination:
+                        type: object
+                        properties:
+                          count:
+                            type: integer
+                            example: 123
+                          next:
+                            type: string
+                            nullable: true
+                            format: uri
+                            example: http://api.example.org/accounts/?page=4
+                          previous:
+                            type: string
+                            nullable: true
+                            format: uri
+                            example: http://api.example.org/accounts/?page=2
+                    nullable: true
+                  error:
+                    type: object
+                    nullable: true
+                required:
+                - success
+                - data
+                - meta
+                - error
+          description: ''
+  /api/service-texts/{id}/:
+    get:
+      operationId: api_service_texts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this service text.
+        required: true
+      tags:
+      - api
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ServiceTextSuggestion'
+                  meta:
+                    type: object
+                    nullable: true
+                  error:
+                    type: object
+                    nullable: true
+                required:
+                - success
+                - data
+                - meta
+                - error
+          description: ''
   /api/services/:
     get:
       operationId: api_services_list
@@ -8800,6 +8928,11 @@ paths:
         description: A search term.
         schema:
           type: string
+      - in: query
+        name: service_text
+        schema:
+          type: string
+          format: uuid
       tags:
       - api
       security:
@@ -8863,7 +8996,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
-        required: true
       security:
       - tokenAuth: []
       responses:
@@ -8953,7 +9085,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
-        required: true
       security:
       - tokenAuth: []
       responses:
@@ -15213,6 +15344,12 @@ paths:
           format: uuid
         description: Filter providers by service category id.
       - in: query
+        name: currency
+        schema:
+          type: string
+        description: Optional 3-letter currency code used for matched service price
+          comparison.
+      - in: query
         name: is_verified
         schema:
           type: boolean
@@ -15267,6 +15404,12 @@ paths:
           type: string
           format: uuid
         description: Filter providers that offer a specific service id.
+      - in: query
+        name: service_text_id
+        schema:
+          type: string
+          format: uuid
+        description: Filter providers that offer a specific shared service text id.
       tags:
       - mgt
       security:
@@ -17499,6 +17642,122 @@ paths:
       responses:
         '204':
           description: No response body
+  /mgt/api/service-texts/:
+    get:
+      operationId: mgt_api_service_texts_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - mgt
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ServiceTextSuggestion'
+                  meta:
+                    type: object
+                    properties:
+                      pagination:
+                        type: object
+                        properties:
+                          count:
+                            type: integer
+                            example: 123
+                          next:
+                            type: string
+                            nullable: true
+                            format: uri
+                            example: http://api.example.org/accounts/?page=4
+                          previous:
+                            type: string
+                            nullable: true
+                            format: uri
+                            example: http://api.example.org/accounts/?page=2
+                    nullable: true
+                  error:
+                    type: object
+                    nullable: true
+                required:
+                - success
+                - data
+                - meta
+                - error
+          description: ''
+  /mgt/api/service-texts/{id}/:
+    get:
+      operationId: mgt_api_service_texts_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this service text.
+        required: true
+      tags:
+      - mgt
+      security:
+      - tokenAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ServiceTextSuggestion'
+                  meta:
+                    type: object
+                    nullable: true
+                  error:
+                    type: object
+                    nullable: true
+                required:
+                - success
+                - data
+                - meta
+                - error
+          description: ''
   /mgt/api/services/:
     get:
       operationId: mgt_api_services_list
@@ -17558,6 +17817,11 @@ paths:
         description: A search term.
         schema:
           type: string
+      - in: query
+        name: service_text
+        schema:
+          type: string
+          format: uuid
       tags:
       - mgt
       security:
@@ -17621,7 +17885,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
-        required: true
       security:
       - tokenAuth: []
       responses:
@@ -17711,7 +17974,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
-        required: true
       security:
       - tokenAuth: []
       responses:
@@ -19059,6 +19321,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ServiceMedia'
+    PaginatedServiceTextSuggestionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceTextSuggestion'
     PatchedBookingItemWrite:
       type: object
       properties:
@@ -19527,7 +19812,7 @@ components:
           x-spec-enum-id: 01b60182e7880bab
         display_name:
           type: string
-          maxLength: 255
+          readOnly: true
         bio:
           type: string
         photo:
@@ -20037,9 +20322,12 @@ components:
           type: string
           format: uuid
           nullable: true
+        service_text:
+          type: string
+          format: uuid
+          nullable: true
         title:
           type: string
-          maxLength: 255
         description:
           type: string
         pricing_model:
@@ -20298,7 +20586,7 @@ components:
           x-spec-enum-id: 01b60182e7880bab
         display_name:
           type: string
-          maxLength: 255
+          readOnly: true
         bio:
           type: string
         photo:
@@ -20960,7 +21248,7 @@ components:
           x-spec-enum-id: 01b60182e7880bab
         display_name:
           type: string
-          maxLength: 255
+          readOnly: true
         bio:
           type: string
         languages: {}
@@ -21010,6 +21298,21 @@ components:
         distance_km:
           type: number
           readOnly: true
+        matched_service_id:
+          type: string
+          readOnly: true
+        matched_service_text_id:
+          type: string
+          readOnly: true
+        matched_service_title:
+          type: string
+          readOnly: true
+        matched_service_currency:
+          type: string
+          readOnly: true
+        matched_service_price_amount:
+          type: string
+          readOnly: true
         service_categories:
           type: string
           readOnly: true
@@ -21042,6 +21345,11 @@ components:
       - individual_profile
       - is_verified
       - locations
+      - matched_service_currency
+      - matched_service_id
+      - matched_service_price_amount
+      - matched_service_text_id
+      - matched_service_title
       - media
       - profile_photo
       - provider_type
@@ -21304,9 +21612,12 @@ components:
           type: string
           format: uuid
           nullable: true
+        service_text:
+          type: string
+          format: uuid
         title:
           type: string
-          maxLength: 255
+          readOnly: true
         description:
           type: string
         pricing_model:
@@ -21372,6 +21683,7 @@ components:
       - id
       - media
       - provider
+      - service_text
       - title
       - updated_at
     ServiceCategory:
@@ -21463,6 +21775,55 @@ components:
       required:
       - file
       - service
+    ServiceTextSuggestion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        service_count:
+          type: integer
+          readOnly: true
+        provider_count:
+          type: integer
+          readOnly: true
+        min_price_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        max_price_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        currency:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - currency
+      - id
+      - max_price_amount
+      - min_price_amount
+      - provider_count
+      - service_count
+      - title
+      - updated_at
     ServiceWrite:
       type: object
       properties:
@@ -21470,9 +21831,12 @@ components:
           type: string
           format: uuid
           nullable: true
+        service_text:
+          type: string
+          format: uuid
+          nullable: true
         title:
           type: string
-          maxLength: 255
         description:
           type: string
         pricing_model:
@@ -21520,8 +21884,6 @@ components:
           nullable: true
         is_active:
           type: boolean
-      required:
-      - title
     User:
       type: object
       properties:

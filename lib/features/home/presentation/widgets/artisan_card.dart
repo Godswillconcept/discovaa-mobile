@@ -2,6 +2,7 @@ import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/core/utils/text_formatter.dart';
 import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,11 +50,10 @@ class ArtisanCard extends ConsumerWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   image: DecorationImage(
-                    image: AssetImage(artisan.profileImage),
+                    image: artisan.profileImage.startsWith('http')
+                        ? CachedNetworkImageProvider(artisan.profileImage)
+                        : AssetImage(artisan.profileImage) as ImageProvider,
                     fit: BoxFit.cover,
-                    onError: (exception, stackTrace) {
-                      // Handle error
-                    },
                   ),
                 ),
               ),
@@ -82,28 +82,74 @@ class ArtisanCard extends ConsumerWidget {
                     final isFavorite = ref
                         .watch(favoriteArtisansProvider)
                         .contains(artisan.id);
+
+                    // Store overlay entry to handle rapid toggling
+                    OverlayEntry? overlayEntry;
+
                     return GestureDetector(
                       onTap: () {
-                        final isFavorite = ref
+                        final wasFavorite = ref
                             .read(favoriteArtisansProvider)
                             .contains(artisan.id);
                         ref
                             .read(favoriteArtisansProvider.notifier)
                             .toggleFavorite(artisan.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              isFavorite
-                                  ? 'Removed from favorites'
-                                  : 'Added to favorites',
+
+                        // Remove previous overlay if exists (handle rapid toggling)
+                        overlayEntry?.remove();
+
+                        // Create new overlay
+                        overlayEntry = OverlayEntry(
+                          builder: (context) => Positioned(
+                            top: 100,
+                            left: MediaQuery.of(context).size.width * 0.2,
+                            right: MediaQuery.of(context).size.width * 0.2,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: wasFavorite
+                                      ? Colors.red
+                                      : Colors.green,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  wasFavorite
+                                      ? 'Removed from favorites'
+                                      : 'Added to favorites',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
                             ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: isFavorite
-                                ? Colors.red
-                                : Colors.green,
-                            duration: const Duration(seconds: 2),
                           ),
                         );
+
+                        // Show overlay
+                        Overlay.of(context).insert(overlayEntry!);
+
+                        // Auto-dismiss after 2 seconds
+                        Future.delayed(const Duration(seconds: 2), () {
+                          overlayEntry?.remove();
+                          overlayEntry = null;
+                        });
                       },
                       child: Container(
                         padding: const EdgeInsets.all(4),
@@ -206,8 +252,7 @@ class ArtisanCard extends ConsumerWidget {
                   height: 38,
                   child: ElevatedButton(
                     onPressed: () {
-                      ref.read(bookingProvider.notifier).selectArtisan(artisan);
-                      context.push(RouteNames.artisanProfile);
+                      context.push('${RouteNames.artisanProfile}/${artisan.id}');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,

@@ -3,6 +3,8 @@ import 'package:discovaa/features/home/presentation/providers/dashboard_provider
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:logger/logger.dart';
 import 'package:discovaa/app/dependency_injection/service_locator.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
 import 'package:discovaa/core/network/api_helpers.dart';
@@ -15,6 +17,8 @@ import '../../domain/repositories/artisan_repository.dart';
 import '../../data/repositories/api_artisan_repository.dart';
 
 export '../../domain/entities/artisan_entity.dart';
+
+final _logger = Logger();
 
 final artisanRepositoryProvider = Provider<ArtisanRepository>((ref) {
   return ApiArtisanRepository(
@@ -138,6 +142,9 @@ class ArtisanFilterState {
   final double? maxPrice;
   final String? location;
   final bool isAvailableOnly;
+  final String providerType; // 'All', 'Individual', 'Business'
+  final bool isVerifiedOnly;
+  final double? radiusKm;
 
   ArtisanFilterState({
     this.sortBy = ArtisanSort.categories,
@@ -148,6 +155,9 @@ class ArtisanFilterState {
     this.maxPrice,
     this.location,
     this.isAvailableOnly = false,
+    this.providerType = 'All',
+    this.isVerifiedOnly = false,
+    this.radiusKm,
   });
 
   int get activeFilterCount {
@@ -157,6 +167,9 @@ class ArtisanFilterState {
     if (minPrice != null || maxPrice != null) count++;
     if (location != null && location!.isNotEmpty) count++;
     if (isAvailableOnly) count++;
+    if (providerType != 'All') count++;
+    if (isVerifiedOnly) count++;
+    if (radiusKm != null) count++;
     return count;
   }
 
@@ -169,6 +182,9 @@ class ArtisanFilterState {
     Object? maxPrice = _unset,
     Object? location = _unset,
     bool? isAvailableOnly,
+    Object? providerType = _unset,
+    Object? isVerifiedOnly = _unset,
+    Object? radiusKm = _unset,
   }) {
     return ArtisanFilterState(
       sortBy: identical(sortBy, _unset) ? this.sortBy : sortBy as ArtisanSort,
@@ -191,6 +207,15 @@ class ArtisanFilterState {
           ? this.location
           : location as String?,
       isAvailableOnly: isAvailableOnly ?? this.isAvailableOnly,
+      providerType: identical(providerType, _unset)
+          ? this.providerType
+          : providerType as String,
+      isVerifiedOnly: identical(isVerifiedOnly, _unset)
+          ? this.isVerifiedOnly
+          : isVerifiedOnly as bool,
+      radiusKm: identical(radiusKm, _unset)
+          ? this.radiusKm
+          : radiusKm as double?,
     );
   }
 }
@@ -229,6 +254,9 @@ class ArtisanFilterNotifier extends StateNotifier<ArtisanFilterState> {
           maxPrice: (cached['maxPrice'] as num?)?.toDouble(),
           location: cached['location'] as String?,
           isAvailableOnly: _parseBool(cached['isAvailableOnly']),
+          providerType: cached['providerType'] as String? ?? 'All',
+          isVerifiedOnly: _parseBool(cached['isVerifiedOnly']),
+          radiusKm: (cached['radiusKm'] as num?)?.toDouble(),
         );
       }
     } catch (_) {
@@ -248,6 +276,9 @@ class ArtisanFilterNotifier extends StateNotifier<ArtisanFilterState> {
         'maxPrice': state.maxPrice,
         'location': state.location,
         'isAvailableOnly': state.isAvailableOnly,
+        'providerType': state.providerType,
+        'isVerifiedOnly': state.isVerifiedOnly,
+        'radiusKm': state.radiusKm,
       });
     } catch (_) {
       // Ignore save errors
@@ -295,6 +326,21 @@ class ArtisanFilterNotifier extends StateNotifier<ArtisanFilterState> {
     _resetPage();
   }
 
+  void setProviderType(String type) {
+    state = state.copyWith(providerType: type);
+    _resetPage();
+  }
+
+  void setVerifiedOnly(bool value) {
+    state = state.copyWith(isVerifiedOnly: value);
+    _resetPage();
+  }
+
+  void setRadiusKm(double? value) {
+    state = state.copyWith(radiusKm: value);
+    _resetPage();
+  }
+
   void clearAdvancedFilters() {
     state = state.copyWith(
       minRating: null,
@@ -302,6 +348,9 @@ class ArtisanFilterNotifier extends StateNotifier<ArtisanFilterState> {
       maxPrice: null,
       location: null,
       isAvailableOnly: false,
+      providerType: 'All',
+      isVerifiedOnly: false,
+      radiusKm: null,
     );
     _resetPage();
   }
@@ -351,9 +400,14 @@ class BookingState {
   final double? latitude;
   final double? longitude;
   final String? notes;
+  final String? errorMessage;
 
   /// Full service data with pricing information
   final List<BookingService> availableServices;
+
+  /// Memoized pricing calculations
+  final String? calculatedPriceRange;
+  final double? calculatedHourlyRate;
 
   BookingState({
     this.selectedDate,
@@ -370,7 +424,10 @@ class BookingState {
     this.latitude,
     this.longitude,
     this.notes,
+    this.errorMessage,
     this.availableServices = const [],
+    this.calculatedPriceRange,
+    this.calculatedHourlyRate,
   });
 
   BookingState copyWith({
@@ -388,7 +445,10 @@ class BookingState {
     Object? latitude = _unset,
     Object? longitude = _unset,
     Object? notes = _unset,
+    Object? errorMessage = _unset,
     List<BookingService>? availableServices,
+    Object? calculatedPriceRange = _unset,
+    Object? calculatedHourlyRate = _unset,
   }) {
     return BookingState(
       selectedDate: identical(selectedDate, _unset)
@@ -419,7 +479,16 @@ class BookingState {
           ? this.longitude
           : longitude as double?,
       notes: identical(notes, _unset) ? this.notes : notes as String?,
+      errorMessage: identical(errorMessage, _unset)
+          ? this.errorMessage
+          : errorMessage as String?,
       availableServices: availableServices ?? this.availableServices,
+      calculatedPriceRange: identical(calculatedPriceRange, _unset)
+          ? this.calculatedPriceRange
+          : calculatedPriceRange as String?,
+      calculatedHourlyRate: identical(calculatedHourlyRate, _unset)
+          ? this.calculatedHourlyRate
+          : calculatedHourlyRate as double?,
     );
   }
 
@@ -501,9 +570,9 @@ class BookingState {
     if (selectedDate == null) return false;
     if (startTime == null || endTime == null) return false;
     // Only require address for onsite bookings
-    if (bookingType == BookingType.onsite &&
-        (address == null || address!.isEmpty)) {
-      return false;
+    if (bookingType == BookingType.onsite) {
+      if (address == null || address!.isEmpty) return false;
+      if (address!.length < 10) return false; // Minimum address length
     }
     if (selectedServices.isEmpty) return false;
 
@@ -511,7 +580,32 @@ class BookingState {
     final endMinutes = endTime!.hour * 60 + endTime!.minute;
     if (endMinutes <= startMinutes) return false;
 
+    final totalMinutes = endMinutes - startMinutes;
+    if (totalMinutes > 8 * 60) return false; // 8 hour max
+
     return true;
+  }
+
+  /// Get validation error message if any
+  String? get validationError {
+    if (selectedDate == null) return 'Please select a date';
+    if (startTime == null || endTime == null) {
+      return 'Please select start and end time';
+    }
+    if (bookingType == BookingType.onsite &&
+        (address == null || address!.isEmpty)) {
+      return 'Please enter an address for onsite booking';
+    }
+    if (selectedServices.isEmpty) return 'Please select at least one service';
+
+    final startMinutes = startTime!.hour * 60 + startTime!.minute;
+    final endMinutes = endTime!.hour * 60 + endTime!.minute;
+    if (endMinutes <= startMinutes) return 'End time must be after start time';
+
+    final totalMinutes = endMinutes - startMinutes;
+    if (totalMinutes > 8 * 60) return 'Booking duration cannot exceed 8 hours';
+
+    return null;
   }
 }
 
@@ -557,18 +651,74 @@ class BookingNotifier extends StateNotifier<BookingState> {
     } else {
       currentServices.add(service);
     }
-    state = state.copyWith(selectedServices: currentServices);
+
+    // Calculate pricing when services change
+    final pricing = _calculatePricing(currentServices);
+
+    state = state.copyWith(
+      selectedServices: currentServices,
+      calculatedPriceRange: pricing['priceRange'],
+      calculatedHourlyRate: pricing['hourlyRate'],
+    );
   }
 
-  void clearServices() => state = state.copyWith(selectedServices: const {});
+  void clearServices() => state = state.copyWith(
+    selectedServices: const {},
+    calculatedPriceRange: null,
+    calculatedHourlyRate: null,
+  );
+
+  /// Helper method to calculate pricing based on selected services
+  Map<String, dynamic> _calculatePricing(Set<String> selectedServices) {
+    if (selectedServices.isEmpty || state.availableServices.isEmpty) {
+      return {'priceRange': null, 'hourlyRate': null};
+    }
+
+    // Calculate hourly rate (lowest rate if multiple)
+    final selectedServiceData = state.availableServices
+        .where(
+          (s) => selectedServices.contains(s.title) && s.hourlyRate != null,
+        )
+        .toList();
+
+    double? hourlyRate;
+    if (selectedServiceData.isNotEmpty) {
+      hourlyRate = selectedServiceData
+          .map((s) => s.hourlyRate!)
+          .reduce((a, b) => a < b ? a : b);
+    }
+
+    // Calculate price ranges
+    final priceRanges = state.availableServices
+        .where(
+          (s) => selectedServices.contains(s.title) && s.priceRange.isNotEmpty,
+        )
+        .map((s) => s.priceRange)
+        .toList();
+
+    String? priceRange;
+    if (priceRanges.isNotEmpty) {
+      priceRange = priceRanges.join(', ');
+    }
+
+    return {'priceRange': priceRange, 'hourlyRate': hourlyRate};
+  }
 
   /// Set available services with pricing data (called when opening booking modal)
   void setAvailableServices(List<BookingService> services) {
-    state = state.copyWith(availableServices: services);
+    // Calculate initial pricing for currently selected services
+    final pricing = _calculatePricing(state.selectedServices);
+
+    state = state.copyWith(
+      availableServices: services,
+      calculatedPriceRange: pricing['priceRange'],
+      calculatedHourlyRate: pricing['hourlyRate'],
+    );
   }
 
-  Future<String?> confirmBooking() async {
-    state = state.copyWith(isConfirming: true);
+  Future<void> confirmBooking() async {
+    // Clear any previous error
+    state = state.copyWith(isConfirming: true, errorMessage: null);
 
     try {
       final artisan = state.selectedArtisan;
@@ -577,21 +727,26 @@ class BookingNotifier extends StateNotifier<BookingState> {
           state.selectedDate == null ||
           state.startTime == null ||
           state.endTime == null) {
-        state = state.copyWith(isConfirming: false);
-        return 'Missing required booking details.';
+        state = state.copyWith(
+          isConfirming: false,
+          errorMessage: 'Missing required booking details.',
+        );
+        return;
       }
 
       // Build full ISO datetime objects from date + time selections
-      // The backend expects the hour digits to match the provider's configured working hours.
-      // We treat the selected Lagos time as UTC directly to ensure the correct hour digits are transmitted in the ISO string.
-      final scheduledStart = DateTime.utc(
+      // Use proper timezone handling for Africa/Lagos
+      final lagos = tz.getLocation('Africa/Lagos');
+      final scheduledStart = tz.TZDateTime(
+        lagos,
         state.selectedDate!.year,
         state.selectedDate!.month,
         state.selectedDate!.day,
         state.startTime!.hour,
         state.startTime!.minute,
       );
-      final scheduledEnd = DateTime.utc(
+      final scheduledEnd = tz.TZDateTime(
+        lagos,
         state.selectedDate!.year,
         state.selectedDate!.month,
         state.selectedDate!.day,
@@ -599,31 +754,42 @@ class BookingNotifier extends StateNotifier<BookingState> {
         state.endTime!.minute,
       );
 
-      debugPrint('=== TIMEZONE CONVERSION DEBUG ===');
-      debugPrint('Selected start (Lagos): $scheduledStart');
-      debugPrint('Selected end (Lagos): $scheduledEnd');
-      debugPrint('===============================');
+      // Convert to UTC only when sending to backend
+      final scheduledStartUtc = scheduledStart.toUtc();
+      final scheduledEndUtc = scheduledEnd.toUtc();
+
+      _logger.d('=== TIMEZONE CONVERSION DEBUG ===');
+      _logger.d('Selected start (Lagos): $scheduledStart');
+      _logger.d('Selected end (Lagos): $scheduledEnd');
+      _logger.d('Start UTC: $scheduledStartUtc');
+      _logger.d('End UTC: $scheduledEndUtc');
+      _logger.d('===============================');
 
       // 1. Check provider availability first (web app approach)
+      // Pass UTC times to ensure backend receives consistent timezone-aware timestamps
       final availability = await _bookingsRepository.checkAvailability(
         providerId: artisan.id,
-        start: scheduledStart,
-        end: scheduledEnd,
+        start: scheduledStartUtc,
+        end: scheduledEndUtc,
       );
 
-      debugPrint('=== Availability Result ===');
-      debugPrint('Available: ${availability.available}');
+      _logger.d('=== Availability Result ===');
+      _logger.d('Available: ${availability.available}');
       if (availability.reasons.isNotEmpty) {
-        debugPrint('Reasons: ${availability.reasons}');
+        _logger.d('Reasons: ${availability.reasons}');
       }
-      debugPrint('==========================');
+      _logger.d('==========================');
 
       if (!availability.available) {
-        state = state.copyWith(isConfirming: false, isConfirmed: false);
         final reason = availability.reasons.isNotEmpty
             ? availability.reasons.join(', ')
             : 'Provider is not available at the selected time.';
-        return reason;
+        state = state.copyWith(
+          isConfirming: false,
+          isConfirmed: false,
+          errorMessage: reason,
+        );
+        return;
       }
 
       // 2. Map selected services to items using their UUIDs
@@ -637,34 +803,36 @@ class BookingNotifier extends StateNotifier<BookingState> {
           .map((name) => {'service': serviceDataMap[name]!.id, 'quantity': 1})
           .toList(growable: true);
 
-      // If no matching service IDs found, fall back to using artisan id
-      // (legacy fallback until all services have proper IDs)
+      // Validate that service mapping succeeded
       if (items.isEmpty) {
-        items.add({'service': artisan.id, 'quantity': 1});
+        state = state.copyWith(
+          errorMessage: 'Unable to map selected services. Please try again.',
+        );
+        return;
       }
 
       final payloadItems = items;
 
-      debugPrint('=== BOOKING SUBMISSION DEBUG ===');
-      debugPrint('providerId: ${artisan.id}');
-      debugPrint('scheduledStart: $scheduledStart');
-      debugPrint('scheduledEnd: $scheduledEnd');
-      debugPrint('serviceType: ${state.bookingType.name.toUpperCase()}');
-      debugPrint('currency: NGN');
-      debugPrint(
+      _logger.d('=== BOOKING SUBMISSION DEBUG ===');
+      _logger.d('providerId: ${artisan.id}');
+      _logger.d('scheduledStart: $scheduledStart');
+      _logger.d('scheduledEnd: $scheduledEnd');
+      _logger.d('serviceType: ${state.bookingType.name.toUpperCase()}');
+      _logger.d('currency: NGN');
+      _logger.d(
         'addressText: ${state.bookingType == BookingType.onsite ? state.address : null}',
       );
-      debugPrint('notes: ${state.notes}');
-      debugPrint('items: $payloadItems');
-      debugPrint('================================');
+      _logger.d('notes: ${state.notes}');
+      _logger.d('items: $payloadItems');
+      _logger.d('================================');
 
       // 3. Create the booking using the global bookingsProvider to ensure state synchronization
       await _ref
           .read(bookingsProvider.notifier)
           .placeBooking(
             providerId: artisan.id,
-            scheduledStart: scheduledStart,
-            scheduledEnd: scheduledEnd,
+            scheduledStart: scheduledStartUtc,
+            scheduledEnd: scheduledEndUtc,
             serviceType: state.bookingType.name.toUpperCase(),
             currency: 'NGN',
             addressText: state.bookingType == BookingType.onsite
@@ -679,13 +847,16 @@ class BookingNotifier extends StateNotifier<BookingState> {
       // 4. Invalidate dashboard to ensure it reflects the new booking and KPIs
       _ref.invalidate(dashboardProvider);
 
-      debugPrint('Booking submitted successfully!');
-      state = state.copyWith(isConfirming: false, isConfirmed: true);
-      return null;
+      _logger.d('Booking submitted successfully!');
+      state = state.copyWith(
+        isConfirming: false,
+        isConfirmed: true,
+        errorMessage: null,
+      );
     } catch (e) {
-      debugPrint('Booking failed with error: $e');
+      _logger.e('Booking failed with error: $e');
       if (e is DioException) {
-        debugPrint('DioException response: ${e.response?.data}');
+        _logger.e('DioException response: ${e.response?.data}');
       }
       state = state.copyWith(isConfirming: false, isConfirmed: false);
       // Extract error message from exceptions if possible, otherwise use generic message
@@ -727,7 +898,7 @@ class BookingNotifier extends StateNotifier<BookingState> {
       } else {
         errorMsg = e.toString();
       }
-      return errorMsg;
+      state = state.copyWith(errorMessage: errorMsg);
     }
   }
 
@@ -797,6 +968,7 @@ final favoriteArtisansProvider =
 class FilteredArtisansNotifier extends AsyncNotifier<List<Artisan>> {
   @override
   Future<List<Artisan>> build() async {
+    _logger.i('[FilteredArtisansNotifier] build() called');
     final filter = ref.watch(artisanFilterProvider);
     final repo = ref.watch(artisanRepositoryProvider);
 
@@ -817,6 +989,13 @@ class FilteredArtisansNotifier extends AsyncNotifier<List<Artisan>> {
         break;
     }
 
+    // Map provider type filter
+    String? providerTypeParam;
+    if (filter.providerType != 'All') {
+      providerTypeParam = filter.providerType.toUpperCase();
+    }
+
+    _logger.i('[FilteredArtisansNotifier] Checking cache...');
     final cached = repo.getCachedArtisans(
       search: filter.searchQuery.isNotEmpty ? filter.searchQuery : null,
       category: filter.selectedCategory,
@@ -826,22 +1005,72 @@ class FilteredArtisansNotifier extends AsyncNotifier<List<Artisan>> {
       maxPrice: filter.maxPrice,
       location: filter.location,
       isAvailableOnly: filter.isAvailableOnly,
+      providerType: providerTypeParam,
+      isVerifiedOnly: filter.isVerifiedOnly ? true : null,
+      radiusKm: filter.radiusKm,
     );
+
+    // Return cached data immediately if available
     if (cached.isNotEmpty) {
-      state = AsyncData(cached);
+      _logger.i(
+        '[FilteredArtisansNotifier] Cache hit, returning ${cached.length} items',
+      );
+      // Trigger background refresh
+      _refreshInBackground(repo, filter, ordering);
+      return cached;
     }
 
-    final results = await repo.searchArtisans(
-      search: filter.searchQuery.isNotEmpty ? filter.searchQuery : null,
-      category: filter.selectedCategory,
-      ordering: ordering,
-      minRating: filter.minRating,
-      minPrice: filter.minPrice,
-      maxPrice: filter.maxPrice,
-      location: filter.location,
-      isAvailableOnly: filter.isAvailableOnly,
-    );
-    return results;
+    _logger.i('[FilteredArtisansNotifier] No cache, fetching from network...');
+    // No cache, fetch from network
+    try {
+      final results = await repo.searchArtisans(
+        search: filter.searchQuery.isNotEmpty ? filter.searchQuery : null,
+        category: filter.selectedCategory,
+        ordering: ordering,
+        minRating: filter.minRating,
+        minPrice: filter.minPrice,
+        maxPrice: filter.maxPrice,
+        location: filter.location,
+        isAvailableOnly: filter.isAvailableOnly,
+        providerType: providerTypeParam,
+        isVerifiedOnly: filter.isVerifiedOnly ? true : null,
+        radiusKm: filter.radiusKm,
+      );
+      _logger.i(
+        '[FilteredArtisansNotifier] Network fetch successful, got ${results.length} items',
+      );
+      return results;
+    } catch (e, s) {
+      _logger.e('[FilteredArtisansNotifier] Network fetch failed: $e\n$s');
+      rethrow;
+    }
+  }
+
+  Future<void> _refreshInBackground(
+    ArtisanRepository repo,
+    ArtisanFilterState filter,
+    String? ordering,
+  ) async {
+    try {
+      final results = await repo.searchArtisans(
+        search: filter.searchQuery.isNotEmpty ? filter.searchQuery : null,
+        category: filter.selectedCategory,
+        ordering: ordering,
+        minRating: filter.minRating,
+        minPrice: filter.minPrice,
+        maxPrice: filter.maxPrice,
+        location: filter.location,
+        isAvailableOnly: filter.isAvailableOnly,
+        providerType: filter.providerType != 'All'
+            ? filter.providerType.toUpperCase()
+            : null,
+        isVerifiedOnly: filter.isVerifiedOnly ? true : null,
+        radiusKm: filter.radiusKm,
+      );
+      state = AsyncData(results);
+    } catch (_) {
+      // Silently fail on background refresh errors
+    }
   }
 }
 

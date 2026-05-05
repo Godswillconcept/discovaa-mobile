@@ -40,6 +40,9 @@ class ApiArtisanRepository implements ArtisanRepository {
     double? maxPrice,
     String? location,
     bool? isAvailableOnly,
+    String? providerType,
+    bool? isVerifiedOnly,
+    double? radiusKm,
   }) {
     final query = <String, dynamic>{};
     if (search != null && search.trim().isNotEmpty) {
@@ -62,6 +65,15 @@ class ApiArtisanRepository implements ArtisanRepository {
     }
     if (isAvailableOnly == true) {
       query['is_available'] = true;
+    }
+    if (providerType != null && providerType != 'All') {
+      query['provider_type'] = providerType;
+    }
+    if (isVerifiedOnly == true) {
+      query['is_verified'] = true;
+    }
+    if (radiusKm != null && radiusKm > 0) {
+      query['radius_km'] = radiusKm;
     }
 
     if (category != null && category.trim().isNotEmpty) {
@@ -90,6 +102,9 @@ class ApiArtisanRepository implements ArtisanRepository {
     double? maxPrice,
     String? location,
     bool? isAvailableOnly,
+    String? providerType,
+    bool? isVerifiedOnly,
+    double? radiusKm,
   }) async {
     final query = <String, dynamic>{};
     if (search != null && search.trim().isNotEmpty) {
@@ -112,6 +127,15 @@ class ApiArtisanRepository implements ArtisanRepository {
     }
     if (isAvailableOnly == true) {
       query['is_available'] = true;
+    }
+    if (providerType != null && providerType != 'All') {
+      query['provider_type'] = providerType;
+    }
+    if (isVerifiedOnly == true) {
+      query['is_verified'] = true;
+    }
+    if (radiusKm != null && radiusKm > 0) {
+      query['radius_km'] = radiusKm;
     }
 
     if (category != null && category.trim().isNotEmpty) {
@@ -296,7 +320,7 @@ class ApiArtisanRepository implements ArtisanRepository {
       rating: dto.avgRating ?? 0,
       reviewsCount: dto.reviewCount ?? 0,
       location: _firstLocation(dto.locations) ?? 'Unknown',
-      profileImage: _artisanPlaceholder(dto.id),
+      profileImage: dto.profilePhoto ?? _artisanPlaceholder(dto.id),
       bio: dto.bio ?? '',
       services: const [],
       hourlyRate: 0,

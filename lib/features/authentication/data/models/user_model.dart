@@ -11,6 +11,7 @@ class UserModel {
   final String? photoUrl;
   final String role;
   final bool isEmailVerified;
+  final bool isIdentityVerified;
   final bool isProfileComplete;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -25,6 +26,7 @@ class UserModel {
     this.photoUrl,
     required this.role,
     this.isEmailVerified = false,
+    this.isIdentityVerified = false,
     this.isProfileComplete = false,
     this.createdAt,
     this.updatedAt,
@@ -42,6 +44,7 @@ class UserModel {
       photoUrl: json['photoUrl'] as String?,
       role: json['role'] as String,
       isEmailVerified: json['isEmailVerified'] as bool? ?? false,
+      isIdentityVerified: json['isIdentityVerified'] as bool? ?? false,
       isProfileComplete: json['isProfileComplete'] as bool? ?? false,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
@@ -64,6 +67,7 @@ class UserModel {
       'photoUrl': photoUrl,
       'role': role,
       'isEmailVerified': isEmailVerified,
+      'isIdentityVerified': isIdentityVerified,
       'isProfileComplete': isProfileComplete,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
@@ -82,6 +86,7 @@ class UserModel {
       photoUrl: photoUrl,
       role: role,
       isEmailVerified: isEmailVerified,
+      isIdentityVerified: isIdentityVerified,
       isProfileComplete: isProfileComplete,
       createdAt: createdAt,
       updatedAt: updatedAt,
@@ -100,6 +105,7 @@ class UserModel {
       photoUrl: entity.photoUrl,
       role: entity.role,
       isEmailVerified: entity.isEmailVerified,
+      isIdentityVerified: entity.isIdentityVerified,
       isProfileComplete: entity.isProfileComplete,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
@@ -116,6 +122,7 @@ class UserModel {
     String? photoUrl,
     String? role,
     bool? isEmailVerified,
+    bool? isIdentityVerified,
     bool? isProfileComplete,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -130,6 +137,7 @@ class UserModel {
       photoUrl: photoUrl ?? this.photoUrl,
       role: role ?? this.role,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+      isIdentityVerified: isIdentityVerified ?? this.isIdentityVerified,
       isProfileComplete: isProfileComplete ?? this.isProfileComplete,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

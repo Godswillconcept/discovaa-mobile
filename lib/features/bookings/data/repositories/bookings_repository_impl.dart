@@ -90,7 +90,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
 
       final envelope = decodeListEnvelope(
         response,
-        (item) => BookingDto.fromJson(item),
+        _parseBookingDto,
       );
 
       // Fetch reviews for completed bookings
@@ -131,8 +131,8 @@ class BookingsRepositoryImpl implements BookingsRepository {
     final response = await _dioClient.get(
       ApiEndpoints.providerAvailabilityCheck(providerId),
       queryParameters: {
-        'start': start.toIso8601String().split('Z').first,
-        'end': end.toIso8601String().split('Z').first,
+        'start': start.toIso8601String(),
+        'end': end.toIso8601String(),
       },
     );
     final envelope = decodeEnvelope(response, (raw) => asMap(raw));
@@ -160,7 +160,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     );
     final dto = decodeEnvelope(
       response,
-      (raw) => BookingDto.fromJson(asMap(raw)),
+      _parseBookingDto,
     ).data;
 
     // Fetch review if booking is completed
@@ -209,7 +209,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     );
     final dto = decodeEnvelope(
       response,
-      (raw) => BookingDto.fromJson(asMap(raw)),
+      _parseBookingDto,
     ).data;
 
     // Fetch the associated services to build the service snapshot
@@ -246,7 +246,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     );
     final dto = decodeEnvelope(
       response,
-      (raw) => BookingDto.fromJson(asMap(raw)),
+      _parseBookingDto,
     ).data;
 
     // Fetch services to build service snapshot
@@ -266,7 +266,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     );
     final dto = decodeEnvelope(
       response,
-      (raw) => BookingDto.fromJson(asMap(raw)),
+      _parseBookingDto,
     ).data;
 
     // Fetch services to build service snapshot
@@ -352,7 +352,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     );
     final dto = decodeEnvelope(
       response,
-      (raw) => BookingDto.fromJson(asMap(raw)),
+      _parseBookingDto,
     ).data;
 
     final services = await _servicesRepository.listServices();
@@ -381,7 +381,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     );
     final dto = decodeEnvelope(
       response,
-      (raw) => BookingDto.fromJson(asMap(raw)),
+      _parseBookingDto,
     ).data;
 
     final services = await _servicesRepository.listServices();
@@ -476,6 +476,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     bool insertAtStart = false,
     String? cacheKey,
   }) async {
+    // Atomic operation: read, modify, and write in a single method
     final current = _readCachedBookings(cacheKey).toList();
     final index = current.indexWhere((item) => item.id == booking.id);
     if (index == -1) {
@@ -487,6 +488,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     } else {
       current[index] = booking;
     }
+    // Single atomic write operation
     await _cacheBookings(current, cacheKey);
   }
 
@@ -494,8 +496,54 @@ class BookingsRepositoryImpl implements BookingsRepository {
     String bookingId, {
     String? cacheKey,
   }) async {
+    // Atomic operation: read, filter, and write in a single method
     final current = _readCachedBookings(cacheKey).toList();
     final filtered = current.where((item) => item.id != bookingId).toList();
+    // Single atomic write operation
     await _cacheBookings(filtered, cacheKey);
+  }
+
+  BookingDto _parseBookingDto(dynamic raw) {
+    final json = asMap(raw);
+    _validateBookingPayload(json);
+    return BookingDto.fromJson(json);
+  }
+
+  void _validateBookingPayload(Map<String, dynamic> json) {
+    const serviceOnlyKeys = {
+      'pricing_model',
+      'price_type',
+      'service_text',
+      'price_amount',
+      'price_min_amount',
+      'price_max_amount',
+    };
+    const bookingShapeKeys = {
+      'status',
+      'scheduled_start',
+      'scheduled_end',
+      'items',
+      'service_type',
+      'address_text',
+      'location_point',
+      'total_amount',
+      'notes',
+      'payment',
+      'user',
+    };
+
+    final hasServiceOnlyKeys = serviceOnlyKeys.any(json.containsKey);
+    final hasBookingShapeKeys = bookingShapeKeys.any(json.containsKey);
+
+    if (hasServiceOnlyKeys && !hasBookingShapeKeys) {
+      final id = json['id']?.toString() ?? '<missing>';
+      debugPrint(
+        '[Bookings] Malformed booking payload: service-shaped item received. '
+        'id=$id keys=${json.keys.toList()}',
+      );
+      throw FormatException(
+        'Expected booking payload but received service item: $id',
+      );
+    }
   }
 }

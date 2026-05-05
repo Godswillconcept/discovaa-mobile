@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:dio/dio.dart';
 import 'package:discovaa/core/storage/secure_token_storage.dart';
@@ -46,6 +47,8 @@ class LoggingInterceptor extends Interceptor {
     if (AppConstants.isDebugMode) {
       debugPrint('=== API Response ===');
       debugPrint('Group: ${_endpointGroup(response.requestOptions.path)}');
+      debugPrint('Method: ${response.requestOptions.method}');
+      debugPrint('URL: ${response.requestOptions.uri}');
       debugPrint('Status Code: ${response.statusCode}');
       debugPrint('Data: ${response.data}');
       debugPrint('===================');
@@ -79,6 +82,10 @@ class LoggingInterceptor extends Interceptor {
 class AuthInterceptor extends Interceptor {
   final SecureTokenStorage _tokenStorage;
   static const String _retryAfterRefreshHeader = 'X-Retry-After-Refresh';
+
+  // Static lock to prevent concurrent token refresh attempts
+  static bool _isRefreshing = false;
+  static Completer<_TokenRefreshResult>? _refreshCompleter;
 
   AuthInterceptor({required SecureTokenStorage tokenStorage})
     : _tokenStorage = tokenStorage;
@@ -264,6 +271,17 @@ class AuthInterceptor extends Interceptor {
   }
 
   Future<_TokenRefreshResult> _refreshToken() async {
+    // Implement locking mechanism to prevent concurrent refresh attempts
+    if (_isRefreshing && _refreshCompleter != null) {
+      debugPrint(
+        '[AuthInterceptor] Token refresh already in progress, waiting for result...',
+      );
+      return _refreshCompleter!.future;
+    }
+
+    _isRefreshing = true;
+    _refreshCompleter = Completer<_TokenRefreshResult>();
+
     try {
       final refreshToken = await _tokenStorage.getRefreshToken();
       final hasRefreshToken = refreshToken != null && refreshToken.isNotEmpty;
@@ -275,9 +293,11 @@ class AuthInterceptor extends Interceptor {
           '[AuthInterceptor] AUTH DIAGNOSTIC: Refresh token missing from storage. '
           'Cannot attempt token refresh. Original 401 will be surfaced to caller.',
         );
-        return const _TokenRefreshResult(
+        final result = const _TokenRefreshResult(
           status: _TokenRefreshStatus.missingRefreshToken,
         );
+        _refreshCompleter!.complete(result);
+        return result;
       }
 
       debugPrint(
@@ -313,7 +333,11 @@ class AuthInterceptor extends Interceptor {
           debugPrint(
             '[AuthInterceptor] Token refresh failed: response data is null',
           );
-          return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
+          final result = const _TokenRefreshResult(
+            status: _TokenRefreshStatus.failed,
+          );
+          _refreshCompleter!.complete(result);
+          return result;
         }
 
         debugPrint(
@@ -342,7 +366,11 @@ class AuthInterceptor extends Interceptor {
           debugPrint(
             '[AuthInterceptor] Token refresh failed: meta.is_authenticated is false',
           );
-          return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
+          final result = const _TokenRefreshResult(
+            status: _TokenRefreshStatus.failed,
+          );
+          _refreshCompleter!.complete(result);
+          return result;
         }
 
         if (newToken != null && newToken.isNotEmpty) {
@@ -353,21 +381,31 @@ class AuthInterceptor extends Interceptor {
           debugPrint(
             '[AuthInterceptor] Token refreshed successfully: ${newToken.substring(0, newToken.length > 20 ? 20 : newToken.length)}...',
           );
-          return _TokenRefreshResult(
+          final result = _TokenRefreshResult(
             status: _TokenRefreshStatus.success,
             accessToken: newToken,
           );
+          _refreshCompleter!.complete(result);
+          return result;
         } else {
           debugPrint(
             '[AuthInterceptor] Token refresh failed: no access_token found anywhere in response',
           );
-          return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
+          final result = const _TokenRefreshResult(
+            status: _TokenRefreshStatus.failed,
+          );
+          _refreshCompleter!.complete(result);
+          return result;
         }
       } else {
         debugPrint(
           '[AuthInterceptor] Token refresh failed with status: ${response.statusCode}',
         );
-        return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
+        final result = const _TokenRefreshResult(
+          status: _TokenRefreshStatus.failed,
+        );
+        _refreshCompleter!.complete(result);
+        return result;
       }
     } on DioException catch (e) {
       debugPrint('[AuthInterceptor] Token refresh DioException: ${e.type}');
@@ -383,28 +421,46 @@ class AuthInterceptor extends Interceptor {
         debugPrint(
           '[AuthInterceptor] Token refresh returned $statusCode, treating as unauthorized',
         );
-        return const _TokenRefreshResult(
+        final result = const _TokenRefreshResult(
           status: _TokenRefreshStatus.unauthorized,
         );
+        _refreshCompleter!.complete(result);
+        return result;
       }
       if (statusCode != null && statusCode >= 500) {
-        return const _TokenRefreshResult(
+        final result = const _TokenRefreshResult(
           status: _TokenRefreshStatus.transientFailure,
         );
+        _refreshCompleter!.complete(result);
+        return result;
       }
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.sendTimeout) {
-        return const _TokenRefreshResult(
+        final result = const _TokenRefreshResult(
           status: _TokenRefreshStatus.transientFailure,
         );
+        _refreshCompleter!.complete(result);
+        return result;
       }
+      final result = const _TokenRefreshResult(
+        status: _TokenRefreshStatus.failed,
+      );
+      _refreshCompleter!.complete(result);
+      return result;
     } catch (e) {
       debugPrint('[AuthInterceptor] Token refresh unexpected error: $e');
-      return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
+      final result = const _TokenRefreshResult(
+        status: _TokenRefreshStatus.failed,
+      );
+      _refreshCompleter!.complete(result);
+      return result;
+    } finally {
+      // Reset the lock after completion
+      _isRefreshing = false;
+      _refreshCompleter = null;
     }
-    return const _TokenRefreshResult(status: _TokenRefreshStatus.failed);
   }
 
   /// Clear all authentication state
@@ -548,7 +604,7 @@ class ErrorInterceptor extends Interceptor {
 
     final retryAfter = headers.value('retry-after');
     if (retryAfter != null && retryAfter.isNotEmpty) {
-      final seconds = int.tryParse(retryAfter[0]);
+      final seconds = int.tryParse(retryAfter);
       if (seconds != null) {
         return DateTime.now().add(Duration(seconds: seconds));
       }
@@ -634,3 +690,5 @@ class RetryInterceptor extends Interceptor {
     return Duration(milliseconds: delayMs);
   }
 }
+
+

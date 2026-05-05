@@ -1,12 +1,13 @@
+import 'package:discovaa/app/router/route_names.dart';
+import 'package:discovaa/core/utils/form_validation.dart';
+import 'package:discovaa/core/widgets/app_alert_message.dart';
+import 'package:discovaa/core/widgets/custom_buttons.dart';
+import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/authentication/presentation/widgets/auth_field_label.dart';
 import 'package:discovaa/features/authentication/presentation/widgets/auth_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/router/route_names.dart';
-import '../../../../core/utils/form_validation.dart';
-import '../../../../core/widgets/custom_buttons.dart';
-import '../providers/auth_provider.dart';
 
 class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -44,7 +45,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
             extra: {'type': 'forgot_password', 'email': _emailController.text},
           );
         } else {
-          final error = ref.read(authProvider).errorMessage;
+          final error = ref.read(authProvider).value?.errorMessage;
           _showErrorSnackBar(
             error ?? 'Failed to send reset email. Please try again.',
           );
@@ -80,13 +81,24 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final errorMessage = authState.value?.errorMessage;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
           AuthHeader(
             title: "Forgot Your Password?",
-            onBack: () => context.pop(),
+            onBack: () {
+              // Check if we can pop to avoid "nothing to pop" error
+              if (GoRouter.of(context).canPop()) {
+                context.pop();
+              } else {
+                // Fallback: navigate to login page if nothing to pop
+                context.go(RouteNames.login);
+              }
+            },
           ),
           Expanded(
             child: SingleChildScrollView(
@@ -118,6 +130,16 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                         return FormValidationRules.validateEmail(value);
                       },
                     ),
+                    if (errorMessage != null) ...[
+                      const SizedBox(height: 16),
+                      AppAlertMessage(
+                        type: AlertType.error,
+                        message: errorMessage,
+                        onDismiss: () {
+                          ref.read(authProvider.notifier).clearError();
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 40),
                     AppPrimaryButton(
                       onPressed: _isLoading ? null : _sendResetEmail,

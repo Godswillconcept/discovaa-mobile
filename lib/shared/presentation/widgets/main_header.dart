@@ -45,17 +45,20 @@ class MainHeader extends ConsumerWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      final success = await ref.read(authProvider.notifier).logout();
-
-      if (success && context.mounted) {
-        context.go(RouteNames.login);
-      } else if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to logout'),
-            backgroundColor: Color(0xFFEF4444),
-          ),
-        );
+      try {
+        await ref.read(authProvider.notifier).logout();
+        if (context.mounted) {
+          context.go(RouteNames.login);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to logout'),
+              backgroundColor: Color(0xFFEF4444),
+            ),
+          );
+        }
       }
     }
   }

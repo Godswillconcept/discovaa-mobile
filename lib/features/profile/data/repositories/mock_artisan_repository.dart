@@ -147,6 +147,9 @@ class MockArtisanRepository implements ArtisanRepository {
     double? maxPrice,
     String? location,
     bool? isAvailableOnly,
+    String? providerType,
+    bool? isVerifiedOnly,
+    double? radiusKm,
   }) {
     // Basic in-memory filtering for cache
     return _artisans;
@@ -162,6 +165,9 @@ class MockArtisanRepository implements ArtisanRepository {
     double? maxPrice,
     String? location,
     bool? isAvailableOnly,
+    String? providerType,
+    bool? isVerifiedOnly,
+    double? radiusKm,
   }) async {
     // Basic in-memory filtering to mimic backend search
     await Future.delayed(const Duration(milliseconds: 300));
