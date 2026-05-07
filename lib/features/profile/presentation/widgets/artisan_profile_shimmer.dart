@@ -9,51 +9,53 @@ class ArtisanProfileShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ShimmerLoading(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _ShimmerMainHeader(),
-          const SizedBox(height: 16),
-          const _ShimmerCustomHeader(),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const ArtisanProfileHeaderShimmer(),
-                const SizedBox(height: 24),
-                const ArtisanGalleryShimmer(),
-              ],
-            ),
-          ),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF8FBFF),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _ShimmerMainHeader(),
+            const SizedBox(height: 16),
+            const _ShimmerCustomHeader(),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const ArtisanProfileHeaderShimmer(),
+                  const SizedBox(height: 24),
+                  const ArtisanGalleryShimmer(),
+                ],
               ),
             ),
-            child: Column(
-              children: [
-                const ArtisanBusinessInfoShimmer(),
-                const SizedBox(height: 24),
-                const ArtisanServicesShimmer(),
-                const SizedBox(height: 24),
-                const ArtisanPricesDropdownShimmer(),
-                const SizedBox(height: 24),
-                const ArtisanQualificationsShimmer(),
-                const SizedBox(height: 24),
-                const ArtisanAvailabilityShimmer(),
-                const SizedBox(height: 24),
-                const ArtisanReviewsShimmer(),
-                const SizedBox(height: 40),
-              ],
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FBFF),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
+                ),
+              ),
+              child: Column(
+                children: [
+                  const ArtisanBusinessInfoShimmer(),
+                  const SizedBox(height: 24),
+                  const ArtisanServicesShimmer(),
+                  const SizedBox(height: 24),
+                  const ArtisanPricesDropdownShimmer(),
+                  const SizedBox(height: 24),
+                  const ArtisanQualificationsShimmer(),
+                  const SizedBox(height: 24),
+                  const ArtisanAvailabilityShimmer(),
+                  const SizedBox(height: 24),
+                  const ArtisanReviewsShimmer(),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
