@@ -4,6 +4,7 @@ import 'package:discovaa/core/widgets/custom_buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 import '../../../../core/utils/clippers.dart';
@@ -75,9 +76,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             // 1. Curved Black Header
             HeaderClipper(
               child: Container(
-                padding: const EdgeInsets.only(bottom: 20),
+                padding: EdgeInsets.only(bottom: 20.h),
                 alignment: Alignment.bottomCenter,
-                child: Image.asset(AppAssets.logo, width: 160),
+                child: Image.asset(AppAssets.logo, width: 160.w),
               ),
             ),
 
@@ -93,7 +94,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 itemBuilder: (context, index) {
                   return Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      padding: EdgeInsets.symmetric(horizontal: 40.w),
 
                       child: Image.asset(
                         images[index],
@@ -108,7 +109,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
             // 3. Indicator and Text Content
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 30),
+              padding: EdgeInsets.symmetric(horizontal: 30.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -117,45 +118,45 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     children: List.generate(
                       3,
                       (index) => Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        height: 3,
-                        width: 30,
+                        margin: EdgeInsets.only(right: 8.w),
+                        height: 3.h,
+                        width: 30.w,
                         decoration: BoxDecoration(
                           color: currentIndex == index
                               ? Colors.black
                               : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2),
+                          borderRadius: BorderRadius.circular(2.r),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30.h),
 
                   // Headline with stylized "Artisans"
-                  const Text(
+                  Text(
                     "The best way\nto connect with",
                     style: TextStyle(
-                      fontSize: 26,
+                      fontSize: 26.sp,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                     ),
                   ),
                   Stack(
                     children: [
-                      const Text(
+                      Text(
                         "Artisans.",
                         style: TextStyle(
-                          fontSize: 34,
+                          fontSize: 34.sp,
                           fontWeight: FontWeight.w900,
                           color: Colors.black,
                         ),
                       ),
                       Positioned(
-                        bottom: 4,
+                        bottom: 4.h,
                         left: 0,
                         child: SizedBox(
-                          height: 8,
-                          width: 140,
+                          height: 8.h,
+                          width: 140.w,
                           child: Image.asset(
                             'assets/images/logos/red_swoosh.png',
                             fit: BoxFit.fill,
@@ -170,17 +171,17 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
             // 4. Buttons Footer
             Padding(
-              padding: const EdgeInsets.all(30),
+              padding: EdgeInsets.all(30.w),
               child: Column(
                 children: [
                   AppPrimaryButton(
                     onPressed: () => context.push(RouteNames.signupSelection),
-                    child: const Text(
+                    child: Text(
                       "Sign Up",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                      style: TextStyle(color: Colors.white, fontSize: 16.sp),
                     ),
                   ),
-                  const SizedBox(height: 15),
+                  SizedBox(height: 15.h),
                   AppOutlinedButton(
                     onPressed: () => context.push(
                       RouteNames.login,
@@ -205,7 +206,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 20), // Bottom safe area spacer
+            SizedBox(height: 20.h), // Bottom safe area spacer
           ],
         ),
       ),

@@ -7,6 +7,7 @@ import 'package:discovaa/features/authentication/presentation/widgets/auth_field
 import 'package:discovaa/features/authentication/presentation/widgets/auth_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 class ForgotPasswordPage extends ConsumerStatefulWidget {
@@ -68,7 +69,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
         content: Row(
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(child: Text(message)),
           ],
         ),
@@ -102,7 +103,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
           ),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(24.w),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -112,7 +113,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                       "Please enter your registered email address & we will send an OTP verification code.",
                       style: TextStyle(color: Colors.grey, height: 1.5),
                     ),
-                    const Divider(height: 40),
+                    Divider(height: 40.h),
                     const AuthFieldLabel(label: "Email address"),
                     TextFormField(
                       controller: _emailController,
@@ -120,7 +121,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                       decoration: InputDecoration(
                         hintText: 'your@email.com',
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(10.r),
                         ),
                       ),
                       validator: (value) {
@@ -131,7 +132,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                       },
                     ),
                     if (errorMessage != null) ...[
-                      const SizedBox(height: 16),
+                      SizedBox(height: 16.h),
                       AppAlertMessage(
                         type: AlertType.error,
                         message: errorMessage,
@@ -140,13 +141,13 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                         },
                       ),
                     ],
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40.h),
                     AppPrimaryButton(
                       onPressed: _isLoading ? null : _sendResetEmail,
                       child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
+                          ? SizedBox(
+                              height: 20.h,
+                              width: 20.w,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(

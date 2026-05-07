@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility Functions
@@ -102,17 +103,17 @@ class _TitleSection extends StatelessWidget {
                 'Booking details',
                 style: TextStyle(
                   color: Colors.grey.shade600,
-                  fontSize: 13,
+                  fontSize: 13.sp,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4.h),
               Text(
                 isProvider
                     ? 'Booking for ${booking.userDisplayName ?? booking.clientName}'
                     : 'Booking with ${booking.providerName ?? 'Provider'}',
-                style: const TextStyle(
-                  fontSize: 22,
+                style: TextStyle(
+                  fontSize: 22.sp,
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                 ),
@@ -120,19 +121,16 @@ class _TitleSection extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16.w),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 0,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 side: BorderSide(color: Colors.grey.shade300),
               ),
@@ -145,7 +143,7 @@ class _TitleSection extends StatelessWidget {
               ),
             ),
             if (!isProvider) ...[
-              const SizedBox(width: 8),
+              SizedBox(width: 8.w),
               _MessageButton(booking: booking),
             ],
           ],
@@ -178,8 +176,8 @@ class _MessageButton extends ConsumerWidget {
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.black,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
         elevation: 0,
       ),
       child: const Text(
@@ -252,7 +250,7 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                   // ── Hero image ─────────────────────────────────────────
                   SliverAppBar(
                     automaticallyImplyLeading: false,
-                    expandedHeight: 240,
+                    expandedHeight: 240.h,
                     pinned: false,
                     backgroundColor: Colors.transparent,
                     flexibleSpace: FlexibleSpaceBar(
@@ -278,8 +276,8 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                             ),
                           ),
                           Positioned(
-                            bottom: 16,
-                            left: 20,
+                            bottom: 16.h,
+                            left: 20.w,
                             child: _StatusBadge(status: status),
                           ),
                         ],
@@ -289,7 +287,7 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
 
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                      padding: EdgeInsets.fromLTRB(20.w, 4.h, 20.w, 100.h),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -298,67 +296,67 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                             booking: booking,
                             isProvider: isBookingProvider,
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: 24.h),
 
                           // Header Card (User/Provider details)
                           _HeaderCard(
                             booking: booking,
                             isProvider: isBookingProvider,
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16.h),
 
                           // Items Card
                           _SectionLabel('Items'),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8.h),
                           _ItemsCard(
                             booking: booking,
                             isProvider: isBookingProvider,
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16.h),
 
                           // Booking info Card
                           _SectionLabel('Booking info'),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8.h),
                           _BookingInfoCard(booking: booking),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16.h),
 
                           // Adjust time Card - only allow before booking is confirmed
                           if (isBookingProvider &&
                               booking.status == BookingStatus.requested) ...[
                             _SectionLabel('Adjust time'),
-                            const SizedBox(height: 8),
+                            SizedBox(height: 8.h),
                             _AdjustTimeCard(booking: booking),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16.h),
                           ],
 
                           // Payment Action (User only)
                           if (!isBookingProvider &&
                               booking.paymentStatus == 'REQUIRES_ACTION') ...[
                             _PaymentActionSection(booking: booking),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16.h),
                           ],
 
                           // Actions Card
                           _SectionLabel('Actions'),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8.h),
                           _ActionsCard(
                             booking: booking,
                             isProvider: isBookingProvider,
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(height: 16.h),
 
                           // Variable price warning
                           if (isBookingProvider &&
                               booking.service.priceType ==
                                   PriceType.variable) ...[
                             _VariablePriceWarning(),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16.h),
                           ],
 
                           // Review
                           if (status == BookingStatus.completed) ...[
                             _SectionLabel('Review'),
-                            const SizedBox(height: 8),
+                            SizedBox(height: 8.h),
                             _ReviewSection(booking: booking),
                           ],
                         ],
@@ -371,25 +369,25 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
               // ── Floating back button ────────────────────────────────────
               SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16.w),
                   child: GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
                     child: Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(10.w),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.92),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                            blurRadius: 8.r,
+                            offset: Offset(0, 2.h),
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_ios_new_rounded,
-                        size: 18,
+                        size: 18.sp,
                         color: Colors.black87,
                       ),
                     ),
@@ -474,32 +472,35 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
                     : () => setState(() => _rating = i + 1),
                 child: Icon(
                   i < _rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                  size: 28,
+                  size: 28.sp,
                   color: i < _rating ? AppColors.warning : Colors.grey.shade300,
                 ),
               );
             }),
           ),
           if (!hasExisting) ...[
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
             TextField(
               controller: _ctrl,
               maxLines: 3,
               decoration: InputDecoration(
                 hintText: 'Write a review (optional)…',
-                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 13.sp,
+                ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                   borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                   borderSide: BorderSide(color: Colors.grey.shade300),
                 ),
-                contentPadding: const EdgeInsets.all(12),
+                contentPadding: EdgeInsets.all(12.w),
               ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -525,9 +526,9 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                   ),
                 ),
                 child: const Text(
@@ -541,11 +542,11 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
             ),
           ] else ...[
             if (widget.booking.review != null) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               Text(
                 widget.booking.review!,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 13.sp,
                   color: Colors.grey.shade700,
                   height: 1.5,
                 ),
@@ -574,15 +575,15 @@ class _HeroFallback extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.home_repair_service_rounded,
-              size: 48,
+              size: 48.sp,
               color: Colors.black26,
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6.h),
             Text(
               category,
-              style: const TextStyle(color: Colors.black38, fontSize: 13),
+              style: TextStyle(color: Colors.black38, fontSize: 13.sp),
             ),
           ],
         ),
@@ -598,28 +599,28 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       decoration: BoxDecoration(
         color: status.color,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 6.w,
+            height: 6.h,
             decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 5),
+          SizedBox(width: 5.w),
           Text(
             status.displayName,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 11,
+              fontSize: 11.sp,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -637,8 +638,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 15,
+      style: TextStyle(
+        fontSize: 15.sp,
         fontWeight: FontWeight.bold,
         letterSpacing: -0.2,
       ),
@@ -662,28 +663,28 @@ class _InfoRow extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(6),
+          padding: EdgeInsets.all(6.w),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 16, color: Colors.grey.shade600),
+          child: Icon(icon, size: 16.sp, color: Colors.grey.shade600),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10.w),
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 12.sp,
             color: Colors.grey.shade500,
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8.w),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
+            style: TextStyle(
+              fontSize: 13.sp,
               fontWeight: FontWeight.w600,
               color: Colors.black87,
             ),
@@ -706,10 +707,10 @@ class _PaymentActionSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14.w),
       decoration: BoxDecoration(
         color: AppColors.lightOrangeBackground,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -717,23 +718,23 @@ class _PaymentActionSection extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.warning_amber_rounded,
-                size: 16,
+                size: 16.sp,
                 color: AppColors.warning,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8.w),
               Text(
                 'Action required to continue payment authorization.',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade700),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Text(
             'Status: ${formatPaymentStatus(booking.paymentStatus)}',
-            style: const TextStyle(
-              fontSize: 12,
+            style: TextStyle(
+              fontSize: 12.sp,
               fontWeight: FontWeight.bold,
               color: AppColors.warning,
             ),
@@ -741,32 +742,32 @@ class _PaymentActionSection extends ConsumerWidget {
           if (booking.paymentAmount != null)
             Text(
               'Amount: ${booking.paymentAmount}',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade600),
             ),
           // Show concluded price notice for variable price services
           if (booking.service.priceType == PriceType.variable &&
               booking.concludedUnitPrice != null) ...[
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8.w),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(6.r),
                 border: Border.all(color: Colors.green.shade200),
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.check_circle,
-                    size: 16,
+                    size: 16.sp,
                     color: Colors.green.shade700,
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
                       'Provider has set the concluded price to NGN ${booking.concludedUnitPrice}',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 11.sp,
                         color: Colors.green.shade800,
                       ),
                     ),
@@ -775,7 +776,7 @@ class _PaymentActionSection extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           // Only show payment button if authorization URL exists and payment requires action
           if (booking.paymentAuthorizationUrl != null &&
               booking.paymentStatus == 'REQUIRES_ACTION')
@@ -803,9 +804,9 @@ class _PaymentActionSection extends ConsumerWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.warning,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: EdgeInsets.symmetric(vertical: 12.h),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                 ),
                 child: const Text(
@@ -821,16 +822,16 @@ class _PaymentActionSection extends ConsumerWidget {
               booking.paymentStatus != 'REQUIRES_ACTION')
             // Show payment completed status
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
                 border: Border.all(color: Colors.green.shade200),
               ),
               child: Row(
                 children: [
                   Icon(Icons.check_circle, color: Colors.green.shade700),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Text(
                     'Payment ${formatPaymentStatus(booking.paymentStatus).toLowerCase()}',
                     style: TextStyle(
@@ -857,25 +858,25 @@ class _VariablePriceWarning extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: AppColors.lightOrangeBackground,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.warning_amber_rounded,
-            size: 18,
+            size: 18.sp,
             color: AppColors.warning,
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           Expanded(
             child: Text(
               'Variable-price service detected. Make sure you set concluded prices before charging the customer.',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 12.sp,
                 color: Colors.grey.shade700,
                 height: 1.4,
               ),
@@ -899,16 +900,16 @@ class _CardContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: 8.r,
+            offset: Offset(0, 2.h),
           ),
         ],
       ),
@@ -948,16 +949,16 @@ class _HeaderCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 20,
+            radius: 20.r,
             backgroundColor: Colors.grey.shade200,
             backgroundImage: avatar != null && avatar.isNotEmpty
                 ? NetworkImage(avatar)
                 : null,
             child: avatar == null || avatar.isEmpty
-                ? const Icon(Icons.person, color: Colors.grey)
+                ? Icon(Icons.person, color: Colors.grey)
                 : null,
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -965,23 +966,26 @@ class _HeaderCard extends StatelessWidget {
                 Text(
                   isProvider ? 'Customer' : 'Service Provider',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 11.sp,
                     fontWeight: FontWeight.bold,
                     color: Colors.grey.shade500,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2.h),
                 Text(
                   name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: 15,
+                    fontSize: 15.sp,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   '$dateStr • $statusText',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12.sp,
+                  ),
                 ),
               ],
             ),
@@ -989,39 +993,39 @@ class _HeaderCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Text(
+              Text(
                 'NGN',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 12.sp,
                   color: Colors.black87,
                 ),
               ),
               Text(
                 priceStr,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.sp),
               ),
               if (booking.paymentStatus != null &&
                   booking.paymentStatus!.isNotEmpty) ...[
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   'Payment:',
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: Colors.grey.shade600,
+                  ),
                 ),
                 Text(
                   formatPaymentStatus(booking.paymentStatus),
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.bold,
                     color: booking.paymentStatus == 'REQUIRES_ACTION'
                         ? AppColors.warning
                         : (booking.paymentStatus == 'CAPTURED' ||
                                   booking.paymentStatus == 'AUTHORIZED'
                               ? Colors.green
-                              : Colors.grey.shade700),
+                              : Colors.grey),
                   ),
                 ),
               ],
@@ -1051,18 +1055,18 @@ class _ItemsCard extends StatelessWidget {
         children: [
           Text(
             booking.service.title,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.sp),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.h),
           Text(
             'Qty: 1 • $priceLabel: NGN $priceStr',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12.sp),
           ),
           // Only show concluded price input if it hasn't been set yet
           if (isProvider &&
               booking.service.priceType == PriceType.variable &&
               booking.concludedUnitPrice == null) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             _ConcludedPriceInput(booking: booking),
           ],
         ],
@@ -1106,10 +1110,10 @@ class _ConcludedPriceInputState extends ConsumerState<_ConcludedPriceInput> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
@@ -1119,11 +1123,11 @@ class _ConcludedPriceInputState extends ConsumerState<_ConcludedPriceInput> {
             'Concluded unit price',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 12,
+              fontSize: 12.sp,
               color: Colors.grey.shade800,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Row(
             children: [
               Expanded(
@@ -1134,24 +1138,24 @@ class _ConcludedPriceInputState extends ConsumerState<_ConcludedPriceInput> {
                   ),
                   decoration: InputDecoration(
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 10.h,
                     ),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                       borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.w),
               ElevatedButton(
                 onPressed: _saving
                     ? null
@@ -1180,24 +1184,24 @@ class _ConcludedPriceInputState extends ConsumerState<_ConcludedPriceInput> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 12.h,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                 ),
                 child: _saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
+                    ? SizedBox(
+                        width: 16.w,
+                        height: 16.h,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
                           color: Colors.white,
                         ),
                       )
-                    : const Text(
+                    : Text(
                         'Save',
                         style: TextStyle(
                           color: Colors.white,
@@ -1233,19 +1237,19 @@ class _BookingInfoCard extends StatelessWidget {
             label: 'Scheduled',
             value: scheduledStr,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           _InfoRow(
             icon: Icons.category_outlined,
             label: 'Type',
             value: booking.service.category.toUpperCase(),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           _InfoRow(
             icon: Icons.location_on_outlined,
             label: 'Address',
             value: booking.addressText ?? 'Not provided',
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           _InfoRow(
             icon: Icons.note_outlined,
             label: 'Note',
@@ -1324,79 +1328,86 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
               color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(6.r),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, size: 16, color: Colors.blue.shade700),
-                const SizedBox(width: 8),
+                Icon(
+                  Icons.info_outline,
+                  size: 16.sp,
+                  color: Colors.blue.shade700,
+                ),
+                SizedBox(width: 8.w),
                 Expanded(
                   child: Text(
                     'Time can only be adjusted before confirming the booking.',
-                    style: TextStyle(fontSize: 11, color: Colors.blue.shade800),
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: Colors.blue.shade800,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 12.h),
+          Text(
             'Start',
-            style: TextStyle(fontSize: 12, color: Colors.black87),
+            style: TextStyle(fontSize: 12.sp, color: Colors.black87),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6.h),
           InkWell(
             onTap: () => _pickDateTime(true),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_fmt(_start), style: const TextStyle(fontSize: 14)),
-                  const Icon(
+                  Text(_fmt(_start), style: TextStyle(fontSize: 14.sp)),
+                  Icon(
                     Icons.calendar_today_outlined,
-                    size: 16,
+                    size: 16.sp,
                     color: Colors.grey,
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 12.h),
+          Text(
             'End',
-            style: TextStyle(fontSize: 12, color: Colors.black87),
+            style: TextStyle(fontSize: 12.sp, color: Colors.black87),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6.h),
           InkWell(
             onTap: () => _pickDateTime(false),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_fmt(_end), style: const TextStyle(fontSize: 14)),
-                  const Icon(
+                  Text(_fmt(_end), style: TextStyle(fontSize: 14.sp)),
+                  Icon(
                     Icons.calendar_today_outlined,
-                    size: 16,
+                    size: 16.sp,
                     color: Colors.grey,
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -1439,15 +1450,15 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: EdgeInsets.symmetric(vertical: 14.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
               child: _saving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
+                  ? SizedBox(
+                      width: 16.w,
+                      height: 16.h,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         color: Colors.white,
@@ -1511,7 +1522,7 @@ class _ActionsCard extends ConsumerWidget {
               }
             },
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           _ActionButton(
             label: 'Cancel booking',
             isPrimary: false,
@@ -1545,7 +1556,7 @@ class _ActionsCard extends ConsumerWidget {
             isPrimary: true,
             onPressed: () => notifier.startBooking(booking.id),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           _ActionButton(
             label: 'Cancel booking',
             isPrimary: false,
@@ -1653,14 +1664,14 @@ class _ActionButton extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: color ?? Colors.grey.shade600,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: EdgeInsets.symmetric(vertical: 14.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1669,9 +1680,9 @@ class _ActionButton extends StatelessWidget {
           : OutlinedButton(
               onPressed: onPressed,
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: EdgeInsets.symmetric(vertical: 14.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 side: BorderSide(color: Colors.grey.shade300),
               ),
@@ -1722,7 +1733,7 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
         ],
         bottom: _progress < 1.0
             ? PreferredSize(
-                preferredSize: const Size.fromHeight(2),
+                preferredSize: Size.fromHeight(2.h),
                 child: LinearProgressIndicator(value: _progress),
               )
             : null,
@@ -1756,12 +1767,12 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
             if (!mounted) return;
             // Show feedback to user
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text('This payment has already been processed.'),
-                duration: Duration(seconds: 3),
               ),
             );
             widget.onPaymentComplete(); // Refresh to check current status
+            if (!mounted) return;
             Navigator.of(context).pop();
           }
         },
@@ -1779,7 +1790,7 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
               request.url.toString().contains('paystack.com')) {
             // Show feedback to user before closing
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text(
                   'Payment already completed or link expired. Refreshing...',
                 ),

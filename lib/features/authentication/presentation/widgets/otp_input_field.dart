@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:pinput/pinput.dart';
 import '../../../../core/utils/form_validation.dart';
 import '../providers/registration_flow_provider.dart';
@@ -25,15 +26,15 @@ class OtpInputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final defaultPinTheme = PinTheme(
-      width: length > 6 ? 42 : 56,
-      height: 60,
+      width: length > 6 ? 42.w : 56.w,
+      height: 60.h,
       textStyle: TextStyle(
-        fontSize: length > 6 ? 18 : 22,
+        fontSize: length > 6 ? 18.sp : 22.sp,
         fontWeight: FontWeight.bold,
       ),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: Colors.grey.shade300),
       ),
     );
@@ -41,7 +42,7 @@ class OtpInputField extends StatelessWidget {
     final focusedPinTheme = defaultPinTheme.copyWith(
       decoration: defaultPinTheme.decoration?.copyWith(
         border: Border.all(color: Colors.blue, width: 1.5),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
       ),
     );
 

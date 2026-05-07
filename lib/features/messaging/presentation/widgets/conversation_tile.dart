@@ -3,6 +3,7 @@ import 'package:discovaa/features/messaging/domain/entities/conversation.dart';
 import 'package:discovaa/features/messaging/presentation/providers/messaging_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -19,15 +20,15 @@ class ConversationTile extends ConsumerWidget {
         context.push('${RouteNames.messages}/chat', extra: conversation);
       },
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 16.w),
         child: Row(
           children: [
             SizedBox(
-              width: 12,
+              width: 12.w,
               child: conversation.unreadCount > 0
                   ? Container(
-                      width: 10,
-                      height: 10,
+                      width: 10.w,
+                      height: 10.w,
                       decoration: const BoxDecoration(
                         color: Color(0xFF007AFF),
                         shape: BoxShape.circle,
@@ -35,13 +36,13 @@ class ConversationTile extends ConsumerWidget {
                     )
                   : const SizedBox.shrink(),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8.w),
             CircleAvatar(
-              radius: 28,
+              radius: 28.r,
               backgroundImage: AssetImage(conversation.artisanAvatar),
               backgroundColor: Colors.grey.shade200,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,8 +53,8 @@ class ConversationTile extends ConsumerWidget {
                       Expanded(
                         child: Text(
                           conversation.artisanName,
-                          style: const TextStyle(
-                            fontSize: 16,
+                          style: TextStyle(
+                            fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
@@ -61,33 +62,33 @@ class ConversationTile extends ConsumerWidget {
                           maxLines: 1,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8.w),
                       Row(
                         children: [
                           Text(
                             DateFormat(
                               'h:mm a',
                             ).format(conversation.lastMessageTime),
-                            style: const TextStyle(
-                              fontSize: 12,
+                            style: TextStyle(
+                              fontSize: 12.sp,
                               color: Color(0xFF999999),
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(
+                          SizedBox(width: 4.w),
+                          Icon(
                             Icons.arrow_forward_ios,
-                            size: 14,
+                            size: 14.sp,
                             color: Color(0xFFD1D1D6),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4.h),
                   Text(
                     conversation.lastMessage,
-                    style: const TextStyle(
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontSize: 14.sp,
                       color: Color(0xFF8E8E93),
                       height: 1.3,
                     ),

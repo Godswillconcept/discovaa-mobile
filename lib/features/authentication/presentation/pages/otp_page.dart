@@ -9,6 +9,7 @@ import 'package:discovaa/core/widgets/app_alert_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 class OtpPage extends ConsumerStatefulWidget {
@@ -252,7 +253,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                   },
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(24.w),
                   child: Column(
                     children: [
                       Text.rich(
@@ -260,7 +261,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                           text: isForgot
                               ? "Please Enter the $otpLength digit verification code sent to "
                               : "We've sent a $otpLength-digit confirmation code to ",
-                          style: const TextStyle(fontSize: 14),
+                          style: TextStyle(fontSize: 14.sp),
                           children: [
                             TextSpan(
                               text: " $email",
@@ -277,7 +278,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                         textAlign: TextAlign.left,
                       ),
                       const Divider(color: Colors.grey, thickness: 1),
-                      const SizedBox(height: 40),
+                      SizedBox(height: 40.h),
 
                       // OTP Input
                       OtpInputField(
@@ -291,7 +292,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                         onCompleted: (pin) => _verifyOtp(),
                       ),
 
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20.h),
 
                       // OTP State Message - Show API error if available
                       if (authState.hasError ||
@@ -313,7 +314,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
 
                       // Resend success/error messages
                       if (_resendSuccessMessage != null) ...[
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12.h),
                         AppAlertMessage(
                           type: AlertType.success,
                           message: _resendSuccessMessage!,
@@ -326,7 +327,7 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                       ],
 
                       if (_resendErrorMessage != null) ...[
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12.h),
                         AppAlertMessage(
                           type: AlertType.error,
                           message: _resendErrorMessage!,
@@ -347,12 +348,12 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                           backgroundColor: !_isLoading
                               ? Colors.black
                               : Colors.grey,
-                          minimumSize: const Size(double.infinity, 55),
+                          minimumSize: Size(double.infinity, 55.h),
                         ),
                         child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
+                            ? SizedBox(
+                                height: 20.h,
+                                width: 20.w,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
@@ -360,21 +361,21 @@ class _OtpPageState extends ConsumerState<OtpPage> {
                                   ),
                                 ),
                               )
-                            : const Text(
+                            : Text(
                                 "Verify",
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 16.sp,
                                 ),
                               ),
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20.h),
                       RichText(
                         text: TextSpan(
                           text: "Didn't receive code? ",
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.black,
-                            fontSize: 16,
+                            fontSize: 16.sp,
                           ),
                           children: [
                             WidgetSpan(

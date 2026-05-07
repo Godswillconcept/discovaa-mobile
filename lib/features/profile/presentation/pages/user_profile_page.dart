@@ -11,6 +11,7 @@ import 'package:discovaa/shared/presentation/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// User Profile Page - Main profile management screen
 /// Features: User Info, Provider Profile, Availability, Payouts, Login & Security, Privacy
@@ -96,7 +97,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
             // Tab Switcher
             _buildTabSwitcher(tabs, safeTabIndex),
 
-            const Divider(height: 1, thickness: 0.5, color: Color(0xFFE5E7EB)),
+            Divider(height: 1.h, thickness: 0.5, color: Color(0xFFE5E7EB)),
 
             // Cache Banner (shown when using cached data)
             if (profileState.isFromCache)
@@ -149,12 +150,12 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
         : 'Offline mode';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
       color: Colors.orange.shade50,
       child: Row(
         children: [
-          Icon(Icons.offline_bolt, color: Colors.orange.shade700, size: 20),
-          const SizedBox(width: 12),
+          Icon(Icons.offline_bolt, color: Colors.orange.shade700, size: 20.sp),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,12 +165,15 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                   style: TextStyle(
                     color: Colors.orange.shade800,
                     fontWeight: FontWeight.w600,
-                    fontSize: 13,
+                    fontSize: 13.sp,
                   ),
                 ),
                 Text(
                   timeText,
-                  style: TextStyle(color: Colors.orange.shade600, fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.orange.shade600,
+                    fontSize: 12.sp,
+                  ),
                 ),
               ],
             ),
@@ -190,27 +194,27 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
   Widget _buildErrorState(String error) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(32.w),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-            const SizedBox(height: 16),
+            Icon(Icons.error_outline, size: 64.sp, color: Colors.red.shade300),
+            SizedBox(height: 16.h),
             Text(
               'Error loading profile',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
                 color: Colors.red.shade700,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               error,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade600),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
             ElevatedButton.icon(
               onPressed: () {
                 ref.read(userProfileProvider.notifier).refreshProfile();
@@ -230,16 +234,16 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
 
   Widget _buildTabSwitcher(List<_TabConfig> tabs, int safeTabIndex) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: EdgeInsets.symmetric(vertical: 16.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const CustomHeader(title: 'Your Profile'),
 
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
             child: Row(
               children: tabs.asMap().entries.map((entry) {
                 final index = entry.key;
@@ -247,32 +251,32 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                 final isSelected = safeTabIndex == index;
 
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: EdgeInsets.only(right: 8.w),
                   child: GestureDetector(
                     onTap: () => setState(() => _selectedTabIndex = index),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 10.h,
                       ),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? const Color(0xFF111827)
                             : const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             config.icon,
-                            size: 16,
+                            size: 16.sp,
                             color: isSelected
                                 ? Colors.white
                                 : const Color(0xFF6B7280),
                           ),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6.w),
                           Text(
                             config.label,
                             style: TextStyle(
@@ -282,7 +286,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                               fontWeight: isSelected
                                   ? FontWeight.w600
                                   : FontWeight.w500,
-                              fontSize: 13,
+                              fontSize: 13.sp,
                             ),
                           ),
                         ],

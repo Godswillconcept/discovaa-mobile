@@ -2,6 +2,7 @@ import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/services/presentation/pages/service_detail_page.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Card widget to display a single service in the grid.
 /// Provides edit / toggle / delete callbacks for provider view.
@@ -30,13 +31,13 @@ class ServiceCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              blurRadius: 6.r,
+              offset: Offset(0, 2.h),
             ),
           ],
         ),
@@ -49,9 +50,9 @@ class ServiceCard extends StatelessWidget {
                 children: [
                   // Cover image — handles both network URLs and local assets
                   ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16.r),
+                      topRight: Radius.circular(16.r),
                     ),
                     child: service.imagePath != null
                         ? _buildServiceImage(service.imagePath!)
@@ -61,24 +62,24 @@ class ServiceCard extends StatelessWidget {
                   // Active / inactive badge (top-left)
                   if (isProvider)
                     Positioned(
-                      top: 8,
-                      left: 8,
+                      top: 8.h,
+                      left: 8.w,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 3.h,
                         ),
                         decoration: BoxDecoration(
                           color: service.isActive
                               ? AppColors.success
                               : Colors.grey.shade400,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20.r),
                         ),
                         child: Text(
                           service.isActive ? 'Active' : 'Inactive',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 10,
+                            fontSize: 10.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -87,8 +88,8 @@ class ServiceCard extends StatelessWidget {
 
                   // Action button (top-right)
                   Positioned(
-                    top: 8,
-                    right: 8,
+                    top: 8.h,
+                    right: 8.w,
                     child: isProvider
                         ? _ActionMenu(
                             onEdit: onEdit,
@@ -101,22 +102,22 @@ class ServiceCard extends StatelessWidget {
 
                   // Pricing model chip (bottom-right)
                   Positioned(
-                    bottom: 8,
-                    right: 8,
+                    bottom: 8.h,
+                    right: 8.w,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 8.w,
+                        vertical: 3.h,
                       ),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(20.r),
                       ),
                       child: Text(
                         service.pricingModel.displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 10.sp,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -128,36 +129,36 @@ class ServiceCard extends StatelessWidget {
 
             // Info area
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              padding: EdgeInsets.fromLTRB(10.w, 8.h, 10.w, 10.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (service.category != null && service.category!.isNotEmpty)
                     Text(
                       service.category!,
-                      style: const TextStyle(
-                        fontSize: 11,
+                      style: TextStyle(
+                        fontSize: 11.sp,
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   Text(
                     service.title,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: TextStyle(
+                      fontSize: 13.sp,
                       fontWeight: FontWeight.bold,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6.h),
                   Text(
                     service.formattedPrice,
-                    style: const TextStyle(
-                      fontSize: 13,
+                    style: TextStyle(
+                      fontSize: 13.sp,
                       fontWeight: FontWeight.bold,
                       color: AppColors.success,
                     ),
@@ -207,12 +208,12 @@ class _IconButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(6),
+        padding: EdgeInsets.all(6.r),
         decoration: const BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 16),
+        child: Icon(icon, size: 16.r),
       ),
     );
   }
@@ -224,8 +225,8 @@ class _ImageFallback extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: const Color(0xFFF0F0F0),
-      child: const Center(
-        child: Icon(Icons.image_outlined, size: 32, color: Colors.black26),
+      child: Center(
+        child: Icon(Icons.image_outlined, size: 32.r, color: Colors.black26),
       ),
     );
   }
@@ -249,22 +250,22 @@ class _ActionMenu extends StatelessWidget {
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
       icon: Container(
-        padding: const EdgeInsets.all(6),
+        padding: EdgeInsets.all(6.r),
         decoration: const BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
         ),
-        child: const Icon(Icons.more_vert, size: 16),
+        child: Icon(Icons.more_vert, size: 16.r),
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
       itemBuilder: (_) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'edit',
           child: Row(
             children: [
-              Icon(Icons.edit_outlined, size: 16),
-              SizedBox(width: 8),
-              Text('Edit', style: TextStyle(fontSize: 13)),
+              Icon(Icons.edit_outlined, size: 16.r),
+              SizedBox(width: 8.w),
+              Text('Edit', style: TextStyle(fontSize: 13.sp)),
             ],
           ),
         ),
@@ -276,26 +277,30 @@ class _ActionMenu extends StatelessWidget {
                 isActive
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
-                size: 16,
+                size: 16.r,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8.w),
               Text(
                 isActive ? 'Deactivate' : 'Activate',
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13.sp),
               ),
             ],
           ),
         ),
         const PopupMenuDivider(),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'delete',
           child: Row(
             children: [
-              Icon(Icons.delete_outline, size: 16, color: AppColors.primaryRed),
-              SizedBox(width: 8),
+              Icon(
+                Icons.delete_outline,
+                size: 16.r,
+                color: AppColors.primaryRed,
+              ),
+              SizedBox(width: 8.w),
               Text(
                 'Delete',
-                style: TextStyle(fontSize: 13, color: AppColors.primaryRed),
+                style: TextStyle(fontSize: 13.sp, color: AppColors.primaryRed),
               ),
             ],
           ),

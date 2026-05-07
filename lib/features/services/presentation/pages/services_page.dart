@@ -8,6 +8,7 @@ import 'package:discovaa/shared/presentation/widgets/main_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:discovaa/features/authentication/presentation/providers/session_provider.dart';
 
 class ServicesPage extends ConsumerStatefulWidget {
@@ -97,16 +98,16 @@ class _ServicesPageSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          _SkeletonBar(width: 140, height: 28),
-          SizedBox(height: 8),
-          _SkeletonBar(width: 220, height: 14),
-          SizedBox(height: 16),
-          _SkeletonBox(height: 48),
-          SizedBox(height: 16),
+        children: [
+          _SkeletonBar(width: 140.w, height: 28.h),
+          SizedBox(height: 8.h),
+          _SkeletonBar(width: 220.w, height: 14.h),
+          SizedBox(height: 16.h),
+          _SkeletonBox(height: 48.h),
+          SizedBox(height: 16.h),
           Expanded(child: _ServicesGridSkeleton()),
         ],
       ),
@@ -120,16 +121,16 @@ class _ServicesGridSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       itemCount: 4,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
+        crossAxisSpacing: 14.w,
+        mainAxisSpacing: 14.h,
         childAspectRatio: 0.74,
       ),
       itemBuilder: (context, index) {
-        return const _SkeletonBox(height: double.infinity, radius: 16);
+        return _SkeletonBox(height: double.infinity, radius: 16.r);
       },
     );
   }
@@ -144,11 +145,11 @@ class _SkeletonBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width,
-      height: height,
+      width: width.w,
+      height: height.h,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
       ),
     );
   }
@@ -163,10 +164,10 @@ class _SkeletonBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: height,
+      height: height.h,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(radius),
+        borderRadius: BorderRadius.circular(radius.r),
       ),
     );
   }
@@ -190,49 +191,49 @@ class _ProviderServicesView extends ConsumerWidget {
       children: [
         // Page header
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Services',
                 style: TextStyle(
-                  fontSize: 26,
+                  fontSize: 26.sp,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4.h),
               Text(
                 'Create, price, and showcase your services.',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14.sp),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               // Top Add service button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: onAddTap,
-                  icon: const Icon(Icons.add, size: 20, color: Colors.white),
-                  label: const Text(
+                  icon: Icon(Icons.add, size: 20.sp, color: Colors.white),
+                  label: Text(
                     'Add service',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                      fontSize: 15.sp,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
+                      borderRadius: BorderRadius.circular(50.r),
                     ),
                     elevation: 0,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
             ],
           ),
         ),
@@ -260,37 +261,37 @@ class _ProviderEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 36.h),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.grey.shade200),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'No services yet',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               'Add your first service so customers can book you.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 13.sp,
                 color: Colors.grey.shade600,
                 height: 1.5,
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
             ElevatedButton.icon(
               onPressed: onAddTap,
-              icon: const Icon(Icons.add, size: 18, color: Colors.white),
-              label: const Text(
+              icon: Icon(Icons.add, size: 18.sp, color: Colors.white),
+              label: Text(
                 'Add service',
                 style: TextStyle(
                   color: Colors.white,
@@ -299,12 +300,9 @@ class _ProviderEmptyState extends StatelessWidget {
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 12,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 28.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
+                  borderRadius: BorderRadius.circular(50.r),
                 ),
                 elevation: 0,
               ),
@@ -331,14 +329,14 @@ class _ProviderServiceList extends ConsumerWidget {
       children: [
         // Search bar
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
           child: _ServiceSearchField(
             hint: 'Search your services...',
             onChanged: ref.read(servicesProvider.notifier).updateSearch,
             initialValue: searchQuery,
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () => ref
@@ -346,12 +344,12 @@ class _ProviderServiceList extends ConsumerWidget {
                 .loadOwnServices(forceRefresh: true),
             child: GridView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
               itemCount: services.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
+                crossAxisSpacing: 14.w,
+                mainAxisSpacing: 14.h,
                 childAspectRatio: 0.74,
               ),
               itemBuilder: (context, index) {
@@ -450,36 +448,35 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'Services Directory',
                 style: TextStyle(
-                  fontSize: 26,
+                  fontSize: 26.sp,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4.h),
               Text(
                 'Browse and book from available services.',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14.sp),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
               _ServiceSearchField(
                 hint: 'Search services...',
                 onChanged: ref.read(servicesProvider.notifier).updateSearch,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
               SizedBox(
-                height: 38,
+                height: 38.h,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: _filterLabels.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 8),
+                  separatorBuilder: (context, index) => SizedBox(width: 8.w),
                   itemBuilder: (_, i) {
                     return _CategoryPill(
                       label: _filterLabels[i],
@@ -489,7 +486,7 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
                   },
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16.h),
             ],
           ),
         ),
@@ -500,25 +497,25 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
               : servicesState.status == ServicesStatus.failure
               ? Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(24.w),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.wifi_off_rounded,
-                          size: 48,
+                          size: 48.sp,
                           color: Colors.grey,
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12.h),
                         Text(
                           servicesState.errorMessage ?? 'Something went wrong.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.grey.shade600,
-                            fontSize: 14,
+                            fontSize: 14.sp,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16.h),
                         ElevatedButton(
                           onPressed: () => ref
                               .read(servicesProvider.notifier)
@@ -526,10 +523,10 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(50),
+                              borderRadius: BorderRadius.circular(50.r),
                             ),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Retry',
                             style: TextStyle(color: Colors.white),
                           ),
@@ -554,13 +551,13 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
                         )
                       : GridView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: EdgeInsets.symmetric(horizontal: 20.w),
                           itemCount: visibleServices.length,
                           gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
+                              SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                crossAxisSpacing: 14,
-                                mainAxisSpacing: 14,
+                                crossAxisSpacing: 14.w,
+                                mainAxisSpacing: 14.h,
                                 childAspectRatio: 0.74,
                               ),
                           itemBuilder: (context, index) => ServiceCard(
@@ -570,7 +567,7 @@ class _UserServicesViewState extends ConsumerState<_UserServicesView> {
                         ),
                 ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h),
       ],
     );
   }
@@ -598,25 +595,25 @@ class _UserEmptyState extends StatelessWidget {
     };
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(32.w),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: Colors.grey.shade300),
-            const SizedBox(height: 16),
+            Icon(icon, size: 56.sp, color: Colors.grey.shade300),
+            SizedBox(height: 16.h),
             Text(
               'No $tab services',
-              style: const TextStyle(
-                fontSize: 17,
+              style: TextStyle(
+                fontSize: 17.sp,
                 fontWeight: FontWeight.bold,
                 color: Colors.black54,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade500),
             ),
           ],
         ),
@@ -680,21 +677,21 @@ class _ServiceSearchFieldState extends State<_ServiceSearchField> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: TextFormField(
         controller: _controller,
         decoration: InputDecoration(
           hintText: widget.hint,
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-          prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13.sp),
+          prefixIcon: Icon(Icons.search, size: 20.sp, color: Colors.grey),
           suffixIcon: _controller.text.isNotEmpty
               ? IconButton(
                   tooltip: 'Clear',
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
-                    size: 18,
+                    size: 18.sp,
                     color: Colors.grey,
                   ),
                   onPressed: () {
@@ -703,7 +700,7 @@ class _ServiceSearchFieldState extends State<_ServiceSearchField> {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          contentPadding: EdgeInsets.symmetric(vertical: 12.h),
         ),
       ),
     );
@@ -727,10 +724,10 @@ class _CategoryPill extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
             color: isSelected ? AppColors.primary : Colors.grey.shade300,
           ),
@@ -741,7 +738,7 @@ class _CategoryPill extends StatelessWidget {
           style: TextStyle(
             color: isSelected ? Colors.white : Colors.black87,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            fontSize: 13,
+            fontSize: 13.sp,
           ),
         ),
       ),

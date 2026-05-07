@@ -5,6 +5,7 @@ import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/services/presentation/providers/services_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -315,32 +316,32 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
     final isEdit = widget.existing != null;
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Handle bar
           Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
+            margin: EdgeInsets.only(top: 12.h),
+            width: 40.w,
+            height: 4.h,
             decoration: BoxDecoration(
               color: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(2.r),
             ),
           ),
           // Header
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
             child: Row(
               children: [
                 Text(
                   isEdit ? 'Edit service' : 'Add service',
-                  style: const TextStyle(
-                    fontSize: 18,
+                  style: TextStyle(
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -350,7 +351,7 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                     ref.read(addServiceFormProvider.notifier).reset();
                     Navigator.of(context).pop();
                   },
-                  child: const Icon(Icons.close, size: 22),
+                  child: Icon(Icons.close, size: 22.r),
                 ),
               ],
             ),
@@ -360,10 +361,10 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                left: 20.w,
+                right: 20.w,
+                top: 20.h,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20.h,
               ),
               child: Form(
                 key: _formKey,
@@ -372,7 +373,7 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                   children: [
                     // Title
                     _FieldLabel('Title'),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6.h),
                     _InputField(
                       controller: _titleCtrl,
                       hint: 'e.g. Haircut + Beard Trim',
@@ -383,11 +384,11 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                           ? 'Title is required'
                           : null,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
 
                     // Category
                     _FieldLabel('Category'),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6.h),
                     Consumer(
                       builder: (context, ref, child) {
                         final categoriesState = ref.watch(
@@ -396,30 +397,30 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
 
                         if (categoriesState.status == ServicesStatus.loading) {
                           return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 14,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12.w,
+                              vertical: 14.h,
                             ),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(8.r),
                               border: Border.all(color: Colors.grey.shade300),
                             ),
                             child: Row(
                               children: [
                                 SizedBox(
-                                  width: 16,
-                                  height: 16,
+                                  width: 16.w,
+                                  height: 16.h,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     color: Colors.grey.shade400,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                SizedBox(width: 12.w),
                                 Text(
                                   'Loading categories...',
                                   style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: 14.sp,
                                     color: Colors.grey.shade600,
                                   ),
                                 ),
@@ -460,11 +461,11 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
 
                     // Description
                     _FieldLabel('Description'),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6.h),
                     _InputField(
                       controller: _descCtrl,
                       hint:
@@ -474,11 +475,11 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                           .updateDescription,
                       maxLines: 4,
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20.h),
 
                     // Service images
                     _FieldLabel('Service images'),
-                    const SizedBox(height: 6),
+                    SizedBox(height: 6.h),
                     _MediaSection(
                       existingMedia: form.existingMedia,
                       pendingMediaPaths: form.pendingMediaPaths,
@@ -491,31 +492,31 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                       },
                       onRemoveExisting: _deleteExistingMedia,
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20.h),
 
                     // Pricing section
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16.w),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF4F6F8),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12.r),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Pricing',
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 15.sp,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14.h),
 
                           // Pricing model
                           _FieldLabel('Pricing model'),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6.h),
                           _DropdownField<PricingModel>(
                             value: form.pricingModel,
                             items: PricingModel.values,
@@ -528,11 +529,11 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                               }
                             },
                           ),
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14.h),
 
                           // Price type
                           _FieldLabel('Price type'),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6.h),
                           _DropdownField<PriceType>(
                             value: form.priceType,
                             items: PriceType.values,
@@ -545,11 +546,11 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                               }
                             },
                           ),
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14.h),
 
                           // Currency
                           _FieldLabel('Currency'),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6.h),
                           _InputField(
                             controller: _currencyCtrl,
                             hint: 'NGN',
@@ -564,12 +565,12 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                             ],
                             textCapitalization: TextCapitalization.characters,
                           ),
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14.h),
 
                           // Amount or range
                           if (form.priceType == PriceType.fixed) ...[
                             _FieldLabel('Amount'),
-                            const SizedBox(height: 6),
+                            SizedBox(height: 6.h),
                             _InputField(
                               controller: _amountCtrl,
                               hint: form.pricingModel == PricingModel.hourly
@@ -596,10 +597,10 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 14),
+                            SizedBox(height: 14.h),
                           ] else ...[
                             _FieldLabel('Min amount'),
-                            const SizedBox(height: 6),
+                            SizedBox(height: 6.h),
                             _InputField(
                               controller: _minAmountCtrl,
                               hint: 'e.g. 3000',
@@ -628,9 +629,9 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: 10.h),
                             _FieldLabel('Max amount'),
-                            const SizedBox(height: 6),
+                            SizedBox(height: 6.h),
                             _InputField(
                               controller: _maxAmountCtrl,
                               hint: 'e.g. 8000',
@@ -659,7 +660,7 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 14),
+                            SizedBox(height: 14.h),
                           ],
 
                           // Duration
@@ -670,7 +671,7 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                                 ? 'Typical session duration (minutes)'
                                 : 'Duration (minutes)',
                           ),
-                          const SizedBox(height: 6),
+                          SizedBox(height: 6.h),
                           _InputField(
                             controller: _durationCtrl,
                             hint: 'e.g. 45',
@@ -694,7 +695,7 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 14),
+                          SizedBox(height: 14.h),
 
                           // Active checkbox
                           Row(
@@ -703,7 +704,7 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                                 value: form.isActive,
                                 activeColor: AppColors.primary,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(4.r),
                                 ),
                                 onChanged: (v) {
                                   if (v != null) {
@@ -713,10 +714,10 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                                   }
                                 },
                               ),
-                              const Text(
+                              Text(
                                 'Active',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 14.sp,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -725,11 +726,11 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20.h),
 
                     // Note: Availability is now managed at provider profile level
                     // Service availability inherits from provider's global schedule
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                   ],
                 ),
               ),
@@ -737,7 +738,7 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
           ),
           // Footer actions
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 24.h),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border(top: BorderSide(color: Colors.grey.shade200)),
@@ -751,15 +752,15 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                       Navigator.of(context).pop();
                     },
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
                       side: BorderSide(color: Colors.grey.shade300),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Cancel',
-                      style: TextStyle(color: Colors.black87, fontSize: 14),
+                      style: TextStyle(color: Colors.black87, fontSize: 14.sp),
                     ),
                   ),
                 ),
@@ -769,15 +770,15 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                     onPressed: _isSubmitting ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14.h),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
                     ),
                     child: _isSubmitting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
+                        ? SizedBox(
+                            width: 18.w,
+                            height: 18.h,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: Colors.white,
@@ -785,9 +786,9 @@ class _AddServiceSheetState extends ConsumerState<AddServiceSheet> {
                           )
                         : Text(
                             isEdit ? 'Update' : 'Save',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
+                              fontSize: 14.sp,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -829,10 +830,10 @@ class _MediaSection extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: Column(
@@ -840,8 +841,8 @@ class _MediaSection extends StatelessWidget {
         children: [
           if (hasMedia)
             Wrap(
-              spacing: 10,
-              runSpacing: 10,
+              spacing: 10.w,
+              runSpacing: 10.h,
               children: [
                 ...existingMedia.map(
                   (media) => _MediaThumbnail(
@@ -861,21 +862,21 @@ class _MediaSection extends StatelessWidget {
           else
             Text(
               'Add up to ${AddServiceFormState.maxMediaCount} images for this service.',
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600),
             ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: canAddMore ? onAddMedia : null,
-              icon: const Icon(Icons.photo_library_outlined, size: 18),
+              icon: Icon(Icons.photo_library_outlined, size: 18.r),
               label: Text(canAddMore ? 'Add image' : 'Maximum images reached'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.black87,
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 12.h),
                 side: BorderSide(color: Colors.grey.shade300),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
               ),
             ),
@@ -902,10 +903,10 @@ class _MediaThumbnail extends StatelessWidget {
     return Stack(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
           child: Container(
-            width: 84,
-            height: 84,
+            width: 84.w,
+            height: 84.h,
             color: Colors.grey.shade100,
             child: isNetwork
                 ? Image.network(
@@ -926,18 +927,18 @@ class _MediaThumbnail extends StatelessWidget {
         ),
         if (onRemove != null)
           Positioned(
-            top: 4,
-            right: 4,
+            top: 4.h,
+            right: 4.w,
             child: GestureDetector(
               onTap: onRemove,
               child: Container(
-                width: 22,
-                height: 22,
+                width: 22.w,
+                height: 22.h,
                 decoration: const BoxDecoration(
                   color: Colors.black54,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.close, size: 14, color: Colors.white),
+                child: Icon(Icons.close, size: 14.r, color: Colors.white),
               ),
             ),
           ),
@@ -954,8 +955,8 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 13,
+      style: TextStyle(
+        fontSize: 13.sp,
         fontWeight: FontWeight.w600,
         color: Colors.black87,
       ),
@@ -994,30 +995,27 @@ class _InputField extends StatelessWidget {
       onChanged: onChanged,
       validator: validator,
       textCapitalization: textCapitalization,
-      style: const TextStyle(fontSize: 14),
+      style: TextStyle(fontSize: 14.sp),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
+        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13.sp),
+        contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           borderSide: const BorderSide(color: AppColors.primaryRed, width: 1.5),
         ),
       ),
@@ -1041,18 +1039,18 @@ class _DropdownField<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: value,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-          style: const TextStyle(fontSize: 14, color: Colors.black87),
+          icon: Icon(Icons.keyboard_arrow_down, size: 20.r),
+          style: TextStyle(fontSize: 14.sp, color: Colors.black87),
           items: items
               .map(
                 (item) => DropdownMenuItem<T>(

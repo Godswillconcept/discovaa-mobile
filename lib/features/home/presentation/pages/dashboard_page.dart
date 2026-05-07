@@ -15,6 +15,7 @@ import 'package:discovaa/features/profile/domain/entities/profile_enums.dart';
 import 'package:discovaa/features/home/domain/entities/dashboard_entity.dart';
 import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
@@ -108,19 +109,19 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FBFF),
+        backgroundColor: Color(0xFFF8FBFF),
         body: RefreshIndicator(
           onRefresh: _refreshDashboard,
           color: AppColors.primary,
           child: Column(
             children: [
-              const MainHeader(),
+              MainHeader(),
               Expanded(
                 child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
+                  physics: AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 20.w,
+                    vertical: 10.h,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -133,66 +134,66 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                         unreadCount: unreadCount,
                         isProvider: isProvider,
                       ),
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20.h),
 
                       // Search Area
-                      const _DashboardSearchField(),
-                      const SizedBox(height: 24),
+                      _DashboardSearchField(),
+                      SizedBox(height: 24.h),
 
                       // Loading State
                       if (dashboardState.isLoading) ...[
-                        const _DashboardSkeleton(),
+                        _DashboardSkeleton(),
                       ] else ...[
                         if (dashboardState.hasError) ...[
                           _DashboardError(
                             message: dashboardState.error!,
                             onRetry: _loadDashboardData,
                           ),
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20.h),
                         ],
 
                         // Spending Trend
-                        const _SpendingTrendCard(),
-                        const SizedBox(height: 20),
+                        _SpendingTrendCard(),
+                        SizedBox(height: 20.h),
 
                         // Booking Mix
-                        const _BookingMixCard(),
-                        const SizedBox(height: 20),
+                        _BookingMixCard(),
+                        SizedBox(height: 20.h),
 
                         // Appointments Section
                         _AppointmentsSection(
                           isProvider: isProvider,
                           isISV: isISV,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
 
                         // Upcoming Bookings & Active Requests
-                        const _UpcomingBookingsCard(),
-                        const SizedBox(height: 16),
-                        if (isProvider) const _ActiveRequestsCard(),
-                        if (isProvider) const SizedBox(height: 16),
+                        _UpcomingBookingsCard(),
+                        SizedBox(height: 16.h),
+                        if (isProvider) _ActiveRequestsCard(),
+                        if (isProvider) SizedBox(height: 16.h),
 
                         // Total Spend & Messages
-                        if (!isProvider) const _TotalSpendCard(),
-                        if (!isProvider) const SizedBox(height: 16),
-                        const _MessagesCard(),
-                        const SizedBox(height: 16),
+                        if (!isProvider) _TotalSpendCard(),
+                        if (!isProvider) SizedBox(height: 16.h),
+                        _MessagesCard(),
+                        SizedBox(height: 16.h),
 
                         // Smart Insights
-                        const _SmartInsightsCard(),
-                        const SizedBox(height: 20),
+                        _SmartInsightsCard(),
+                        SizedBox(height: 20.h),
 
                         // Performance Pulse (Provider only)
-                        if (isProvider) const _PerformancePulseCard(),
-                        if (isProvider) const SizedBox(height: 20),
+                        if (isProvider) _PerformancePulseCard(),
+                        if (isProvider) SizedBox(height: 20.h),
 
                         // Recent Bookings
                         _RecentBookingsCard(isProvider: isProvider),
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16.h),
 
                         // Inbox Pulse
-                        const _InboxPulseCard(),
-                        const SizedBox(height: 30),
+                        _InboxPulseCard(),
+                        SizedBox(height: 30.h),
                       ],
                     ],
                   ),
@@ -224,41 +225,45 @@ class _DashboardWelcomeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [Colors.white, AppColors.primary.withValues(alpha: 0.05)],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 20.r,
+            offset: Offset(0, 10.h),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Welcome back",
-            style: TextStyle(color: Colors.grey, fontSize: 12),
+            style: TextStyle(color: Colors.grey, fontSize: 12.sp),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.h),
           Text(
             name,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8.h),
+          Text(
             "Here is your dream service at a glance — upcoming bookings, spending, and recommendations at a glance.",
-            style: TextStyle(color: Colors.black54, fontSize: 13, height: 1.4),
+            style: TextStyle(
+              color: Colors.black54,
+              fontSize: 13.sp,
+              height: 1.4,
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Row(
             children: [
               _ActionChip(
@@ -266,7 +271,7 @@ class _DashboardWelcomeCard extends StatelessWidget {
                 label: "View bookings",
                 onTap: onViewBookings,
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: 8.w),
               _ActionChip(
                 icon: Icons.chat_bubble_outline,
                 label: "Messages",
@@ -274,21 +279,21 @@ class _DashboardWelcomeCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
             decoration: BoxDecoration(
               color: Colors.black,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(20.r),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.star, color: Colors.white, size: 14),
-                SizedBox(width: 6),
+                Icon(Icons.star, color: Colors.white, size: 14.sp),
+                SizedBox(width: 6.w),
                 Text(
                   isProvider ? "For service providers" : "For end users",
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                  style: TextStyle(color: Colors.white, fontSize: 12.sp),
                 ),
               ],
             ),
@@ -309,12 +314,12 @@ class _DashboardSearchField extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(15.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 15.r,
+            offset: Offset(0, 5.h),
           ),
         ],
       ),
@@ -328,11 +333,14 @@ class _DashboardSearchField extends ConsumerWidget {
             },
             decoration: InputDecoration(
               hintText: "Search for services or artisans...",
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-              prefixIcon: const Icon(Icons.search, color: Colors.black),
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 14.sp,
+              ),
+              prefixIcon: Icon(Icons.search, color: Colors.black),
               suffixIcon: value.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: Colors.grey),
+                      icon: Icon(Icons.clear, color: Colors.grey),
                       onPressed: () {
                         searchController.clear();
                         ref
@@ -341,20 +349,16 @@ class _DashboardSearchField extends ConsumerWidget {
                       },
                     )
                   : Container(
-                      margin: const EdgeInsets.all(8),
-                      padding: const EdgeInsets.all(8),
+                      margin: EdgeInsets.all(8.w),
+                      padding: EdgeInsets.all(8.w),
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
-                      child: const Icon(
-                        Icons.tune,
-                        size: 18,
-                        color: Colors.black,
-                      ),
+                      child: Icon(Icons.tune, size: 18.sp, color: Colors.black),
                     ),
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 15),
+              contentPadding: EdgeInsets.symmetric(vertical: 15.h),
             ),
           );
         },
@@ -380,19 +384,19 @@ class _ActionChip extends ConsumerWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
           border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14),
-            const SizedBox(width: 6),
+            Icon(icon, size: 14.sp),
+            SizedBox(width: 6.w),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -417,10 +421,10 @@ class _DashboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
@@ -431,28 +435,25 @@ class _DashboardCard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
               ),
               if (actionText != null)
                 Text(
                   actionText!,
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: TextStyle(
+                    fontSize: 12.sp,
                     fontWeight: FontWeight.w500,
                     color: Colors.black,
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: 6.h),
           Text(
             subtitle,
-            style: const TextStyle(color: Colors.black54, fontSize: 13),
+            style: TextStyle(color: Colors.black54, fontSize: 13.sp),
           ),
-          if (child != null) ...[const SizedBox(height: 20), child!],
+          if (child != null) ...[SizedBox(height: 20.h), child!],
         ],
       ),
     );
@@ -479,10 +480,10 @@ class _SmallDashboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
@@ -493,40 +494,40 @@ class _SmallDashboardCard extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 if (value != null) ...[
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8.h),
                   Text(
                     value!,
-                    style: const TextStyle(
-                      fontSize: 20,
+                    style: TextStyle(
+                      fontSize: 20.sp,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
                   ),
                 ] else ...[
-                  const SizedBox(height: 12),
-                  Container(height: 2, width: 20, color: Colors.black),
+                  SizedBox(height: 12.h),
+                  Container(height: 2.h, width: 20.w, color: Colors.black),
                 ],
-                const SizedBox(height: 12),
+                SizedBox(height: 12.h),
                 Text(
                   subtitle,
-                  style: const TextStyle(color: Colors.black54, fontSize: 13),
+                  style: TextStyle(color: Colors.black54, fontSize: 13.sp),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
               color: iconBgColor,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: iconColor, size: 20),
+            child: Icon(icon, color: iconColor, size: 20.sp),
           ),
         ],
       ),
@@ -554,21 +555,21 @@ class _LegendItem extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 10,
-              height: 10,
+              width: 10.w,
+              height: 10.h,
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8.w),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
             ),
           ],
         ),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 12,
+          style: TextStyle(
+            fontSize: 12.sp,
             fontWeight: FontWeight.bold,
             color: Colors.black54,
           ),
@@ -596,29 +597,26 @@ class _PerformanceItem extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: EdgeInsets.all(12.w),
           decoration: BoxDecoration(
             color: iconColor.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(12.r),
           ),
-          child: Icon(icon, color: iconColor, size: 20),
+          child: Icon(icon, color: iconColor, size: 24.sp),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: 16.w),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                ),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15.sp),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: 2.h),
               Text(
                 subtitle,
-                style: const TextStyle(color: Colors.black54, fontSize: 13),
+                style: TextStyle(color: Colors.black54, fontSize: 13.sp),
               ),
             ],
           ),
@@ -639,13 +637,13 @@ class _DashboardSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _SkeletonCard(height: 200),
-        const SizedBox(height: 20),
-        _SkeletonCard(height: 180),
-        const SizedBox(height: 20),
-        _SkeletonCard(height: 120),
-        const SizedBox(height: 20),
-        _SkeletonCard(height: 100),
+        _SkeletonCard(height: 200.h),
+        SizedBox(height: 20.h),
+        _SkeletonCard(height: 180.h),
+        SizedBox(height: 20.h),
+        _SkeletonCard(height: 120.h),
+        SizedBox(height: 20.h),
+        _SkeletonCard(height: 100.h),
       ],
     );
   }
@@ -662,7 +660,7 @@ class _SkeletonCard extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
       ),
     );
   }
@@ -680,22 +678,22 @@ class _DashboardError extends StatelessWidget {
         message.contains('Authentication') || message.contains('log in');
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.w),
       decoration: BoxDecoration(
         color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: Colors.red.shade200),
       ),
       child: Column(
         children: [
-          Icon(Icons.error_outline, color: Colors.red.shade400, size: 40),
-          const SizedBox(height: 12),
+          Icon(Icons.error_outline, color: Colors.red.shade400, size: 40.sp),
+          SizedBox(height: 12.h),
           Text(
             message,
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.red.shade700),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           if (isAuthError) ...[
             ElevatedButton.icon(
               onPressed: () => context.push('/login'),
@@ -703,10 +701,10 @@ class _DashboardError extends StatelessWidget {
                 backgroundColor: Colors.red.shade400,
                 foregroundColor: Colors.white,
               ),
-              icon: const Icon(Icons.login),
-              label: const Text('Log In'),
+              icon: Icon(Icons.login),
+              label: Text('Log In'),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
           ],
           ElevatedButton(
             onPressed: onRetry,
@@ -716,7 +714,7 @@ class _DashboardError extends StatelessWidget {
                   : Colors.red.shade400,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Retry'),
+            child: Text('Retry'),
           ),
         ],
       ),
@@ -748,12 +746,12 @@ class _SpendingTrendCard extends ConsumerWidget {
 
   Widget _buildEmptyChart() {
     return SizedBox(
-      height: 150,
+      height: 150.h,
       child: Center(
         child: Text(
           "Start booking services to see your spending trend",
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+          style: TextStyle(color: Colors.grey.shade500, fontSize: 13.sp),
         ),
       ),
     );
@@ -768,17 +766,17 @@ class _SpendingTrendChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final points = data.points as List<dynamic>;
-    if (points.isEmpty) return const SizedBox.shrink();
+    if (points.isEmpty) return SizedBox.shrink();
 
     final maxY = points
         .map((p) => p.amount as double)
         .fold(0.0, (max, val) => val > max ? val : max);
 
     return SizedBox(
-      height: 150,
+      height: 150.h,
       child: BarChart(
         BarChartData(
-          gridData: const FlGridData(show: false),
+          gridData: FlGridData(show: false),
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
@@ -789,17 +787,17 @@ class _SpendingTrendChart extends StatelessWidget {
                 final dateStr = DateFormat('MMM dd').format(date);
                 return BarTooltipItem(
                   '$dateStr\n',
-                  const TextStyle(
+                  TextStyle(
                     color: Colors.white70,
-                    fontSize: 10,
+                    fontSize: 10.sp,
                     fontWeight: FontWeight.w500,
                   ),
                   children: [
                     TextSpan(
                       text: '₦${rod.toY.toInt()}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 14,
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -810,39 +808,33 @@ class _SpendingTrendChart extends StatelessWidget {
           ),
           titlesData: FlTitlesData(
             show: true,
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            leftTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
-                reservedSize: 25,
+                reservedSize: 25.sp,
                 getTitlesWidget: (value, meta) {
                   final index = value.toInt();
                   if (index < 0 || index >= points.length) {
-                    return const SizedBox.shrink();
+                    return SizedBox.shrink();
                   }
 
                   // Show labels for every 2nd or 3rd point to avoid crowding
                   if (points.length > 7 &&
                       index % (points.length > 15 ? 4 : 2) != 0) {
-                    return const SizedBox.shrink();
+                    return SizedBox.shrink();
                   }
 
                   final date = points[index].date as DateTime;
                   return Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
+                    padding: EdgeInsets.only(top: 8.0),
                     child: Text(
                       DateFormat('dd/MM').format(date),
                       style: TextStyle(
                         color: Colors.grey.shade500,
-                        fontSize: 10,
+                        fontSize: 10.sp,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -860,7 +852,7 @@ class _SpendingTrendChart extends StatelessWidget {
                   toY: entry.value.amount as double,
                   color: AppColors.primary,
                   width: points.length > 15 ? 6 : 10,
-                  borderRadius: const BorderRadius.vertical(
+                  borderRadius: BorderRadius.vertical(
                     top: Radius.circular(4),
                     bottom: Radius.circular(1),
                   ),
@@ -905,12 +897,12 @@ class _BookingMixCard extends ConsumerWidget {
 
   Widget _buildEmptyMix() {
     return SizedBox(
-      height: 140,
+      height: 140.h,
       child: Center(
         child: Text(
           "Your booking status distribution will appear here",
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+          style: TextStyle(color: Colors.grey.shade500, fontSize: 13.sp),
         ),
       ),
     );
@@ -925,7 +917,7 @@ class _BookingMixChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = data.total as int;
-    if (total == 0) return const SizedBox.shrink();
+    if (total == 0) return SizedBox.shrink();
 
     final sections = [
       PieChartSectionData(
@@ -957,8 +949,8 @@ class _BookingMixChart extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          height: 140,
-          width: 140,
+          height: 140.h,
+          width: 140.w,
           child: PieChart(
             PieChartData(
               sectionsSpace: 0,
@@ -967,7 +959,7 @@ class _BookingMixChart extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 20),
+        SizedBox(width: 20.w),
         Expanded(
           child: Column(
             children: [
@@ -977,21 +969,21 @@ class _BookingMixChart extends StatelessWidget {
                 value:
                     "${data.requested} (${data.requestedPercentage.toStringAsFixed(0)}%)",
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               _LegendItem(
                 color: AppColors.success,
                 label: "Confirmed",
                 value:
                     "${data.confirmed} (${data.confirmedPercentage.toStringAsFixed(0)}%)",
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               _LegendItem(
                 color: Colors.black,
                 label: "Completed",
                 value:
                     "${data.completed} (${data.completedPercentage.toStringAsFixed(0)}%)",
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               _LegendItem(
                 color: Colors.red.shade200,
                 label: "Cancelled",
@@ -1018,26 +1010,26 @@ class _AppointmentsSection extends ConsumerWidget {
 
     return Column(
       children: [
-        const SectionHeader(title: "Appointments"),
+        SectionHeader(title: "Appointments"),
         if (appointments.isEmpty)
           Column(
             children: [
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: EdgeInsets.all(10.w),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: Colors.grey.shade200),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.calendar_today_outlined,
-                      size: 18,
+                      size: 18.sp,
                       color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Expanded(
                     child: Text(
                       isProvider
@@ -1045,8 +1037,8 @@ class _AppointmentsSection extends ConsumerWidget {
                                 ? "Your upcoming client appointments will appear here"
                                 : "Scheduled business service appointments will appear here")
                           : "All appointments with artisans will appear here",
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: TextStyle(
+                        fontSize: 14.sp,
                         color: Colors.black87,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1054,8 +1046,8 @@ class _AppointmentsSection extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 15),
-              const EmptyStateCard(text: "There are no appointments yet."),
+              SizedBox(height: 15.h),
+              EmptyStateCard(text: "There are no appointments yet."),
             ],
           )
         else
@@ -1081,8 +1073,8 @@ class _AppointmentItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -1091,66 +1083,72 @@ class _AppointmentItem extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 48.w,
+            height: 48.h,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.calendar_today, color: AppColors.primary),
+            child: Icon(Icons.calendar_today, color: AppColors.primary),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   appointment.serviceName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2.h),
                 Text(
                   isProvider
                       ? "Client: ${appointment.clientName}"
                       : "Artisan: ${appointment.providerName}",
                   style: TextStyle(
                     color: Colors.black.withValues(alpha: 0.7),
-                    fontSize: 13,
+                    fontSize: 13.sp,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (isProvider) ...[
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   Text(
                     "Service by: ${appointment.providerName}",
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 11.sp,
+                    ),
                   ),
                 ],
-                const SizedBox(height: 2),
+                SizedBox(height: 2.h),
                 Text(
                   '${appointment.formattedDate} • ${appointment.formattedTime}',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12.sp,
+                  ),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.success.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(20.r),
             ),
             child: Text(
               appointment.status.toString().toUpperCase(),
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.success,
-                fontSize: 10,
+                fontSize: 10.sp,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1193,7 +1191,7 @@ class _ActiveRequestsCard extends ConsumerWidget {
           : "Looking for pending requests?",
       icon: Icons.flash_on,
       iconColor: Colors.orange,
-      iconBgColor: const Color(0xFFFFF3E0),
+      iconBgColor: Color(0xFFFFF3E0),
       value: count > 0 ? count.toString() : null,
     );
   }
@@ -1216,7 +1214,7 @@ class _TotalSpendCard extends ConsumerWidget {
       subtitle: subtitle,
       icon: Icons.trending_up,
       iconColor: Colors.green,
-      iconBgColor: const Color(0xFFE8F5E9),
+      iconBgColor: Color(0xFFE8F5E9),
       value: kpi?.totalSpend != null && kpi!.totalSpend > 0
           ? kpi.formattedTotalSpend
           : null,
@@ -1270,7 +1268,7 @@ class _SmartInsightsCard extends ConsumerWidget {
 
   Widget _buildEmptyInsight() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(16),
@@ -1278,32 +1276,35 @@ class _SmartInsightsCard extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "Plan your next service",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13.sp,
+                  ),
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   "Discover top-rated providers for your needs.",
-                  style: TextStyle(color: Colors.black54, fontSize: 12),
+                  style: TextStyle(color: Colors.black54, fontSize: 13.sp),
                 ),
               ],
             ),
           ),
           GestureDetector(
             onTap: () {},
-            child: const Text(
+            child: Text(
               "Explore\nservices",
               textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold),
             ),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right, size: 20),
+          SizedBox(width: 8.w),
+          Icon(Icons.chevron_right, size: 20.sp),
         ],
       ),
     );
@@ -1318,8 +1319,8 @@ class _InsightItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(16),
@@ -1329,7 +1330,7 @@ class _InsightItem extends StatelessWidget {
         children: [
           if (insight.icon != null) ...[
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
@@ -1337,10 +1338,10 @@ class _InsightItem extends StatelessWidget {
               child: Icon(
                 insight.icon as IconData,
                 color: AppColors.primary,
-                size: 20,
+                size: 20.sp,
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
           ],
           Expanded(
             child: Column(
@@ -1348,15 +1349,15 @@ class _InsightItem extends StatelessWidget {
               children: [
                 Text(
                   insight.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 13.sp,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   insight.description,
-                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                  style: TextStyle(color: Colors.black54, fontSize: 13.sp),
                 ),
               ],
             ),
@@ -1371,14 +1372,11 @@ class _InsightItem extends StatelessWidget {
               child: Text(
                 insight.actionLabel,
                 textAlign: TextAlign.right,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(width: 8),
-            const Icon(Icons.chevron_right, size: 20),
+            SizedBox(width: 8.w),
+            Icon(Icons.chevron_right, size: 20.sp),
           ],
         ],
       ),
@@ -1404,14 +1402,14 @@ class _PerformancePulseCard extends ConsumerWidget {
             title: "${metrics['completed']} completed",
             subtitle: "Out of total generated requests",
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           _PerformanceItem(
             icon: Icons.warning_amber_rounded,
             iconColor: Colors.orange,
             title: "${metrics['cancelled']} cancelled",
             subtitle: "Bookings cancelled requests",
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           _PerformanceItem(
             icon: Icons.star_border,
             iconColor: Colors.black,
@@ -1467,8 +1465,8 @@ class _RecentBookingItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
@@ -1483,57 +1481,63 @@ class _RecentBookingItem extends StatelessWidget {
                     booking.serviceImage!.startsWith('http')
                 ? Image.network(
                     booking.serviceImage!,
-                    width: 48,
-                    height: 48,
+                    width: 48.w,
+                    height: 48.h,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Image.asset(
                       AppAssets.servicePlaceholder(booking.id),
-                      width: 48,
-                      height: 48,
+                      width: 48.w,
+                      height: 48.h,
                       fit: BoxFit.cover,
                     ),
                   )
                 : Image.asset(
                     AppAssets.servicePlaceholder(booking.id),
-                    width: 48,
-                    height: 48,
+                    width: 48.w,
+                    height: 48.h,
                     fit: BoxFit.cover,
                   ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   booking.serviceName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 13.sp,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
                 Text(
                   "Provider: ${booking.providerName}",
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12.sp,
+                  ),
                 ),
                 if (isProvider && booking.clientName != null) ...[
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   Text(
                     "Client: ${booking.clientName}",
                     style: TextStyle(
                       color: AppColors.primary.withValues(alpha: 0.8),
-                      fontSize: 11,
+                      fontSize: 11.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
-                const SizedBox(height: 2),
+                SizedBox(height: 2.h),
                 Text(
                   booking.formattedDate,
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 11.sp,
+                  ),
                 ),
               ],
             ),
@@ -1541,7 +1545,7 @@ class _RecentBookingItem extends StatelessWidget {
           if (booking.formattedAmount != null)
             Text(
               booking.formattedAmount!,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.sp),
             ),
         ],
       ),

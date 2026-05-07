@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CustomHeader extends StatelessWidget {
   final String? title;
@@ -19,40 +20,39 @@ class CustomHeader extends StatelessWidget {
     final canPop = ModalRoute.of(context)?.canPop == true;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
       child: Row(
         children: [
           if (showBackButton && canPop)
             GestureDetector(
               onTap: onBackPressed ?? () => Navigator.of(context).pop(),
               child: Container(
-                padding: const EdgeInsets.all(10),
+                padding: EdgeInsets.all(10.w),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.92),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
+                      blurRadius: 8.r,
                       offset: Offset.zero,
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back_ios_new_rounded,
-                  size: 18,
+                  size: 18.sp,
                   color: Colors.black87,
                 ),
               ),
             ),
-          if (showBackButton && canPop && title != null)
-            const SizedBox(width: 12),
+          if (showBackButton && canPop && title != null) SizedBox(width: 12.w),
           if (title != null)
             Expanded(
               child: Text(
                 title!,
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: 24.sp,
                   fontWeight: FontWeight.bold,
                   color: Color(0xFF111827),
                 ),

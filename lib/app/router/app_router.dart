@@ -299,7 +299,7 @@ List<StatefulShellBranch> _buildShellBranches() {
           path: RouteNames.dashboard,
           builder: (context, state) {
             if (FeatureFlags.enableDashboard) {
-              return const DashboardPage();
+              return DashboardPage();
             }
             return const ComingSoonPage(featureName: 'Dashboard');
           },

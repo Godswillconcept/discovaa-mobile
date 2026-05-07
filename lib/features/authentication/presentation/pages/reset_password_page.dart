@@ -9,6 +9,7 @@ import 'package:discovaa/features/authentication/presentation/widgets/reset_succ
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
@@ -80,7 +81,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
         content: Row(
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(child: Text(message)),
           ],
         ),
@@ -120,17 +121,17 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(24.w),
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Please enter your new password",
                         style: TextStyle(color: Colors.grey),
                       ),
-                      const Divider(height: 30),
+                      Divider(height: 30.h),
 
                       const AuthFieldLabel(label: "New Password"),
                       _buildPasswordField(
@@ -142,7 +143,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         (value) => FormValidationRules.validatePassword(value),
                       ),
 
-                      const SizedBox(height: 20),
+                      SizedBox(height: 20.h),
                       const AuthFieldLabel(label: "Confirm Password"),
                       _buildPasswordField(
                         "Confirm password",
@@ -161,18 +162,18 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         },
                       ),
 
-                      const SizedBox(height: 12),
-                      const Text(
+                      SizedBox(height: 12.h),
+                      Text(
                         "*NOTE: Choose a password that is distinctive & you can easily remember",
                         style: TextStyle(
                           color: Colors.grey,
-                          fontSize: 13,
+                          fontSize: 13.sp,
                           height: 1.4,
                         ),
                       ),
 
                       if (errorMessage != null) ...[
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16.h),
                         AppAlertMessage(
                           type: AlertType.error,
                           message: errorMessage,
@@ -182,13 +183,13 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         ),
                       ],
 
-                      const SizedBox(height: 40),
+                      SizedBox(height: 40.h),
                       AppPrimaryButton(
                         onPressed: _isLoading ? null : _resetPassword,
                         child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
+                            ? SizedBox(
+                                height: 20.h,
+                                width: 20.w,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                   valueColor: AlwaysStoppedAnimation<Color>(
@@ -232,7 +233,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.lock_outline),
         hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r)),
         suffixIcon: IconButton(
           icon: Icon(isVisible ? Icons.visibility_off : Icons.visibility),
           onPressed: () => onToggle(!isVisible),

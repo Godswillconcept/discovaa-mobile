@@ -8,6 +8,7 @@ import 'package:discovaa/shared/presentation/widgets/main_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // ---------------------------------------------------------------------------
 // BookingsPage — root
@@ -55,14 +56,14 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                      padding: EdgeInsets.fromLTRB(20.w, 20.h, 20.w, 0),
                       child: Row(
                         children: [
                           Expanded(
                             child: Text(
                               pageTitle,
-                              style: const TextStyle(
-                                fontSize: 24,
+                              style: TextStyle(
+                                fontSize: 24.sp,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: -0.5,
                               ),
@@ -76,19 +77,19 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                               );
                               if (count == 0) return const SizedBox.shrink();
                               return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 4,
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 10.w,
+                                  vertical: 4.h,
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(20.r),
                                 ),
                                 child: Text(
                                   '$count active',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 12,
+                                    fontSize: 12.sp,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -99,7 +100,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                      padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 10.h),
                       child: _SearchField(
                         onChanged: ref
                             .read(bookingsProvider.notifier)
@@ -115,13 +116,13 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                       dividerColor: Colors.transparent,
                       indicatorSize: TabBarIndicatorSize.label,
                       indicatorWeight: 3,
-                      labelStyle: const TextStyle(
+                      labelStyle: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 13.sp,
                       ),
-                      unselectedLabelStyle: const TextStyle(
+                      unselectedLabelStyle: TextStyle(
                         fontWeight: FontWeight.w500,
-                        fontSize: 13,
+                        fontSize: 13.sp,
                       ),
                       tabs: const [
                         Tab(text: 'Requested'),
@@ -131,7 +132,7 @@ class _BookingsPageState extends ConsumerState<BookingsPage> {
                         Tab(text: 'Cancelled'),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10.h),
                   ],
                 ),
               ),
@@ -167,18 +168,22 @@ class _SearchField extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: TextField(
         onChanged: onChanged,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
+        style: TextStyle(color: Colors.white, fontSize: 13.sp),
         decoration: InputDecoration(
           hintText: 'Search your bookings…',
-          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-          prefixIcon: Icon(Icons.search, size: 20, color: Colors.grey.shade500),
+          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13.sp),
+          prefixIcon: Icon(
+            Icons.search,
+            size: 20.sp,
+            color: Colors.grey.shade500,
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          contentPadding: EdgeInsets.symmetric(vertical: 12.h),
         ),
       ),
     );
@@ -206,20 +211,20 @@ class _BookingsTab extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 48, color: Colors.grey),
-            const SizedBox(height: 12),
+            Icon(Icons.wifi_off_rounded, size: 48.sp, color: Colors.grey),
+            SizedBox(height: 12.h),
             Text(
               bookingsState.errorMessage ?? 'Something went wrong.',
               style: TextStyle(color: Colors.grey.shade600),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             ElevatedButton(
               onPressed: () =>
                   ref.read(bookingsProvider.notifier).loadBookings(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50),
+                  borderRadius: BorderRadius.circular(50.r),
                 ),
               ),
               child: const Text('Retry', style: TextStyle(color: Colors.white)),
@@ -244,9 +249,9 @@ class _BookingsTab extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () => ref.read(bookingsProvider.notifier).refreshBookings(),
       child: ListView.separated(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(20.w),
         itemCount: bookings.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 14),
+        separatorBuilder: (context, index) => SizedBox(height: 14.h),
         itemBuilder: (context, i) => _BookingCard(booking: bookings[i]),
       ),
     );
@@ -259,44 +264,44 @@ class _BookingsListSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20.w),
       itemCount: 4,
-      separatorBuilder: (context, index) => const SizedBox(height: 14),
+      separatorBuilder: (context, index) => SizedBox(height: 14.h),
       itemBuilder: (context, index) {
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16.w),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16.r),
             border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 120,
-                height: 14,
+                width: 120.w,
+                height: 14.h,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
               Container(
                 width: double.infinity,
-                height: 18,
+                height: 18.h,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: 10.h),
               Container(
-                width: 180,
-                height: 14,
+                width: 180.w,
+                height: 14.h,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
             ],
@@ -326,13 +331,13 @@ class _BookingCard extends ConsumerWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+              blurRadius: 8.r,
+              offset: Offset(0, 3.h),
             ),
           ],
         ),
@@ -340,45 +345,45 @@ class _BookingCard extends ConsumerWidget {
           children: [
             // ── Header ────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: EdgeInsets.all(14.w),
               child: Row(
                 children: [
                   // Service cover thumbnail
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(10.r),
                     child: booking.service.imagePath != null
                         ? _buildServiceImage(booking.service.imagePath!)
                         : _ThumbFallback(),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12.w),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           booking.service.category,
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: TextStyle(
+                            fontSize: 12.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.grey,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2.h),
                         Text(
                           booking.service.title,
-                          style: const TextStyle(
-                            fontSize: 14,
+                          style: TextStyle(
+                            fontSize: 14.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        SizedBox(height: 2.h),
                         Text(
                           booking.service.formattedPrice,
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: TextStyle(
+                            fontSize: 12.sp,
                             fontWeight: FontWeight.w600,
                             color: AppColors.success,
                           ),
@@ -388,19 +393,19 @@ class _BookingCard extends ConsumerWidget {
                   ),
                   // Status badge
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 4,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 9.w,
+                      vertical: 4.h,
                     ),
                     decoration: BoxDecoration(
                       color: status.color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(20.r),
                     ),
                     child: Text(
                       status.displayName,
                       style: TextStyle(
                         color: status.color,
-                        fontSize: 11,
+                        fontSize: 11.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -413,20 +418,20 @@ class _BookingCard extends ConsumerWidget {
 
             // ── Schedule row ──────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
               child: Row(
                 children: [
                   _MetaIcon(
                     icon: Icons.calendar_today_outlined,
                     label: booking.scheduledDisplayDate,
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: 16.w),
                   _MetaIcon(
                     icon: Icons.access_time_rounded,
                     label: booking.scheduledDisplayTime,
                   ),
                   if (booking.service.durationMinutes != null) ...[
-                    const SizedBox(width: 16),
+                    SizedBox(width: 16.w),
                     _MetaIcon(
                       icon: Icons.timer_outlined,
                       label: _fmtDuration(booking.service.durationMinutes!),
@@ -455,16 +460,16 @@ class _BookingCard extends ConsumerWidget {
     if (isNetworkUrl) {
       return Image.network(
         imagePath,
-        width: 52,
-        height: 52,
+        width: 52.w,
+        height: 52.h,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stack) => _ThumbFallback(),
       );
     }
     return Image.asset(
       imagePath,
-      width: 52,
-      height: 52,
+      width: 52.w,
+      height: 52.h,
       fit: BoxFit.cover,
       errorBuilder: (context, error, stack) => _ThumbFallback(),
     );
@@ -491,29 +496,29 @@ class _EmptyState extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(32.w),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icons[status] ?? Icons.inbox_outlined,
-              size: 56,
+              size: 56.sp,
               color: Colors.grey.shade300,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               'No ${status.displayName.toLowerCase()} bookings',
-              style: const TextStyle(
-                fontSize: 17,
+              style: TextStyle(
+                fontSize: 17.sp,
                 fontWeight: FontWeight.bold,
                 color: Colors.white70,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               'Your ${status.displayName.toLowerCase()} bookings will appear here.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600),
             ),
           ],
         ),
@@ -530,12 +535,12 @@ class _ThumbFallback extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 52,
-      height: 52,
+      width: 52.w,
+      height: 52.h,
       color: const Color(0xFFF0F0F0),
-      child: const Icon(
+      child: Icon(
         Icons.home_repair_service_rounded,
-        size: 24,
+        size: 24.sp,
         color: Colors.black26,
       ),
     );
@@ -552,11 +557,11 @@ class _MetaIcon extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: Colors.grey.shade500),
-        const SizedBox(width: 4),
+        Icon(icon, size: 13.sp, color: Colors.grey.shade500),
+        SizedBox(width: 4.w),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade500),
         ),
       ],
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SystemUpdateWidget extends StatefulWidget {
   const SystemUpdateWidget({super.key});
@@ -14,69 +15,75 @@ class _SystemUpdateWidgetState extends State<SystemUpdateWidget> {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       children: [
         _buildSwitchTile(
           'Automatic Updates',
           _automaticUpdates,
           (value) => setState(() => _automaticUpdates = value),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h),
         Text(
           'This update provides bug fixes for your system including:',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 14.sp),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h),
         ...List.generate(
           3,
           (index) => Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: EdgeInsets.only(bottom: 8.h),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
                 Expanded(
                   child: Text(
                     'This update provides bug fixes for your system including',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 14.sp,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12.h),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Download in progress',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(10.w),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.downloading, size: 20),
+                  child: Icon(Icons.downloading, size: 20.sp),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             SizedBox(
               width: MediaQuery.of(context).size.width * 0.7,
               child: Text(
                 'System has has started downloading an update automatically. Once completed, system will attempt to install the update later.',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14.sp),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 32),
+        SizedBox(height: 32.h),
         _buildSwitchTile(
           'Install once downloaded',
           _installOnceDownloaded,
@@ -97,7 +104,7 @@ class _SystemUpdateWidgetState extends State<SystemUpdateWidget> {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
         ),
         Switch(
           value: value,

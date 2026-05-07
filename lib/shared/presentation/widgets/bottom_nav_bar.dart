@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int selectedIndex;
@@ -18,18 +19,18 @@ class BottomNavBar extends StatelessWidget {
     final navItems = _buildNavItems();
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
+          topLeft: Radius.circular(20.r),
+          topRight: Radius.circular(20.r),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black26,
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            blurRadius: 10.r,
+            offset: Offset(0, 4.h),
           ),
         ],
       ),
@@ -108,7 +109,7 @@ class BottomNavBar extends StatelessWidget {
   }) {
     final bool isSelected = selectedIndex == index;
     final Color iconColor = isSelected ? Colors.white : const Color(0xFFB0B0B0);
-    const double size = 24.0;
+    final size = 24.0.sp;
 
     return InkWell(
       onTap: () => onTap(index),
@@ -127,20 +128,20 @@ class BottomNavBar extends StatelessWidget {
                   color: iconColor,
                   size: size,
                 ),
-          const SizedBox(height: 4),
+          SizedBox(height: 4.h),
           Text(
             label,
             style: TextStyle(
               color: iconColor,
-              fontSize: 10,
+              fontSize: 10.sp,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
           if (isSelected)
             Container(
-              margin: const EdgeInsets.only(top: 4),
-              width: 30,
-              height: 2,
+              margin: EdgeInsets.only(top: 4.h),
+              width: 30.w,
+              height: 2.h,
               color: Colors.white,
             ),
         ],

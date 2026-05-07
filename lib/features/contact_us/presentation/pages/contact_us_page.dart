@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/utils/clippers.dart';
 import '../widgets/contact_form.dart';
@@ -19,11 +20,11 @@ class ContactUsPage extends StatelessWidget {
             children: [
               _buildHeader(context),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 32.w),
                 child: Column(
                   children: [
                     const ContactForm(),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24.h),
                     const ContactInfoCard(),
                   ],
                 ),
@@ -38,16 +39,14 @@ class ContactUsPage extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return HeaderClipper(
       child: Container(
-        height: 220,
+        height: 220.h,
         width: double.infinity,
-        decoration: const BoxDecoration(
-          color: Colors.black,
-        ),
-        padding: const EdgeInsets.only(top: 60, bottom: 20),
+        decoration: const BoxDecoration(color: Colors.black),
+        padding: EdgeInsets.only(top: 60.h, bottom: 20.h),
         child: Column(
           children: [
-             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Stack(
                 alignment: Alignment.center,
                 children: [
@@ -55,31 +54,31 @@ class ContactUsPage extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: GestureDetector(
                       onTap: () => context.pop(),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_ios,
                         color: Colors.white,
-                        size: 20,
+                        size: 20.sp,
                       ),
                     ),
                   ),
-                  const Text(
+                  Text(
                     "Contact Us",
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 32,
+                      fontSize: 32.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8.h),
+            Text(
               "Any question or remarks? Just write us a\nmessage!",
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.grey,
-                fontSize: 14,
+                fontSize: 14.sp,
                 height: 1.4,
               ),
             ),

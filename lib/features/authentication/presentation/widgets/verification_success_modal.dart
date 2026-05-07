@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class VerificationSuccessModal extends StatelessWidget {
   const VerificationSuccessModal({super.key});
@@ -6,9 +7,9 @@ class VerificationSuccessModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24.r)),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 40.h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -17,13 +18,13 @@ class VerificationSuccessModal extends StatelessWidget {
               alignment: Alignment.center,
               children: [
                 Container(
-                  height: 100,
-                  width: 100,
-                  decoration: const BoxDecoration(
+                  height: 100.h,
+                  width: 100.w,
+                  decoration: BoxDecoration(
                     color: Color(0xFF4C84FF),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 60),
+                  child: Icon(Icons.check, color: Colors.white, size: 60.sp),
                 ),
                 // Decorative dots around the icon
                 ...List.generate(
@@ -31,10 +32,10 @@ class VerificationSuccessModal extends StatelessWidget {
                   (index) => Positioned(
                     child: Transform.rotate(
                       angle: index * 0.8,
-                      child: const Padding(
-                        padding: EdgeInsets.only(bottom: 130),
+                      child: Padding(
+                        padding: EdgeInsets.only(bottom: 130.h),
                         child: CircleAvatar(
-                          radius: 3,
+                          radius: 3.r,
                           backgroundColor: Color(0xFF4C84FF),
                         ),
                       ),
@@ -43,23 +44,23 @@ class VerificationSuccessModal extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 30),
-            const Text(
+            SizedBox(height: 30.h),
+            Text(
               "Account Verification Successful !",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: 12.h),
+            Text(
               "Proceed to complete your profile!",
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey, fontSize: 16),
+              style: TextStyle(color: Colors.grey, fontSize: 16.sp),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: 40.h),
             // Loading Indicator
-            const SizedBox(
-              height: 60,
-              width: 60,
+            SizedBox(
+              height: 60.h,
+              width: 60.w,
               child: CircularProgressIndicator(
                 strokeWidth: 6,
                 valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF444444)),

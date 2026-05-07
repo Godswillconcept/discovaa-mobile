@@ -2,6 +2,7 @@ import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/features/authentication/presentation/providers/identity_verification_reminder_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 /// Widget that displays a reminder banner for pending identity verification
@@ -19,11 +20,11 @@ class IdentityVerificationReminderWidget extends ConsumerWidget {
     }
 
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.all(16.w),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.orange.shade200),
       ),
       child: Column(
@@ -34,14 +35,14 @@ class IdentityVerificationReminderWidget extends ConsumerWidget {
               Icon(
                 Icons.verified_user_outlined,
                 color: Colors.orange.shade700,
-                size: 24,
+                size: 24.sp,
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.w),
               Expanded(
                 child: Text(
                   'Complete Your Identity Verification',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
                     color: Colors.orange.shade900,
                   ),
@@ -57,23 +58,23 @@ class IdentityVerificationReminderWidget extends ConsumerWidget {
                 icon: Icon(
                   Icons.close,
                   color: Colors.orange.shade700,
-                  size: 20,
+                  size: 20.sp,
                 ),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Text(
             'Verify your identity to unlock all features and build trust with customers. This helps ensure a safe and secure marketplace.',
             style: TextStyle(
-              fontSize: 13,
+              fontSize: 13.sp,
               color: Colors.orange.shade800,
               height: 1.4,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12.h),
           Row(
             children: [
               Expanded(
@@ -85,23 +86,23 @@ class IdentityVerificationReminderWidget extends ConsumerWidget {
                         .permanentlyDismiss();
                   },
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: EdgeInsets.symmetric(vertical: 10.h),
                     side: BorderSide(color: Colors.orange.shade300),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                     ),
                   ),
                   child: Text(
                     'I\'ll do this later',
                     style: TextStyle(
                       color: Colors.orange.shade700,
-                      fontSize: 13,
+                      fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.w),
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
@@ -111,14 +112,17 @@ class IdentityVerificationReminderWidget extends ConsumerWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange.shade600,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: EdgeInsets.symmetric(vertical: 10.h),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8.r),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Verify Now',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),

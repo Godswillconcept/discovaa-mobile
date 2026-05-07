@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// A custom shimmer loading widget that doesn't require external packages.
 /// Creates a shimmer effect using a gradient animation.
@@ -93,7 +94,7 @@ class ShimmerBox extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: BorderRadius.circular(borderRadius.r),
       ),
     );
   }
@@ -139,8 +140,8 @@ class ShimmerTextLine extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShimmerBox(
       width: width,
-      height: height,
-      borderRadius: borderRadius,
+      height: height.h,
+      borderRadius: borderRadius.r,
       color: color,
     );
   }

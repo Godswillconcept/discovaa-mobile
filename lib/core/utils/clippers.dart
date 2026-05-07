@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class HeaderClipper extends StatelessWidget {
   const HeaderClipper({super.key, required this.child});
@@ -9,7 +10,7 @@ class HeaderClipper extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(65)),
+      borderRadius: BorderRadius.vertical(bottom: Radius.circular(65.r)),
       child: Container(
         height: size.height * 0.22,
         width: double.infinity,

@@ -2,6 +2,7 @@ import 'package:discovaa/shared/presentation/widgets/main_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:discovaa/features/messaging/presentation/providers/messaging_provider.dart';
 import 'package:discovaa/features/messaging/presentation/widgets/conversation_tile.dart';
 import 'package:discovaa/features/messaging/presentation/widgets/messaging_search_bar.dart';
@@ -30,14 +31,14 @@ class MessagesListPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                    padding: EdgeInsets.fromLTRB(20.w, 24.w, 20.w, 16.w),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Messages',
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: 28.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                           ),
@@ -57,15 +58,15 @@ class MessagesListPage extends ConsumerWidget {
                             ),
                           ],
                           child: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: EdgeInsets.all(8.w),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade100,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.more_horiz,
                               color: Colors.grey,
-                              size: 20,
+                              size: 20.sp,
                             ),
                           ),
                         ),
@@ -74,30 +75,30 @@ class MessagesListPage extends ConsumerWidget {
                   ),
                   const MessagingSearchBar(),
                   if (messagingState.isStale) ...[
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
                       child: Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: EdgeInsets.all(10.w),
                         decoration: BoxDecoration(
                           color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8.r),
                           border: Border.all(color: Colors.orange.shade100),
                         ),
                         child: Row(
                           children: [
                             Icon(
                               Icons.info_outline,
-                              size: 18,
+                              size: 18.sp,
                               color: Colors.orange.shade700,
                             ),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8.w),
                             Expanded(
                               child: Text(
                                 'Showing cached messages. Service may be temporarily unavailable.',
                                 style: TextStyle(
                                   color: Colors.orange.shade800,
-                                  fontSize: 12,
+                                  fontSize: 12.sp,
                                 ),
                               ),
                             ),
@@ -105,9 +106,9 @@ class MessagesListPage extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                   ] else
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                   Expanded(
                     child: messagingState.isLoading
                         ? const _MessagesListSkeleton()
@@ -116,20 +117,20 @@ class MessagesListPage extends ConsumerWidget {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.wifi_off_rounded,
-                                  size: 48,
+                                  size: 48.sp,
                                   color: Colors.grey,
                                 ),
-                                const SizedBox(height: 12),
+                                SizedBox(height: 12.h),
                                 Text(
                                   messagingState.error!,
                                   style: TextStyle(
                                     color: Colors.grey.shade600,
-                                    fontSize: 14,
+                                    fontSize: 14.sp,
                                   ),
                                 ),
-                                const SizedBox(height: 16),
+                                SizedBox(height: 16.h),
                                 ElevatedButton(
                                   onPressed: () => ref
                                       .read(messagingProvider.notifier)
@@ -146,15 +147,15 @@ class MessagesListPage extends ConsumerWidget {
                               children: [
                                 Icon(
                                   Icons.search_off,
-                                  size: 64,
+                                  size: 64.sp,
                                   color: Colors.grey.shade300,
                                 ),
-                                const SizedBox(height: 16),
+                                SizedBox(height: 16.h),
                                 Text(
                                   'No messages found',
                                   style: TextStyle(
                                     color: Colors.grey.shade500,
-                                    fontSize: 16,
+                                    fontSize: 16.sp,
                                   ),
                                 ),
                               ],
@@ -168,9 +169,9 @@ class MessagesListPage extends ConsumerWidget {
                               padding: EdgeInsets.zero,
                               itemCount: filteredConversations.length,
                               separatorBuilder: (context, index) => Padding(
-                                padding: const EdgeInsets.only(left: 90),
+                                padding: EdgeInsets.only(left: 90.w),
                                 child: Divider(
-                                  height: 1,
+                                  height: 1.h,
                                   thickness: 0.5,
                                   color: Colors.grey.shade200,
                                 ),
@@ -202,42 +203,46 @@ class _MessagesListSkeleton extends StatelessWidget {
       padding: EdgeInsets.zero,
       itemCount: 6,
       separatorBuilder: (context, index) => Padding(
-        padding: const EdgeInsets.only(left: 90),
-        child: Divider(height: 1, thickness: 0.5, color: Colors.grey.shade200),
+        padding: EdgeInsets.only(left: 90.w),
+        child: Divider(
+          height: 1.h,
+          thickness: 0.5,
+          color: Colors.grey.shade200,
+        ),
       ),
       itemBuilder: (context, index) {
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
           child: Row(
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 52.w,
+                height: 52.h,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 120,
-                      height: 14,
+                      width: 120.w,
+                      height: 14.h,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: 10.h),
                     Container(
                       width: double.infinity,
-                      height: 12,
+                      height: 12.h,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
                     ),
                   ],

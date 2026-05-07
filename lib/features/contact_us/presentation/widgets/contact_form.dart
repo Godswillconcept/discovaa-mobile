@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:discovaa/features/authentication/presentation/widgets/auth_field_label.dart';
 import '../../../../core/widgets/custom_buttons.dart';
 
@@ -22,15 +23,15 @@ class _ContactFormState extends State<ContactForm> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 10.r,
+            offset: Offset(0, 4.h),
           ),
         ],
       ),
@@ -55,7 +56,7 @@ class _ContactFormState extends State<ContactForm> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: 16.w),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,7 +73,7 @@ class _ContactFormState extends State<ContactForm> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
             const AuthFieldLabel(label: "Email"),
             TextFormField(
               decoration: const InputDecoration(
@@ -80,7 +81,7 @@ class _ContactFormState extends State<ContactForm> {
                 border: UnderlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20.h),
             const AuthFieldLabel(label: "Phone Number"),
             TextFormField(
               decoration: const InputDecoration(
@@ -88,17 +89,14 @@ class _ContactFormState extends State<ContactForm> {
                 border: UnderlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
+            SizedBox(height: 24.h),
+            Text(
               "Select Subject?",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.sp),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             ..._subjects.map((subject) => _buildSubjectOption(subject)),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
             const AuthFieldLabel(label: "Message"),
             TextFormField(
               maxLines: 1,
@@ -107,11 +105,11 @@ class _ContactFormState extends State<ContactForm> {
                 border: UnderlineInputBorder(),
               ),
             ),
-            const SizedBox(height: 40),
+            SizedBox(height: 40.h),
             Align(
               alignment: Alignment.centerRight,
               child: SizedBox(
-                width: 180,
+                width: 180.w,
                 child: AppPrimaryButton(
                   onPressed: () {},
                   child: const Text("Send"),
@@ -133,19 +131,16 @@ class _ContactFormState extends State<ContactForm> {
         });
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: EdgeInsets.symmetric(vertical: 4.h),
         child: Row(
           children: [
             Icon(
               isSelected ? Icons.check_box : Icons.check_box_outline_blank,
-              size: 20,
+              size: 20.sp,
               color: isSelected ? Colors.black : Colors.grey.shade300,
             ),
-            const SizedBox(width: 8),
-            Text(
-              subject,
-              style: const TextStyle(fontSize: 14),
-            ),
+            SizedBox(width: 8.w),
+            Text(subject, style: TextStyle(fontSize: 14.sp)),
           ],
         ),
       ),

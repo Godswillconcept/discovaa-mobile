@@ -10,6 +10,7 @@ import 'package:discovaa/shared/presentation/widgets/main_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -38,17 +39,17 @@ class HomePage extends ConsumerWidget {
                   // Allow states to reload safely
                   await Future.delayed(const Duration(milliseconds: 100));
                 },
-                child: const SingleChildScrollView(
-                  physics: AlwaysScrollableScrollPhysics(),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: 20),
+                      SizedBox(height: 20.h),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        padding: EdgeInsets.symmetric(horizontal: 20.w),
                         child: _ExploreSearchField(),
                       ),
-                      SizedBox(height: 32),
+                      SizedBox(height: 32.h),
                       // Browse by Category
                       _BrowseByCategorySection(),
                       // Service Providers Section
@@ -75,31 +76,31 @@ class _HomeProvidersSkeleton extends StatelessWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            mainAxisExtent: 300,
+            crossAxisSpacing: 16.w,
+            mainAxisSpacing: 16.h,
+            mainAxisExtent: 300.h,
           ),
           itemCount: 4,
           itemBuilder: (context, index) => Container(
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(20.r),
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: 16.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(3, (index) {
             return Container(
-              margin: EdgeInsets.only(right: index == 2 ? 0 : 12),
-              width: 32,
-              height: 32,
+              margin: EdgeInsets.only(right: index == 2 ? 0 : 12.w),
+              width: 32.w,
+              height: 32.h,
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
               ),
             );
           }),
@@ -121,29 +122,29 @@ class _BrowseByCategorySection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: const Text(
+          padding: EdgeInsets.symmetric(horizontal: 20.w),
+          child: Text(
             'Browse by Category',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 18.sp,
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20.h),
         SizedBox(
-          height: 100,
+          height: 100.h,
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: EdgeInsets.symmetric(horizontal: 20.w),
             scrollDirection: Axis.horizontal,
             itemCount: categories.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 16),
+            separatorBuilder: (context, index) => SizedBox(width: 16.w),
             itemBuilder: (context, index) {
               final cat = categories[index];
               final isSelected = filter.selectedCategory == cat.name;
               return SizedBox(
-                width: 160,
+                width: 160.w,
                 child: CategoryItem(
                   category: cat,
                   isSelected: isSelected,
@@ -179,26 +180,26 @@ class _Pagination extends ConsumerWidget {
               : null,
           icon: Icons.arrow_back_ios_new,
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.w),
         Container(
-          width: 32,
-          height: 32,
+          width: 32.w,
+          height: 32.h,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: Colors.white,
             border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(8.r),
           ),
           child: Text(
             '$currentPage',
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: 14.sp,
               color: Colors.black,
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.w),
         PaginationButton(
           onTap: currentPage < totalPages
               ? () => ref.read(categoryPageProvider.notifier).state++
@@ -224,7 +225,7 @@ class _ServiceProvidersSection extends ConsumerWidget {
     return Container(
       width: double.infinity,
       color: const Color(0xFFF8FBFF),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 24.h),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -234,20 +235,20 @@ class _ServiceProvidersSection extends ConsumerWidget {
             children: [
               Text(
                 'Service Providers',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               Row(
                 children: [
                   _FilterButton(filter: filter),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8.w),
                   SortDropdown(filter: filter),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10.h),
           artisansAsync.when(
             data: (artisans) {
               if (artisans.isEmpty) {
@@ -267,19 +268,18 @@ class _ServiceProvidersSection extends ConsumerWidget {
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          mainAxisExtent: 300,
-                        ),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 16.w,
+                      mainAxisSpacing: 16.h,
+                      mainAxisExtent: 300.h,
+                    ),
                     itemCount: displayedArtisans.length,
                     itemBuilder: (context, index) =>
                         ArtisanCard(artisan: displayedArtisans[index]),
                   ),
                   if (artisans.isNotEmpty) ...[
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     _Pagination(
                       currentPage: currentPage,
                       totalPages: totalPages,
@@ -307,12 +307,12 @@ class _ExploreSearchField extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(15.r),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+            blurRadius: 15.r,
+            offset: Offset(0, 5.h),
           ),
         ],
       ),
@@ -326,7 +326,10 @@ class _ExploreSearchField extends ConsumerWidget {
             },
             decoration: InputDecoration(
               hintText: "What service are you looking for?",
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+                fontSize: 14.sp,
+              ),
               prefixIcon: const Icon(Icons.search, color: AppColors.primary),
               suffixIcon: value.text.isNotEmpty
                   ? IconButton(
@@ -340,7 +343,7 @@ class _ExploreSearchField extends ConsumerWidget {
                     )
                   : null,
               border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 15),
+              contentPadding: EdgeInsets.symmetric(vertical: 15.h),
             ),
           );
         },
@@ -362,10 +365,10 @@ class _FilterButton extends ConsumerWidget {
     return GestureDetector(
       onTap: () => FilterBottomSheet.show(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: hasActiveFilters ? Colors.white : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           border: Border.all(
             color: hasActiveFilters ? Colors.black : Colors.grey.shade300,
             width: hasActiveFilters ? 1.5 : 1,
@@ -376,14 +379,14 @@ class _FilterButton extends ConsumerWidget {
             Icon(
               Icons.tune,
               color: hasActiveFilters ? Colors.black : Colors.grey.shade600,
-              size: 18,
+              size: 18.sp,
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: 6.w),
             Text(
               'Filters${activeFilterCount > 0 ? ' ($activeFilterCount)' : ''}',
               style: TextStyle(
                 color: hasActiveFilters ? Colors.black : Colors.grey.shade600,
-                fontSize: 12,
+                fontSize: 12.sp,
                 fontWeight: hasActiveFilters
                     ? FontWeight.w600
                     : FontWeight.w500,

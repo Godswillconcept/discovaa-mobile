@@ -10,6 +10,7 @@ import 'package:discovaa/core/widgets/app_alert_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter/gestures.dart';
 
@@ -94,7 +95,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         content: Row(
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(child: Text(message)),
           ],
         ),
@@ -187,18 +188,18 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
+                  padding: EdgeInsets.all(24.w),
                   child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 8),
-                        const Text(
+                        SizedBox(height: 8.h),
+                        Text(
                           "For the purpose of industry regulation, your details are required.",
-                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                          style: TextStyle(color: Colors.grey, fontSize: 14.sp),
                         ),
-                        const Divider(height: 40),
+                        Divider(height: 40.h),
                         const AuthFieldLabel(label: "Email address"),
                         TextFormField(
                           controller: _emailController,
@@ -209,7 +210,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             hintText: "Enter email address",
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                         const AuthFieldLabel(label: "Create password"),
                         TextFormField(
                           controller: _passwordController,
@@ -233,7 +234,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                         const AuthFieldLabel(label: "Confirm password"),
                         TextFormField(
                           controller: _confirmPasswordController,
@@ -267,7 +268,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(height: 10.h),
                         Row(
                           children: [
                             Checkbox(
@@ -283,8 +284,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               child: RichText(
                                 text: TextSpan(
                                   text: "By signing up, you agree to ",
-                                  style: const TextStyle(
-                                    fontSize: 12,
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
                                     color: Colors.grey,
                                   ),
                                   children: [
@@ -310,7 +311,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 30),
+                        SizedBox(height: 30.h),
                         // Show error message if registration failed
                         if (authState.hasError ||
                             (authState.value?.errorMessage != null))
@@ -328,13 +329,13 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                               );
                             },
                           ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12.h),
                         AppPrimaryButton(
                           onPressed: _canSubmit() ? _performRegistration : null,
                           child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
+                              ? SizedBox(
+                                  height: 20.h,
+                                  width: 20.w,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
                                     valueColor: AlwaysStoppedAnimation<Color>(

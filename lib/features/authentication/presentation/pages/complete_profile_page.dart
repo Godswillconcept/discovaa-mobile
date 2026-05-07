@@ -9,6 +9,7 @@ import 'package:discovaa/core/widgets/app_alert_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:country_picker/country_picker.dart';
@@ -237,7 +238,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
         content: Row(
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(child: Text(message)),
           ],
         ),
@@ -303,19 +304,19 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                 ),
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(24.w),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "For the purpose of industry regulation, your details are required.",
                           style: TextStyle(
                             color: Colors.grey,
                             height: 1.5,
-                            fontSize: 14,
+                            fontSize: 14.sp,
                           ),
                         ),
-                        const Divider(height: 40),
+                        Divider(height: 40.h),
 
                         // First Name Field
                         const AuthFieldLabel(label: "First name"),
@@ -333,7 +334,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
 
                         // Last Name Field
                         const AuthFieldLabel(label: "Last name"),
@@ -351,7 +352,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
 
                         // Display Name Field
                         const AuthFieldLabel(label: "Display name"),
@@ -369,7 +370,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
 
                         // Phone Number Field
                         const AuthFieldLabel(label: "Phone number"),
@@ -388,11 +389,11 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                             });
                           },
                           dropdownIconPosition: IconPosition.trailing,
-                          flagsButtonPadding: const EdgeInsets.only(left: 8),
+                          flagsButtonPadding: EdgeInsets.only(left: 8.w),
                           showDropdownIcon: true,
-                          dropdownTextStyle: const TextStyle(fontSize: 16),
+                          dropdownTextStyle: TextStyle(fontSize: 16.sp),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
 
                         // Country Field (moved before Address)
                         const AuthFieldLabel(label: "Country of residence"),
@@ -440,7 +441,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
 
                         // Address Field
                         const AuthFieldLabel(label: "Your address"),
@@ -470,15 +471,15 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                               });
                             }
                           },
-                          title: const Text(
+                          title: Text(
                             "Use my current location",
-                            style: TextStyle(fontSize: 14),
+                            style: TextStyle(fontSize: 14.sp),
                           ),
                           controlAffinity: ListTileControlAffinity.leading,
                           contentPadding: EdgeInsets.zero,
                           dense: true,
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
 
                         // Postal Code Field
                         const AuthFieldLabel(label: "Postal code"),
@@ -499,7 +500,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
                         // Dynamic Fields for Providers
                         if (_effectiveRole?.isProvider ?? false) ...[
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20.h),
                           AuthFieldLabel(
                             label: _effectiveRole == UserRole.businessProvider
                                 ? "Business Name"
@@ -518,7 +519,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                               border: const OutlineInputBorder(),
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          SizedBox(height: 20.h),
                           AuthFieldLabel(
                             label: _effectiveRole == UserRole.businessProvider
                                 ? "Business Description"
@@ -540,7 +541,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                           ),
                         ],
 
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
 
                         // Show error message if profile update failed
                         if (authState.hasError || errorMessage != null)
@@ -558,7 +559,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                             },
                           ),
 
-                        const SizedBox(height: 40),
+                        SizedBox(height: 40.h),
 
                         // Save & Continue Button
                         AppPrimaryButton(
@@ -593,15 +594,15 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                                   // Navigate to identification page
                                   context.go(RouteNames.identification);
                                 },
-                          child: const Text(
+                          child: Text(
                             'Skip',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 16.sp,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        SizedBox(height: 20.h),
                         const AuthSafeInfo(),
                       ],
                     ),

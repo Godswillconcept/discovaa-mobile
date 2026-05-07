@@ -50,12 +50,6 @@ class AppConstants {
   static const Duration defaultCacheDuration = Duration(hours: 1);
   static const Duration userProfileCacheDuration = Duration(minutes: 30);
 
-  // UI Constants
-  static const double defaultBorderRadius = 8.0;
-  static const double largeBorderRadius = 16.0;
-  static const double defaultPadding = 16.0;
-  static const double largePadding = 24.0;
-
   // Typography
   static const String fontFamily = 'Inter'; // Google Fonts Inter font
 

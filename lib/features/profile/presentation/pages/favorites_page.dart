@@ -8,6 +8,7 @@ import 'package:discovaa/features/profile/presentation/providers/profile_connect
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:discovaa/app/router/route_names.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -61,11 +62,11 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
             Expanded(
               child: Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: Color(0xFFF8FBFF),
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
+                    topLeft: Radius.circular(30.r),
+                    topRight: Radius.circular(30.r),
                   ),
                 ),
                 child: Column(
@@ -77,15 +78,15 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
                       actions: [
                         PopupMenuButton<String>(
                           icon: Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: EdgeInsets.all(8.w),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade200,
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.more_horiz,
                               color: Colors.grey,
-                              size: 20,
+                              size: 20.sp,
                             ),
                           ),
                           onSelected: (value) {
@@ -95,20 +96,18 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
                                 break;
                               case 'refresh':
                                 ref
-                                    .read(
-                                      profileConnectivityProvider.notifier,
-                                    )
+                                    .read(profileConnectivityProvider.notifier)
                                     .checkConnection();
                                 break;
                             }
                           },
                           itemBuilder: (context) => [
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'refresh',
                               child: Row(
                                 children: [
-                                  Icon(Icons.refresh, size: 20),
-                                  SizedBox(width: 12),
+                                  Icon(Icons.refresh, size: 20.sp),
+                                  SizedBox(width: 12.w),
                                   Text('Refresh'),
                                 ],
                               ),
@@ -119,10 +118,10 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
                                 children: [
                                   Icon(
                                     Icons.delete_outline,
-                                    size: 20,
+                                    size: 20.sp,
                                     color: Colors.red.shade400,
                                   ),
-                                  const SizedBox(width: 12),
+                                  SizedBox(width: 12.w),
                                   Text(
                                     'Clear All',
                                     style: TextStyle(
@@ -138,14 +137,14 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
                     ),
                     // Search field
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: EdgeInsets.symmetric(horizontal: 20.w),
                       child: _SearchField(
                         controller: _searchController,
                         onChanged: _onSearchChanged,
                         hintText: 'Search favorite artisans...',
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16.h),
                     // Content
                     Expanded(child: _ArtisansTab(searchQuery: _searchQuery)),
                   ],
@@ -207,7 +206,7 @@ class _SearchField extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: TextField(
@@ -217,11 +216,11 @@ class _SearchField extends StatelessWidget {
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-          prefixIcon: const Icon(Icons.search, size: 20, color: Colors.grey),
+          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14.sp),
+          prefixIcon: Icon(Icons.search, size: 20.sp, color: Colors.grey),
           suffixIcon: controller.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18, color: Colors.grey),
+                  icon: Icon(Icons.clear, size: 18.sp, color: Colors.grey),
                   onPressed: () {
                     controller.clear();
                     onChanged('');
@@ -229,7 +228,7 @@ class _SearchField extends StatelessWidget {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          contentPadding: EdgeInsets.symmetric(vertical: 14.h),
         ),
       ),
     );
@@ -270,7 +269,7 @@ class _ArtisansTab extends ConsumerWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
       itemCount: filteredArtisans.length,
       itemBuilder: (context, index) {
         return _FavoriteArtisanTile(artisan: filteredArtisans[index]);
@@ -290,57 +289,57 @@ class _FavoriteArtisanTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: 16.h),
       child: InkWell(
         onTap: () {
           // Navigate to artisan profile with ID
           context.push('${RouteNames.artisanProfile}/${artisan.id}');
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16.r),
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14.w),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 28,
+                  radius: 28.r,
                   backgroundImage: AssetImage(artisan.profileImage),
                   onBackgroundImageError: (_, _) => const Icon(Icons.person),
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14.w),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         artisan.name,
-                        style: const TextStyle(
-                          fontSize: 15,
+                        style: TextStyle(
+                          fontSize: 15.sp,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2.h),
                       Text(
                         artisan.category,
                         style: TextStyle(
                           color: Colors.grey.shade600,
-                          fontSize: 12,
+                          fontSize: 12.sp,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4.h),
                       Text(
                         artisan.lastSeen != null
                             ? 'Last seen ${timeago.format(artisan.lastSeen!)}'
                             : 'Recently active',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Color(0xFF999999),
-                          fontSize: 12,
+                          fontSize: 12.sp,
                         ),
                       ),
                     ],
@@ -351,34 +350,34 @@ class _FavoriteArtisanTile extends ConsumerWidget {
                     // Rating badge
                     if (artisan.rating > 0)
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8.w,
+                          vertical: 4.h,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFF9C4),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Color(0xFFFFF9C4),
+                          borderRadius: BorderRadius.circular(12.r),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.star,
-                              size: 14,
+                              size: 14.sp,
                               color: Color(0xFFF59E0B),
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: 4.w),
                             Text(
                               artisan.rating.toStringAsFixed(1),
-                              style: const TextStyle(
-                                fontSize: 12,
+                              style: TextStyle(
+                                fontSize: 12.sp,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     ElevatedButton(
                       onPressed: () {
                         // Stop propagation to parent InkWell
@@ -406,19 +405,19 @@ class _FavoriteArtisanTile extends ConsumerWidget {
                         backgroundColor: Colors.black,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(10.r),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16.w,
+                          vertical: 8.h,
                         ),
                         elevation: 0,
-                        minimumSize: const Size(80, 32),
+                        minimumSize: Size(80.w, 32.h),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Message',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 12.sp,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -452,25 +451,25 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(32.w),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: Colors.grey.shade300),
-            const SizedBox(height: 16),
+            Icon(icon, size: 56.sp, color: Colors.grey.shade300),
+            SizedBox(height: 16.h),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 17,
+              style: TextStyle(
+                fontSize: 17.sp,
                 fontWeight: FontWeight.bold,
                 color: Colors.black54,
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade500),
             ),
           ],
         ),

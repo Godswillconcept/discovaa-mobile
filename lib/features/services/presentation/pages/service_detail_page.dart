@@ -3,6 +3,7 @@ import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 /// Full-screen detail view for a single [ServiceModel].
 /// Opened via [Navigator.push] — no named route needed since [service] is
@@ -74,10 +75,7 @@ class _ServiceDetailPageState extends ConsumerState<ServiceDetailPage> {
             // ── Floating back button (over hero) ──────────
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -85,9 +83,7 @@ class _ServiceDetailPageState extends ConsumerState<ServiceDetailPage> {
                       icon: Icons.arrow_back_ios_new_rounded,
                       onTap: () => Navigator.of(context).pop(),
                     ),
-                    const SizedBox(
-                      width: 48,
-                    ), // Spacer to balance with back button
+                    SizedBox(width: 48.w), // Spacer to balance with back button
                   ],
                 ),
               ),
@@ -131,7 +127,7 @@ class _ServiceHeroSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverAppBar(
       automaticallyImplyLeading: false,
-      expandedHeight: 280,
+      expandedHeight: 280.h,
       pinned: false,
       stretch: true,
       backgroundColor: Colors.transparent,
@@ -159,8 +155,8 @@ class _ServiceHeroSliver extends StatelessWidget {
 
             // Status badge — active / inactive
             Positioned(
-              bottom: 16,
-              left: 20,
+              bottom: 16.h,
+              left: 20.w,
               child: _StatusBadge(isActive: service.isActive),
             ),
           ],
@@ -182,15 +178,15 @@ class _HeroFallback extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.home_repair_service_rounded,
-              size: 56,
+              size: 56.sp,
               color: Colors.black26,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               category,
-              style: const TextStyle(color: Colors.black38, fontSize: 14),
+              style: TextStyle(color: Colors.black38, fontSize: 14.sp),
             ),
           ],
         ),
@@ -210,7 +206,7 @@ class _TitleSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -223,7 +219,7 @@ class _TitleSection extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.08),
                   textColor: AppColors.primary,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
               ],
               _Chip(
                 label: service.pricingModel.displayName,
@@ -231,7 +227,7 @@ class _TitleSection extends StatelessWidget {
                 textColor: Colors.black54,
               ),
               if (service.priceType == PriceType.variable) ...[
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 _Chip(
                   label: 'Variable rate',
                   color: Colors.orange.shade50,
@@ -240,37 +236,40 @@ class _TitleSection extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10.h),
           // Title
           Text(
             service.title,
-            style: const TextStyle(
-              fontSize: 24,
+            style: TextStyle(
+              fontSize: 24.sp,
               fontWeight: FontWeight.bold,
               letterSpacing: -0.5,
               height: 1.2,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10.h),
           // Price
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 service.formattedPrice,
-                style: const TextStyle(
-                  fontSize: 22,
+                style: TextStyle(
+                  fontSize: 22.sp,
                   fontWeight: FontWeight.bold,
                   color: AppColors.success,
                 ),
               ),
               if (service.durationMinutes != null) ...[
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 2),
+                  padding: EdgeInsets.only(bottom: 2.h),
                   child: Text(
                     '· ${_formatDuration(service.durationMinutes!)}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Colors.grey.shade600,
+                    ),
                   ),
                 ),
               ],
@@ -313,26 +312,26 @@ class _DescriptionSectionState extends State<_DescriptionSection> {
         : widget.description;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             text,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 14.sp,
               color: Colors.grey.shade700,
               height: 1.6,
             ),
           ),
           if (isLong) ...[
-            const SizedBox(height: 4),
+            SizedBox(height: 4.h),
             GestureDetector(
               onTap: () => setState(() => _expanded = !_expanded),
               child: Text(
                 _expanded ? 'Show less' : 'Read more',
-                style: const TextStyle(
-                  fontSize: 13,
+                style: TextStyle(
+                  fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                   color: AppColors.primary,
                 ),
@@ -356,12 +355,12 @@ class _PricingSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.w),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: const Color(0xFFF8FBFF),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(14.r),
           border: Border.all(color: Colors.grey.shade200),
         ),
         child: Column(
@@ -371,19 +370,19 @@ class _PricingSection extends StatelessWidget {
               label: 'Pricing model',
               value: service.pricingModel.displayName,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             _PricingRow(
               icon: Icons.tune_rounded,
               label: 'Price type',
               value: service.priceType.displayName,
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             _PricingRow(
               icon: Icons.currency_exchange_rounded,
               label: 'Currency',
               value: service.currency.isNotEmpty ? service.currency : '—',
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             _PricingRow(
               icon: Icons.attach_money_rounded,
               label: service.priceType == PriceType.variable
@@ -396,13 +395,13 @@ class _PricingSection extends StatelessWidget {
             if (service.priceType == PriceType.variable &&
                 (service.priceMinAmount != null ||
                     service.priceMaxAmount != null)) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8.h),
               Padding(
-                padding: const EdgeInsets.only(left: 40),
+                padding: EdgeInsets.only(left: 40.w),
                 child: Text(
                   service.formattedPrice,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     color: Colors.grey.shade600,
                     fontStyle: FontStyle.italic,
                   ),
@@ -410,7 +409,7 @@ class _PricingSection extends StatelessWidget {
               ),
             ],
             if (service.durationMinutes != null) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12.h),
               _PricingRow(
                 icon: Icons.timer_outlined,
                 label: 'Duration',
@@ -471,25 +470,25 @@ class _PricingRow extends StatelessWidget {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(7),
+          padding: EdgeInsets.all(7.w),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(8.r),
             border: Border.all(color: Colors.grey.shade200),
           ),
-          child: Icon(icon, size: 15, color: AppColors.primary),
+          child: Icon(icon, size: 15.sp, color: AppColors.primary),
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.w),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 13.sp, color: Colors.grey.shade600),
           ),
         ),
         Text(
           value,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 13.sp,
             fontWeight: valueBold ? FontWeight.bold : FontWeight.w600,
             color: valueColor ?? Colors.black87,
           ),
@@ -513,62 +512,62 @@ class _AvailabilitySection extends StatelessWidget {
     final orderedDays = WeekDay.values.where(schedule.containsKey).toList();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.w),
       child: Column(
         children: orderedDays.map((day) {
           final slots = schedule[day]!;
           return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+            padding: EdgeInsets.only(bottom: 10.h),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Day pill
                 Container(
-                  width: 44,
-                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  width: 44.w,
+                  padding: EdgeInsets.symmetric(vertical: 5.h),
                   decoration: BoxDecoration(
                     color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     day.shortName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 11.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12.w),
                 // Time slots
                 Expanded(
                   child: slots.isEmpty
                       ? Padding(
-                          padding: const EdgeInsets.only(top: 4),
+                          padding: EdgeInsets.only(top: 4.h),
                           child: Text(
                             'Available (no specific times)',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 13.sp,
                               color: Colors.grey.shade500,
                             ),
                           ),
                         )
                       : Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
+                          spacing: 8.w,
+                          runSpacing: 6.h,
                           children: slots
                               .map(
                                 (slot) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 5.h,
                                   ),
                                   decoration: BoxDecoration(
                                     color: AppColors.success.withValues(
                                       alpha: 0.08,
                                     ),
-                                    borderRadius: BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(20.r),
                                     border: Border.all(
                                       color: AppColors.success.withValues(
                                         alpha: 0.3,
@@ -580,16 +579,16 @@ class _AvailabilitySection extends StatelessWidget {
                                     children: [
                                       Icon(
                                         Icons.schedule_rounded,
-                                        size: 12,
+                                        size: 12.sp,
                                         color: AppColors.success.withValues(
                                           alpha: 0.8,
                                         ),
                                       ),
-                                      const SizedBox(width: 4),
+                                      SizedBox(width: 4.w),
                                       Text(
                                         slot.displayLabel,
                                         style: TextStyle(
-                                          fontSize: 12,
+                                          fontSize: 12.sp,
                                           fontWeight: FontWeight.w600,
                                           color: AppColors.success.withValues(
                                             alpha: 0.9,
@@ -629,10 +628,10 @@ class _MetaSection extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 16.w),
       child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
+        spacing: 10.w,
+        runSpacing: 10.h,
         children: [
           if (service.durationMinutes != null)
             _MetaChip(
@@ -685,20 +684,20 @@ class _MetaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: iconColor ?? Colors.black54),
-          const SizedBox(width: 6),
+          Icon(icon, size: 14.sp, color: iconColor ?? Colors.black54),
+          SizedBox(width: 6.w),
           Text(
             label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -721,28 +720,28 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       decoration: BoxDecoration(
         color: isActive ? AppColors.success : Colors.grey.shade500,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 6.w,
+            height: 6.h,
             decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 5),
+          SizedBox(width: 5.w),
           Text(
             isActive ? 'Active' : 'Inactive',
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
-              fontSize: 11,
+              fontSize: 11.sp,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -763,11 +762,11 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+      padding: EdgeInsets.fromLTRB(20.w, 16.w, 20.w, 10.w),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 16,
+        style: TextStyle(
+          fontSize: 16.sp,
           fontWeight: FontWeight.bold,
           letterSpacing: -0.2,
         ),
@@ -781,7 +780,7 @@ class _Divider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Divider(height: 1, color: Colors.grey.shade100);
+    return Divider(height: 1.h, color: Colors.grey.shade100);
   }
 }
 
@@ -799,15 +798,15 @@ class _Chip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
       ),
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 11.sp,
           fontWeight: FontWeight.bold,
           color: textColor,
         ),
@@ -827,19 +826,19 @@ class _CircleIconButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: EdgeInsets.all(10.w),
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              blurRadius: 8.r,
+              offset: Offset(0, 2.h),
             ),
           ],
         ),
-        child: Icon(icon, color: Colors.black87, size: 20),
+        child: Icon(icon, color: Colors.black87, size: 20.sp),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/notification_entity.dart';
 
 class NotificationTabSelector extends StatelessWidget {
@@ -14,26 +15,23 @@ class NotificationTabSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 70,
-      padding: const EdgeInsets.all(8),
+      height: 70.h,
+      padding: EdgeInsets.all(8.w),
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: 16.w),
         children: NotificationType.values.map((type) {
           final isSelected = selectedType == type;
           return Padding(
-            padding: const EdgeInsets.only(right: 12),
+            padding: EdgeInsets.only(right: 12.w),
             child: InkWell(
               onTap: () => onTypeChanged(type),
-              borderRadius: BorderRadius.circular(25),
+              borderRadius: BorderRadius.circular(25.r),
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 8,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
                 decoration: BoxDecoration(
                   color: isSelected ? Colors.black : Colors.transparent,
-                  borderRadius: BorderRadius.circular(25),
+                  borderRadius: BorderRadius.circular(25.r),
                   border: isSelected
                       ? null
                       : Border.all(color: Colors.grey.shade300),
@@ -45,7 +43,7 @@ class NotificationTabSelector extends StatelessWidget {
                   style: TextStyle(
                     color: isSelected ? Colors.white : Colors.grey.shade600,
                     fontWeight: FontWeight.w600,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                   ),
                 ),
               ),

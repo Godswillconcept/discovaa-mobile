@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class ContactInfoCard extends StatelessWidget {
@@ -8,48 +9,48 @@ class ContactInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(32.w),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E), // Dark card
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             "Contact Information",
             style: TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: 24.sp,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
+          SizedBox(height: 8.h),
+          Text(
             "Say something to start a live chat!",
-            style: TextStyle(color: Colors.grey, fontSize: 14),
+            style: TextStyle(color: Colors.grey, fontSize: 14.sp),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: 32.h),
           _buildInfoRow(Icons.phone_in_talk, "+1012 3456 789"),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
           _buildInfoRow(Icons.email, "discovaa@gmail.com"),
-          const SizedBox(height: 48),
-          const Text(
+          SizedBox(height: 48.h),
+          Text(
             "Join Our Newsletter",
             style: TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 16.sp,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
           _buildNewsletterSection(),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 12.h),
+          Text(
             "* Will send you weekly updates for your better tool management.",
-            style: TextStyle(color: Colors.grey, fontSize: 11),
+            style: TextStyle(color: Colors.grey, fontSize: 11.sp),
           ),
-          const SizedBox(height: 48),
+          SizedBox(height: 48.h),
           _buildSocialIcons(),
         ],
       ),
@@ -59,11 +60,11 @@ class ContactInfoCard extends StatelessWidget {
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: Colors.white, size: 20),
-        const SizedBox(width: 16),
+        Icon(icon, color: Colors.white, size: 20.sp),
+        SizedBox(width: 16.w),
         Text(
           text,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(color: Colors.white, fontSize: 16.sp),
         ),
       ],
     );
@@ -74,21 +75,21 @@ class ContactInfoCard extends StatelessWidget {
       children: [
         Expanded(
           child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            height: 44.h,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(8),
-                bottomLeft: Radius.circular(8),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8.r),
+                bottomLeft: Radius.circular(8.r),
               ),
             ),
-            child: const Center(
+            child: Center(
               child: TextField(
-                style: TextStyle(color: Colors.white, fontSize: 13),
+                style: TextStyle(color: Colors.white, fontSize: 13.sp),
                 decoration: InputDecoration(
                   hintText: "Your email address",
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 13),
+                  hintStyle: TextStyle(color: Colors.grey, fontSize: 13.sp),
                   isDense: true,
                   border: InputBorder.none,
                 ),
@@ -97,21 +98,21 @@ class ContactInfoCard extends StatelessWidget {
           ),
         ),
         Container(
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: const BoxDecoration(
+          height: 44.h,
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          decoration: BoxDecoration(
             color: Colors.black,
             borderRadius: BorderRadius.only(
-              topRight: Radius.circular(8),
-              bottomRight: Radius.circular(8),
+              topRight: Radius.circular(8.r),
+              bottomRight: Radius.circular(8.r),
             ),
           ),
-          child: const Center(
+          child: Center(
             child: Text(
               "Subscribe",
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 13,
+                fontSize: 13.sp,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -125,22 +126,22 @@ class ContactInfoCard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const FaIcon(FontAwesomeIcons.twitter, color: Colors.white, size: 20),
-        const SizedBox(width: 24),
+        FaIcon(FontAwesomeIcons.twitter, color: Colors.white, size: 20.sp),
+        SizedBox(width: 24.w),
         Container(
-          padding: const EdgeInsets.all(4),
+          padding: EdgeInsets.all(4.w),
           decoration: const BoxDecoration(
             color: Colors.white,
             shape: BoxShape.circle,
           ),
-          child: const FaIcon(
+          child: FaIcon(
             FontAwesomeIcons.instagram,
             color: Colors.black,
-            size: 20,
+            size: 20.sp,
           ),
         ),
-        const SizedBox(width: 24),
-        const FaIcon(FontAwesomeIcons.discord, color: Colors.white, size: 20),
+        SizedBox(width: 24.w),
+        FaIcon(FontAwesomeIcons.discord, color: Colors.white, size: 20.sp),
       ],
     );
   }

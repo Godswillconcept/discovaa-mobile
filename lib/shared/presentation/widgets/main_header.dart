@@ -5,6 +5,7 @@ import 'package:discovaa/features/notifications/presentation/widgets/notificatio
 import 'package:discovaa/features/profile/presentation/providers/artisan_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -68,10 +69,10 @@ class MainHeader extends ConsumerWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
-        20,
-        MediaQuery.of(context).padding.top + 10,
-        20,
-        30,
+        20.w,
+        MediaQuery.of(context).padding.top + 10.h,
+        20.w,
+        30.h,
       ),
       decoration: BoxDecoration(
         color: AppColors.primary,
@@ -84,14 +85,14 @@ class MainHeader extends ConsumerWidget {
           ],
         ),
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
+          bottomLeft: Radius.circular(30.r),
+          bottomRight: Radius.circular(30.r),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black26,
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            blurRadius: 10.r,
+            offset: Offset(0, 4.h),
           ),
         ],
       ),
@@ -102,13 +103,13 @@ class MainHeader extends ConsumerWidget {
             children: [
               Image.asset(
                 'assets/images/logos/logo.png',
-                height: 35,
-                errorBuilder: (context, error, stackTrace) => const Text(
+                height: 35.h,
+                errorBuilder: (context, error, stackTrace) => Text(
                   'DISCOVAA',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 22,
+                    fontSize: 22.sp,
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -133,21 +134,21 @@ class MainHeader extends ConsumerWidget {
                       InkWell(
                         onTap: () => _openFavorites(context),
                         child: Padding(
-                          padding: const EdgeInsets.all(8.0),
+                          padding: EdgeInsets.all(8.w),
                           child: Icon(
                             Icons.favorite_outline,
                             color: Colors.white,
-                            size: 26,
+                            size: 26.sp,
                           ),
                         ),
                       ),
                       if (hasFavorites)
                         Positioned(
-                          top: -2,
-                          right: 2,
+                          top: -2.h,
+                          right: 2.w,
                           child: Container(
-                            height: 18,
-                            width: favoriteCount > 99 ? 28 : 18,
+                            height: 18.h,
+                            width: favoriteCount > 99 ? 28.w : 18.w,
                             decoration: BoxDecoration(
                               color: const Color(
                                 0xFFE91E63,
@@ -156,7 +157,7 @@ class MainHeader extends ConsumerWidget {
                                   ? BoxShape.rectangle
                                   : BoxShape.circle,
                               borderRadius: favoriteCount > 99
-                                  ? BorderRadius.circular(9)
+                                  ? BorderRadius.circular(9.r)
                                   : null,
                               border: Border.all(
                                 color: Colors.black,
@@ -170,7 +171,7 @@ class MainHeader extends ConsumerWidget {
                                     : favoriteCount.toString(),
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: favoriteCount > 99 ? 9 : 10,
+                                  fontSize: favoriteCount > 99 ? 9.sp : 10.sp,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -185,9 +186,9 @@ class MainHeader extends ConsumerWidget {
               // Logout icon
               InkWell(
                 onTap: () => _handleLogout(context, ref),
-                child: const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Icon(Icons.logout, color: Colors.white, size: 26),
+                child: Padding(
+                  padding: EdgeInsets.all(8.w),
+                  child: Icon(Icons.logout, color: Colors.white, size: 26.sp),
                 ),
               ),
 
@@ -237,9 +238,9 @@ class MainHeader extends ConsumerWidget {
 
                   return InkWell(
                     onTap: () => _openUserProfile(context),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(20.r),
                     child: CircleAvatar(
-                      radius: 20,
+                      radius: 20.r,
                       backgroundColor: Colors.white24,
                       backgroundImage:
                           hasProfileImage && resolvedImageUrl != null
@@ -256,10 +257,10 @@ class MainHeader extends ConsumerWidget {
                           ? null
                           : Text(
                               initials ?? '?',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                                fontSize: 16.sp,
                               ),
                             ),
                     ),

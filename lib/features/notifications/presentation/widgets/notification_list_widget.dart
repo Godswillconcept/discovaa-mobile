@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../providers/notifications_provider.dart';
 import 'notification_list_item.dart';
@@ -52,35 +53,35 @@ class NotificationListWidget extends ConsumerWidget {
             ),
           ),
         ],
-        const SizedBox(height: 40),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 40),
+        SizedBox(height: 40.h),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 40.w),
           child: Column(
             children: [
-              Icon(Icons.error_outline, size: 32, color: Colors.grey),
-              SizedBox(height: 8),
+              Icon(Icons.error_outline, size: 32.sp, color: Colors.grey),
+              SizedBox(height: 8.h),
               Text(
                 'That\'s all your notifications from the last 30 days.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+                style: TextStyle(color: Colors.grey, fontSize: 14.sp),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 40),
+        SizedBox(height: 40.h),
       ],
     );
   }
 
   Widget _buildHeader(BuildContext context, String title, WidgetRef? ref) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: EdgeInsets.fromLTRB(16.w, 16.w, 16.w, 8.w),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.grey,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
@@ -90,7 +91,7 @@ class NotificationListWidget extends ConsumerWidget {
             TextButton(
               onPressed: () =>
                   ref.read(notificationsProvider.notifier).markAllAsRead(),
-              child: const Text(
+              child: Text(
                 'Mark all as read',
                 style: TextStyle(color: Colors.grey),
               ),

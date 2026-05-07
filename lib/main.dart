@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:discovaa/app/dependency_injection/service_locator.dart';
@@ -19,5 +20,14 @@ Future<void> main() async {
   // Current: Full app (Milestone 3)
   FeatureFlags.setMilestone3();
 
-  runApp(const ProviderScope(child: DiscovaaApp()));
+  runApp(
+    const ProviderScope(
+      child: ScreenUtilInit(
+        designSize: Size(375, 812),
+        minTextAdapt: true,
+        splitScreenMode: true,
+        child: DiscovaaApp(),
+      ),
+    ),
+  );
 }

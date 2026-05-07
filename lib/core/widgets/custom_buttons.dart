@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AppPrimaryButton extends StatelessWidget {
   const AppPrimaryButton({
@@ -16,15 +17,17 @@ class AppPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        fixedSize: const Size(double.maxFinite, 55),
+        fixedSize: Size(double.maxFinite, 55.h),
         backgroundColor: isLoading ? Colors.grey : Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
       ),
       onPressed: isLoading ? null : onPressed,
       child: isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
+          ? SizedBox(
+              height: 20.h,
+              width: 20.w,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : child,
@@ -48,15 +51,17 @@ class AppOutlinedButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return OutlinedButton(
       style: OutlinedButton.styleFrom(
-        fixedSize: const Size(double.maxFinite, 55),
+        fixedSize: Size(double.maxFinite, 55.h),
         side: BorderSide(color: isLoading ? Colors.grey : Colors.black),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
       ),
       onPressed: isLoading ? null : onPressed,
       child: isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
+          ? SizedBox(
+              height: 20.h,
+              width: 20.w,
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : child,
@@ -81,12 +86,14 @@ class AppOutlinedButtonWithIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OutlinedButton.icon(
-      icon: Icon(icon, size: 30),
-      label: isLoading ? const SizedBox.shrink() : child,
+      icon: Icon(icon, size: 30.sp),
+      label: isLoading ? SizedBox.shrink() : child,
       style: OutlinedButton.styleFrom(
-        fixedSize: const Size(double.maxFinite, 55),
+        fixedSize: Size(double.maxFinite, 55.h),
         side: BorderSide(color: isLoading ? Colors.grey : Colors.black),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
       ),
       onPressed: isLoading ? null : onPressed,
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/notification_entity.dart';
 import '../providers/notifications_provider.dart';
 import 'notification_list_widget.dart';
@@ -64,30 +65,30 @@ class _NotificationBottomSheetState
       expand: false,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
+              topLeft: Radius.circular(20.r),
+              topRight: Radius.circular(20.r),
             ),
           ),
           child: Column(
             children: [
               // Handle bar
               Container(
-                margin: const EdgeInsets.only(top: 12),
-                width: 40,
-                height: 4,
+                margin: EdgeInsets.only(top: 12.h),
+                width: 40.w,
+                height: 4.h,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(2.r),
                 ),
               ),
               // Header
               _buildHeader(),
               // Filter tabs
               _buildFilterTabs(selectedType),
-              const Divider(height: 1),
+              Divider(height: 1.h),
               // Content
               Expanded(
                 child: notificationsAsync.when(
@@ -107,23 +108,23 @@ class _NotificationBottomSheetState
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 16, 8),
+      padding: EdgeInsets.fromLTRB(20.w, 16.w, 16.w, 8.w),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
+          Text(
             'Notifications',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold),
           ),
           IconButton(
             onPressed: widget.onClose,
             icon: Container(
-              padding: const EdgeInsets.all(4),
+              padding: EdgeInsets.all(4.w),
               decoration: BoxDecoration(
                 color: Colors.black,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.close, color: Colors.white, size: 20),
+              child: Icon(Icons.close, color: Colors.white, size: 20.sp),
             ),
           ),
         ],
@@ -133,8 +134,8 @@ class _NotificationBottomSheetState
 
   Widget _buildFilterTabs(NotificationType selectedType) {
     return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      height: 50.h,
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -165,15 +166,15 @@ class _NotificationBottomSheetState
 
   Widget _buildTab(String label, bool isSelected, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.only(right: 12),
+      padding: EdgeInsets.only(right: 12.w),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
           decoration: BoxDecoration(
             color: isSelected ? Colors.black : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20.r),
             border: isSelected ? null : Border.all(color: Colors.grey.shade300),
           ),
           child: Text(
@@ -181,7 +182,7 @@ class _NotificationBottomSheetState
             style: TextStyle(
               color: isSelected ? Colors.white : Colors.grey.shade600,
               fontWeight: FontWeight.w600,
-              fontSize: 13,
+              fontSize: 13.sp,
             ),
           ),
         ),
@@ -196,45 +197,43 @@ class _NotificationBottomSheetState
   Widget _buildErrorWidget(Object error) {
     // Determine error type and show appropriate message
     final errorMessage = error.toString();
-    final isConnectionError = errorMessage.contains('CONNECTION_ERROR') ||
+    final isConnectionError =
+        errorMessage.contains('CONNECTION_ERROR') ||
         errorMessage.contains('connection') ||
         errorMessage.contains('Failed host lookup');
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.w),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               isConnectionError ? Icons.wifi_off : Icons.error_outline,
-              size: 48,
+              size: 48.sp,
               color: Colors.grey.shade400,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               isConnectionError
                   ? 'No internet connection'
                   : 'Failed to load notifications',
               style: TextStyle(
                 color: Colors.grey.shade600,
-                fontSize: 16,
+                fontSize: 16.sp,
                 fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               isConnectionError
                   ? 'Please check your internet connection and try again'
                   : 'Something went wrong. Please try again.',
-              style: TextStyle(
-                color: Colors.grey.shade500,
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 14.sp),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             TextButton.icon(
               onPressed: () {
                 ref.invalidate(notificationsProvider);
@@ -244,7 +243,7 @@ class _NotificationBottomSheetState
               style: TextButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
               ),
             ),
           ],

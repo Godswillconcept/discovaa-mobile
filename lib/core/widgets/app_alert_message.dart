@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 enum AlertType { error, success, info, warning }
 
@@ -24,26 +25,26 @@ class AppAlertMessage extends StatelessWidget {
     final displayIcon = icon ?? _getDefaultIcon();
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: colors.background,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: colors.border),
       ),
       child: Row(
         children: [
-          Icon(displayIcon, color: colors.icon, size: 20),
-          const SizedBox(width: 8),
+          Icon(displayIcon, color: colors.icon, size: 20.sp),
+          SizedBox(width: 8.w),
           Expanded(
             child: Text(
               message,
-              style: TextStyle(color: colors.text, fontSize: 14),
+              style: TextStyle(color: colors.text, fontSize: 14.sp),
             ),
           ),
           if (showDismissButton && onDismiss != null)
             GestureDetector(
               onTap: onDismiss,
-              child: Icon(Icons.close, color: colors.icon, size: 16),
+              child: Icon(Icons.close, color: colors.icon, size: 16.sp),
             ),
         ],
       ),

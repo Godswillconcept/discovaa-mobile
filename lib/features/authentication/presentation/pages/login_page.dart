@@ -7,6 +7,7 @@ import 'package:discovaa/features/authentication/presentation/providers/identity
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
@@ -228,7 +229,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         content: Row(
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(child: Text(message)),
           ],
         ),
@@ -262,22 +263,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       // Indicators only shown if coming from Onboarding
                       if (widget.fromOnboarding)
                         Padding(
-                          padding: const EdgeInsets.only(top: 10, left: 20),
+                          padding: EdgeInsets.only(top: 10.h, left: 20.w),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.start,
                             children: List.generate(
                               3,
                               (index) => Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 3,
-                                ),
-                                height: 3,
-                                width: 30,
+                                margin: EdgeInsets.symmetric(horizontal: 3.w),
+                                height: 3.h,
+                                width: 30.w,
                                 decoration: BoxDecoration(
                                   color: _currentImageIndex == index
                                       ? Colors.white
                                       : Colors.white38,
-                                  borderRadius: BorderRadius.circular(2),
+                                  borderRadius: BorderRadius.circular(2.r),
                                 ),
                               ),
                             ),
@@ -300,20 +299,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             );
                           }
                         },
-                        child: const Text(
+                        child: Text(
                           "Welcome",
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 32,
+                            fontSize: 32.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      const Text(
+                      Text(
                         "Login to continue",
                         style: TextStyle(color: Colors.grey),
                       ),
-                      const SizedBox(height: 40),
+                      SizedBox(height: 40.h),
                     ],
                   ),
                 ),
@@ -327,7 +326,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   children: [
                     if (widget.fromOnboarding)
                       SizedBox(
-                        height: 220,
+                        height: 220.h,
                         child: PageView.builder(
                           controller: _pageController,
                           onPageChanged: (index) =>
@@ -336,8 +335,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           itemBuilder: (context, index) => Center(
                             child: Image.asset(
                               _blobImages[index],
-                              height: 200,
-                              width: 200,
+                              height: 200.h,
+                              width: 200.w,
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -345,16 +344,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       )
                     else
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        padding: EdgeInsets.symmetric(vertical: 20.h),
                         child: Image.asset(
                           'assets/images/illustrations/login_illustration.png',
-                          height: 180,
+                          height: 180.h,
                         ),
                       ),
 
                     // 3. Login Form (Shared)
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -372,7 +371,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 prefixIcon: const Icon(Icons.email_outlined),
                                 hintText: "Your email",
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(12.r),
                                 ),
                               ),
                             ),
@@ -403,11 +402,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                                 hintText: "Your password",
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(12.r),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: 10.h),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -437,7 +436,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12.h),
                             // Show error message if login failed
                             if (authState.hasError ||
                                 (authState.value?.errorMessage != null))
@@ -457,13 +456,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   );
                                 },
                               ),
-                            const SizedBox(height: 12),
+                            SizedBox(height: 12.h),
                             AppPrimaryButton(
                               onPressed: _isLoading ? null : _performLogin,
                               child: _isLoading
-                                  ? const SizedBox(
-                                      height: 20,
-                                      width: 20,
+                                  ? SizedBox(
+                                      height: 20.h,
+                                      width: 20.w,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
                                         valueColor:
@@ -474,8 +473,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                     )
                                   : const Text("Login"),
                             ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 15),
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 15.h),
                               child: Center(child: Text("or continue with")),
                             ),
                             AppOutlinedButton(
@@ -485,9 +484,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 children: [
                                   SvgPicture.asset(
                                     'assets/images/logos/google.svg',
-                                    width: 20,
+                                    width: 20.w,
                                   ),
-                                  const SizedBox(width: 10),
+                                  SizedBox(width: 10.w),
                                   const Text(
                                     "Google",
                                     style: TextStyle(
@@ -522,7 +521,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 40),
+                            SizedBox(height: 40.h),
                           ],
                         ),
                       ),
@@ -538,7 +537,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Widget _buildLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
+    padding: EdgeInsets.only(bottom: 8.h),
     child: Text(
       text,
       style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),

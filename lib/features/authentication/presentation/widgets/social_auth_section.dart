@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/svg.dart';
 import '../../../../core/widgets/custom_buttons.dart';
 
@@ -16,16 +17,19 @@ class SocialAuthSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 20),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 20.h),
           child: Row(
             children: [
               Expanded(child: Divider()),
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: Text(
                   "Or",
-                  style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
               Expanded(child: Divider()),
@@ -40,13 +44,13 @@ class SocialAuthSection extends StatelessWidget {
               SvgPicture.asset(
                 'assets/images/logos/google.svg',
                 semanticsLabel: 'Google Logo',
-                height: 24,
+                height: 24.h,
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.w),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: 16.sp,
                   color: Colors.black,
                   fontWeight: FontWeight.w600,
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../core/utils/clippers.dart';
 
 class AuthHeader extends StatelessWidget {
@@ -21,8 +22,8 @@ class AuthHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return HeaderClipper(
       child: Container(
-        height: height,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        height: height.h,
+        padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
         child: Column(
           children: [
             Row(
@@ -31,26 +32,23 @@ class AuthHeader extends StatelessWidget {
                 if (onBack != null)
                   TextButton.icon(
                     onPressed: onBack,
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back_ios,
                       color: Colors.white,
-                      size: 16,
+                      size: 16.sp,
                     ),
-                    label: const Text(
-                      "Back",
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    label: Text("Back", style: TextStyle(color: Colors.white)),
                   )
                 else
                   const SizedBox.shrink(),
                 if (step != null)
                   Text(
                     "Step $step",
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    style: TextStyle(color: Colors.grey, fontSize: 14.sp),
                   ),
               ],
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: 10.h),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,14 +57,14 @@ class AuthHeader extends StatelessWidget {
                   if (subtitle != null)
                     Text(
                       subtitle!,
-                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                      style: TextStyle(color: Colors.grey, fontSize: 14.sp),
                     ),
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
-                      fontSize: 24,
+                      fontSize: 24.sp,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

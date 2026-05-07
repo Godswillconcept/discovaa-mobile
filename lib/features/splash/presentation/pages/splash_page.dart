@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -163,12 +164,12 @@ class _SplashPageState extends ConsumerState<SplashPage>
               // Tagline - Only appears on the last stage (Image 4)
               FadeTransition(
                 opacity: _taglineOpacity,
-                child: const Text(
+                child: Text(
                   'All expertise on one platform',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppColors.textWhite,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w400,
                     letterSpacing: 0.5,
                   ),

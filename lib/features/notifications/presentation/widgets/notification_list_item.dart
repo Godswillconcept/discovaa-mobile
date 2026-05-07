@@ -3,6 +3,7 @@ import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/features/messaging/presentation/providers/messaging_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/notification_entity.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -24,12 +25,12 @@ class NotificationListItem extends ConsumerWidget {
         _handleNavigation(context, ref);
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.w),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
-              radius: 28,
+              radius: 28.r,
               backgroundImage: notification.imageUrl != null
                   ? AssetImage(notification.imageUrl!)
                   : null,
@@ -37,14 +38,14 @@ class NotificationListItem extends ConsumerWidget {
                   ? const Icon(Icons.person)
                   : null,
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: const TextStyle(color: Colors.black, fontSize: 16),
+                      style: TextStyle(color: Colors.black, fontSize: 16.sp),
                       children: [
                         TextSpan(
                           text: notification.title.split(' ')[0],
@@ -54,23 +55,23 @@ class NotificationListItem extends ConsumerWidget {
                           text:
                               ' ${notification.title.substring(notification.title.indexOf(' ') + 1)}',
                         ),
-                        const WidgetSpan(child: SizedBox(width: 8)),
+                        WidgetSpan(child: SizedBox(width: 8.w)),
                         TextSpan(
                           text: timeago.format(notification.timestamp),
                           style: TextStyle(
                             color: Colors.grey.shade500,
-                            fontSize: 14,
+                            fontSize: 14.sp,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4.h),
                   Text(
                     notification.subtitle,
                     style: TextStyle(
                       color: Colors.grey.shade600,
-                      fontSize: 14,
+                      fontSize: 14.sp,
                       height: 1.3,
                     ),
                     maxLines: 3,
@@ -81,9 +82,9 @@ class NotificationListItem extends ConsumerWidget {
             ),
             if (!notification.isRead)
               Container(
-                margin: const EdgeInsets.only(top: 10, left: 8),
-                width: 10,
-                height: 10,
+                margin: EdgeInsets.only(top: 10.h, left: 8.w),
+                width: 10.w,
+                height: 10.w,
                 decoration: const BoxDecoration(
                   color: Colors.blue,
                   shape: BoxShape.circle,

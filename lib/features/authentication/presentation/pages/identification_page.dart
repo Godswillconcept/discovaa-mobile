@@ -10,6 +10,7 @@ import 'package:discovaa/features/home/presentation/widgets/verification_flow.da
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 /// Revamped Identification Page
@@ -86,7 +87,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
                       idVerified,
                       businessVerified,
                     ),
-                    const SizedBox(height: 24),
+                    SizedBox(height: 24.h),
 
                     // Error Message (if any)
                     if (identificationState.errorMessage != null)
@@ -97,7 +98,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
                         ConnectivityState.disconnected)
                       _buildConnectivityWarning(),
 
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32.h),
 
                     // Action Buttons
                     _buildActionButtons(
@@ -107,7 +108,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
                       isProvider,
                       identificationState,
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: 32.h),
                   ],
                 ),
               ),
@@ -159,19 +160,19 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
     bool businessVerified,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
           // Title and description
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar placeholder
               Container(
-                width: 60,
-                height: 60,
+                width: 60.w,
+                height: 60.h,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade200,
                   shape: BoxShape.circle,
@@ -179,28 +180,28 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
                 child: Icon(
                   Icons.person_outline,
                   color: Colors.grey.shade400,
-                  size: 32,
+                  size: 32.sp,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Account verification',
                       style: TextStyle(
-                        fontSize: 24,
+                        fontSize: 24.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8.h),
                     // Only show this prompt if not already verified
                     if (!idVerified)
                       Text(
                         'Upload a valid ID to verify your account. You can skip this step and complete it later.',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 14.sp,
                           color: Colors.grey.shade600,
                           height: 1.5,
                         ),
@@ -210,18 +211,18 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
               ),
             ],
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: 32.h),
 
           // Account Verification Status Header
-          const Text(
+          Text(
             'Account Verification Status',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20.h),
 
           // ID Number Input Field
           _buildIdNumberInput(state),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
 
           // ID Verification Card
           _buildVerificationCard(
@@ -233,7 +234,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
 
           // Business Verification (for providers)
           if (isProvider) ...[
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             _buildVerificationCard(
               title: 'Business Verification',
               subtitle: 'Business Registration Certificate',
@@ -243,7 +244,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
           ],
 
           // Back link
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           TextButton(
             onPressed: () {
               // Check if we can pop to avoid "nothing to pop" error
@@ -259,9 +260,9 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
               minimumSize: const Size(0, 0),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text(
+            child: Text(
               'Back',
-              style: TextStyle(color: Colors.blue, fontSize: 14),
+              style: TextStyle(color: Colors.blue, fontSize: 14.sp),
             ),
           ),
         ],
@@ -275,24 +276,24 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
     final errorMessage = state.idNumberErrorMessage;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'ID number',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 14.sp,
               fontWeight: FontWeight.w500,
               color: Colors.black87,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           TextField(
             controller: _idNumberController,
             focusNode: _idNumberFocusNode,
@@ -303,21 +304,24 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
             decoration: InputDecoration(
               hintText:
                   'Enter ID number (max 30 characters, letters & numbers)',
-              hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400),
+              hintStyle: TextStyle(
+                fontSize: 13.sp,
+                color: Colors.grey.shade400,
+              ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
                 borderSide: BorderSide(
                   color: hasError ? Colors.red : Colors.grey.shade300,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
                 borderSide: BorderSide(
                   color: hasError ? Colors.red : Colors.grey.shade300,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
                 borderSide: BorderSide(
                   color: hasError
                       ? Colors.red
@@ -326,16 +330,16 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
                 ),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
                 borderSide: const BorderSide(color: Colors.red),
               ),
               focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
                 borderSide: const BorderSide(color: Colors.red, width: 2),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 14.h,
               ),
               counterText: '',
             ),
@@ -345,18 +349,18 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
               LengthLimitingTextInputFormatter(30),
             ],
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           // Helper text
           Text(
             'ID number and document are required for verification. Max 30 characters, alphanumeric only.',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade500),
           ),
           // Error message
           if (hasError && errorMessage != null) ...[
-            const SizedBox(height: 4),
+            SizedBox(height: 4.h),
             Text(
               errorMessage,
-              style: const TextStyle(fontSize: 12, color: Colors.red),
+              style: TextStyle(fontSize: 12.sp, color: Colors.red),
             ),
           ],
         ],
@@ -372,10 +376,10 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
     required VoidCallback onUpload,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
@@ -383,23 +387,26 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
           Icon(
             isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
             color: isCompleted ? Colors.green : Colors.grey.shade400,
-            size: 24,
+            size: 24.sp,
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12.w),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: TextStyle(
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: Colors.grey.shade500,
+                  ),
                 ),
               ],
             ),
@@ -410,37 +417,34 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 'Upload',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             )
           else
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.check, color: Colors.green.shade600, size: 16),
-                  const SizedBox(width: 4),
+                  Icon(Icons.check, color: Colors.green.shade600, size: 16.sp),
+                  SizedBox(width: 4.w),
                   Text(
                     'Verified',
                     style: TextStyle(
                       color: Colors.green.shade600,
                       fontWeight: FontWeight.w600,
-                      fontSize: 12,
+                      fontSize: 12.sp,
                     ),
                   ),
                 ],
@@ -454,22 +458,22 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
   /// Build error message widget
   Widget _buildErrorMessage(String message) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
           color: Colors.red.shade50,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           border: Border.all(color: Colors.red.shade200),
         ),
         child: Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
-            const SizedBox(width: 8),
+            Icon(Icons.error_outline, color: Colors.red.shade600, size: 20.sp),
+            SizedBox(width: 8.w),
             Expanded(
               child: Text(
                 message,
-                style: TextStyle(color: Colors.red.shade600, fontSize: 13),
+                style: TextStyle(color: Colors.red.shade600, fontSize: 13.sp),
               ),
             ),
           ],
@@ -481,22 +485,25 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
   /// Build connectivity warning
   Widget _buildConnectivityWarning() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12.w),
         decoration: BoxDecoration(
           color: Colors.orange.shade50,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(8.r),
           border: Border.all(color: Colors.orange.shade200),
         ),
         child: Row(
           children: [
-            Icon(Icons.wifi_off, color: Colors.orange.shade600, size: 20),
-            const SizedBox(width: 8),
+            Icon(Icons.wifi_off, color: Colors.orange.shade600, size: 20.sp),
+            SizedBox(width: 8.w),
             Expanded(
               child: Text(
                 'No internet connection. Please check your network.',
-                style: TextStyle(color: Colors.orange.shade600, fontSize: 13),
+                style: TextStyle(
+                  color: Colors.orange.shade600,
+                  fontSize: 13.sp,
+                ),
               ),
             ),
           ],
@@ -514,7 +521,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
     IdentificationPageState state,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
       child: Row(
         children: [
           // Skip for now button
@@ -534,23 +541,23 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
                       }
                     },
               style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: 16.h),
                 side: BorderSide(color: Colors.grey.shade300),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
               ),
               child: Text(
                 'Skip for now',
                 style: TextStyle(
                   color: Colors.grey.shade700,
-                  fontSize: 15,
+                  fontSize: 15.sp,
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16.w),
           // Continue button
           Expanded(
             child: ElevatedButton(
@@ -560,24 +567,24 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: 16.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
               ),
               child: isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
+                  ? SizedBox(
+                      height: 20.h,
+                      width: 20.w,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     )
-                  : const Text(
+                  : Text(
                       'Continue',
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 15.sp,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

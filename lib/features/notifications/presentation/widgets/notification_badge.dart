@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../providers/notifications_provider.dart';
 
 /// A reactive badge widget that displays the unread notification count
@@ -33,8 +34,8 @@ class NotificationBadge extends ConsumerWidget {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
-              height: badgeSize,
-              width: unreadCount > 99 ? badgeSize + 10 : badgeSize,
+              height: badgeSize.w,
+              width: unreadCount > 99 ? badgeSize.w + 10.w : badgeSize.w,
               decoration: BoxDecoration(
                 color: const Color(0xFF4CAF50), // Success green
                 shape: unreadCount > 99 ? BoxShape.rectangle : BoxShape.circle,
@@ -48,7 +49,7 @@ class NotificationBadge extends ConsumerWidget {
                   unreadCount > 99 ? '99+' : unreadCount.toString(),
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: unreadCount > 99 ? 9 : 10,
+                    fontSize: unreadCount > 99 ? 9.sp : 10.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -79,11 +80,11 @@ class NotificationBellBadge extends ConsumerWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: EdgeInsets.all(8.w),
           child: Icon(
             Icons.notifications_outlined,
             color: iconColor,
-            size: iconSize,
+            size: iconSize.sp,
           ),
         ),
       ),

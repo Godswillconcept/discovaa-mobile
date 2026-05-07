@@ -7,6 +7,7 @@ import 'package:discovaa/shared/presentation/widgets/custom_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class ArtisanProfilePage extends ConsumerStatefulWidget {
   final String? artisanId;
@@ -91,7 +92,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
           Container(
             width: double.infinity,
             color: Colors.orange.shade100,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 16.w),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -100,7 +101,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
                     errorMessage,
                     style: TextStyle(
                       color: Colors.orange.shade800,
-                      fontSize: 12,
+                      fontSize: 12.sp,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -124,7 +125,7 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
               children: [
                 const CustomHeader(),
                 Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -132,19 +133,19 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
                         artisan: artisan,
                         services: services,
                       ),
-                      const SizedBox(height: 24),
+                      SizedBox(height: 24.h),
                       ArtisanGallery(artisan: artisan),
                     ],
                   ),
                 ),
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                  decoration: const BoxDecoration(
+                  padding: EdgeInsets.fromLTRB(16.w, 24.w, 16.w, 16.w),
+                  decoration: BoxDecoration(
                     color: Color(0xFFF8FBFF),
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
+                      topLeft: Radius.circular(30.r),
+                      topRight: Radius.circular(30.r),
                     ),
                   ),
                   child: SingleChildScrollView(
@@ -152,23 +153,23 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
                     child: Column(
                       children: [
                         ArtisanBusinessInfo(artisan: artisan),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24.h),
                         ArtisanServicesSection(
                           artisan: artisan,
                           services: services,
                         ),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24.h),
                         ArtisanPricesDropdown(
                           artisan: artisan,
                           services: services,
                         ),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24.h),
                         ArtisanQualificationsSection(artisan: artisan),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24.h),
                         ArtisanAvailabilitySection(artisan: artisan),
-                        const SizedBox(height: 24),
+                        SizedBox(height: 24.h),
                         ArtisanReviewsSection(artisan: artisan),
-                        const SizedBox(height: 40),
+                        SizedBox(height: 40.h),
                       ],
                     ),
                   ),
@@ -189,23 +190,23 @@ class _ArtisanProfilePageState extends ConsumerState<ArtisanProfilePage> {
   ) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24.w),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            const Text(
+            Icon(Icons.error_outline, size: 64.sp, color: Colors.grey),
+            SizedBox(height: 16.h),
+            Text(
               'Failed to load profile',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8.h),
             Text(
               error,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(color: Colors.grey),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24.h),
             ElevatedButton(
               onPressed: () {
                 ref.invalidate(artisanDetailProvider(artisanId));

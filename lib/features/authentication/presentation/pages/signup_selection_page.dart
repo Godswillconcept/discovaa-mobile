@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:discovaa/app/router/route_names.dart';
 import 'package:discovaa/features/authentication/presentation/providers/registration_flow_provider.dart';
@@ -37,16 +38,16 @@ class SignupSelectionPage extends ConsumerWidget {
                 child: Stack(
                   children: [
                     Container(
-                      padding: const EdgeInsets.only(bottom: 20),
+                      padding: EdgeInsets.only(bottom: 20.h),
                       alignment: Alignment.bottomCenter,
                       child: Image.asset(
                         'assets/images/logos/logo.png',
-                        width: 160,
+                        width: 160.w,
                       ),
                     ),
                     Positioned(
-                      top: 10,
-                      left: 10,
+                      top: 10.h,
+                      left: 10.w,
                       child: InkWell(
                         onTap: () {
                           if (isInitialLevel) {
@@ -62,21 +63,21 @@ class SignupSelectionPage extends ConsumerWidget {
                           }
                         },
                         child: Padding(
-                          padding: const EdgeInsets.all(8.0),
+                          padding: EdgeInsets.all(8.w),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
+                            children: [
                               Icon(
                                 Icons.chevron_left,
                                 color: Colors.white,
-                                size: 24,
+                                size: 24.sp,
                               ),
-                              SizedBox(width: 4),
+                              SizedBox(width: 4.w),
                               Text(
                                 "Back",
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontSize: 16,
+                                  fontSize: 16.sp,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -93,45 +94,45 @@ class SignupSelectionPage extends ConsumerWidget {
                 children: [
                   // Image Blob Section
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: EdgeInsets.symmetric(vertical: 10.h),
                     child: Center(
                       child: Image.asset(
                         'assets/images/illustrations/mechanic.png',
-                        height: 250,
-                        width: 250,
+                        height: 250.h,
+                        width: 250.w,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
-                          height: 250,
-                          width: 250,
+                          height: 250.h,
+                          width: 250.w,
                           color: Colors.grey[200],
-                          child: const Icon(Icons.person, size: 100),
+                          child: Icon(Icons.person, size: 100.sp),
                         ),
                       ),
                     ),
                   ),
 
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    padding: EdgeInsets.symmetric(horizontal: 24.w),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "Join Us!",
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: 28.sp,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
+                        SizedBox(height: 8.h),
+                        Text(
                           "To begin this journey, tell us what type of account you'd be opening.",
                           style: TextStyle(
                             color: Colors.grey,
                             height: 1.5,
-                            fontSize: 14,
+                            fontSize: 14.sp,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: 12.h),
 
                         // Option 1
                         _buildOption(
@@ -189,7 +190,7 @@ class SignupSelectionPage extends ConsumerWidget {
                           },
                         ),
 
-                        const SizedBox(height: 16),
+                        SizedBox(height: 16.h),
 
                         // Option 2
                         _buildOption(
@@ -247,20 +248,17 @@ class SignupSelectionPage extends ConsumerWidget {
                             }
                           },
                         ),
-                        const SizedBox(height: 32),
+                        SizedBox(height: 32.h),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12.h),
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
+                    padding: EdgeInsets.only(bottom: 24.h),
                     child: RichText(
                       text: TextSpan(
                         text: "Already have an account? ",
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.black, fontSize: 14.sp),
                         children: [
                           TextSpan(
                             text: "Sign In",
@@ -300,51 +298,54 @@ class SignupSelectionPage extends ConsumerWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: isSelected ? Colors.grey.shade50 : Colors.white,
           border: Border.all(
             color: isSelected ? Colors.black : Colors.grey.shade200,
             width: 1.5,
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(10.w),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
                 border: Border.all(color: Colors.grey.shade100),
               ),
-              child: Icon(icon, size: 24, color: Colors.black87),
+              child: Icon(icon, size: 24.sp, color: Colors.black87),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 16.sp,
                       color: Colors.black,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4.h),
                   Text(
                     subtitle,
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12.sp,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8.w),
             IconButton(
               onPressed: onArrowTap,
-              icon: const Icon(Icons.arrow_forward, size: 20),
+              icon: Icon(Icons.arrow_forward, size: 20.sp),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
