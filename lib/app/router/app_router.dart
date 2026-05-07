@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:discovaa/app/router/route_names.dart';
-import 'package:discovaa/core/constants/feature_flags.dart';
 import 'package:discovaa/features/authentication/presentation/pages/complete_profile_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/forgot_password_page.dart';
 import 'package:discovaa/features/authentication/presentation/pages/identification_page.dart';
@@ -28,7 +27,6 @@ import 'package:discovaa/features/profile/presentation/pages/user_profile_page.d
 import 'package:discovaa/features/services/presentation/pages/services_page.dart';
 import 'package:discovaa/features/splash/presentation/pages/splash_page.dart';
 import 'package:discovaa/shared/presentation/pages/main_navigation_page.dart';
-import 'package:discovaa/shared/presentation/pages/coming_soon_page.dart';
 
 /// List of public routes that don't require authentication
 const List<String> _publicRoutes = [
@@ -291,18 +289,13 @@ List<StatefulShellBranch> _buildShellBranches() {
     ),
   );
 
-  // Dashboard branch (always visible, shows Coming Soon if disabled)
+  // Dashboard branch
   branches.add(
     StatefulShellBranch(
       routes: [
         GoRoute(
           path: RouteNames.dashboard,
-          builder: (context, state) {
-            if (FeatureFlags.enableDashboard) {
-              return const DashboardPage();
-            }
-            return const ComingSoonPage(featureName: 'Dashboard');
-          },
+          builder: (context, state) => const DashboardPage(),
         ),
       ],
     ),
@@ -320,27 +313,19 @@ List<StatefulShellBranch> _buildShellBranches() {
     ),
   );
 
-  // Messages branch (always visible, shows Coming Soon if disabled)
+  // Messages branch
   branches.add(
     StatefulShellBranch(
       routes: [
         GoRoute(
           path: RouteNames.messages,
-          builder: (context, state) {
-            if (FeatureFlags.enableMessaging) {
-              return const MessagesListPage();
-            }
-            return const ComingSoonPage(featureName: 'Messages');
-          },
+          builder: (context, state) => const MessagesListPage(),
           routes: [
             GoRoute(
               path: 'chat',
               builder: (context, state) {
-                if (FeatureFlags.enableMessaging) {
-                  final conversation = state.extra as Conversation;
-                  return ChatPage(conversation: conversation);
-                }
-                return const ComingSoonPage(featureName: 'Messages');
+                final conversation = state.extra as Conversation;
+                return ChatPage(conversation: conversation);
               },
             ),
           ],
