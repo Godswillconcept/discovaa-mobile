@@ -51,6 +51,7 @@ abstract class AuthRemoteDataSource {
     required String phone,
     required String address,
     required String? countryIso2,
+    String? postalCode,
     String? businessName,
     String? businessDescription,
   });
@@ -908,6 +909,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String phone,
     required String address,
     required String? countryIso2,
+    String? postalCode,
     String? businessName,
     String? businessDescription,
   }) async {
@@ -919,6 +921,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         'phone': phone,
         'address': address,
         ...countryIso2 != null ? {'country_iso2': countryIso2} : {},
+        ...postalCode != null ? {'postal_code': postalCode} : {},
         ...businessName != null ? {'business_name': businessName} : {},
         ...businessDescription != null
             ? {'business_description': businessDescription}
@@ -1064,6 +1067,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       phone: phone,
       address: data['address'] as String?,
       country: country,
+      postalCode: data['postal_code'] as String?,
       photoUrl: data['profile_photo'] as String?,
       role: _normalizeAccountRole(data),
       isEmailVerified: verificationStatus == 'VERIFIED',

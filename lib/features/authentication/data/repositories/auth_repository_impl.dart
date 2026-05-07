@@ -281,6 +281,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String phone,
     required String address,
     required String? countryIso2,
+    String? postalCode,
     String? businessName,
     String? businessDescription,
   }) async {
@@ -293,6 +294,7 @@ class AuthRepositoryImpl implements AuthRepository {
         phone: phone,
         address: address,
         countryIso2: countryIso2,
+        postalCode: postalCode,
         businessName: businessName,
         businessDescription: businessDescription,
       );

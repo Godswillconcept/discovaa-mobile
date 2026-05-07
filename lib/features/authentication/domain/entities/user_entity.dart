@@ -6,6 +6,7 @@ class UserEntity {
   final String? phone;
   final String? address;
   final String? country;
+  final String? postalCode;
   final String? photoUrl;
   final String role;
   final bool isEmailVerified;
@@ -21,6 +22,7 @@ class UserEntity {
     this.phone,
     this.address,
     this.country,
+    this.postalCode,
     this.photoUrl,
     required this.role,
     this.isEmailVerified = false,
@@ -52,6 +54,7 @@ class UserEntity {
     String? phone,
     String? address,
     String? country,
+    String? postalCode,
     String? photoUrl,
     String? role,
     bool? isEmailVerified,
@@ -67,6 +70,7 @@ class UserEntity {
       phone: phone ?? this.phone,
       address: address ?? this.address,
       country: country ?? this.country,
+      postalCode: postalCode ?? this.postalCode,
       photoUrl: photoUrl ?? this.photoUrl,
       role: role ?? this.role,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,

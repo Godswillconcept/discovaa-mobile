@@ -92,7 +92,7 @@ class IdentityVerificationReminderWidget extends ConsumerWidget {
                     ),
                   ),
                   child: Text(
-                    'Don\'t remind me',
+                    'I\'ll do this later',
                     style: TextStyle(
                       color: Colors.orange.shade700,
                       fontSize: 13,

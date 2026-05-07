@@ -6,6 +6,7 @@ class ProfileModel {
   final String? phone;
   final String? address;
   final String? country;
+  final String? postalCode;
   final String? businessName;
   final String? businessDescription;
   final DateTime? updatedAt;
@@ -15,6 +16,7 @@ class ProfileModel {
     this.phone,
     this.address,
     this.country,
+    this.postalCode,
     this.businessName,
     this.businessDescription,
     this.updatedAt,
@@ -27,6 +29,7 @@ class ProfileModel {
       phone: json['phone'] as String?,
       address: json['address'] as String?,
       country: json['country'] as String?,
+      postalCode: json['postalCode'] as String?,
       businessName: json['businessName'] as String?,
       businessDescription: json['businessDescription'] as String?,
       updatedAt: json['updatedAt'] != null
@@ -42,6 +45,7 @@ class ProfileModel {
       'phone': phone,
       'address': address,
       'country': country,
+      'postalCode': postalCode,
       'businessName': businessName,
       'businessDescription': businessDescription,
       'updatedAt': updatedAt?.toIso8601String(),
@@ -55,6 +59,7 @@ class ProfileModel {
       phone: phone,
       address: address,
       country: country,
+      postalCode: postalCode,
       businessName: businessName,
       businessDescription: businessDescription,
       updatedAt: updatedAt,
@@ -68,6 +73,7 @@ class ProfileModel {
       phone: entity.phone,
       address: entity.address,
       country: entity.country,
+      postalCode: entity.postalCode,
       businessName: entity.businessName,
       businessDescription: entity.businessDescription,
       updatedAt: entity.updatedAt,
@@ -79,6 +85,7 @@ class ProfileModel {
     String? phone,
     String? address,
     String? country,
+    String? postalCode,
     String? businessName,
     String? businessDescription,
     DateTime? updatedAt,
@@ -88,6 +95,7 @@ class ProfileModel {
       phone: phone ?? this.phone,
       address: address ?? this.address,
       country: country ?? this.country,
+      postalCode: postalCode ?? this.postalCode,
       businessName: businessName ?? this.businessName,
       businessDescription: businessDescription ?? this.businessDescription,
       updatedAt: updatedAt ?? this.updatedAt,

@@ -11,7 +11,7 @@ class HeaderClipper extends StatelessWidget {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(65)),
       child: Container(
-        height: size.height * 0.2,
+        height: size.height * 0.22,
         width: double.infinity,
         decoration: const BoxDecoration(color: Colors.black),
         child: SafeArea(child: child),

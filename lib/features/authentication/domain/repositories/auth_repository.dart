@@ -70,6 +70,7 @@ abstract class AuthRepository {
     required String phone,
     required String address,
     required String? countryIso2,
+    String? postalCode,
     String? businessName,
     String? businessDescription,
   });

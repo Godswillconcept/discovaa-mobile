@@ -226,7 +226,7 @@ class _IdentificationPageState extends ConsumerState<IdentificationPage> {
           // ID Verification Card
           _buildVerificationCard(
             title: 'ID Verification',
-            subtitle: 'Passport, national ID card',
+            subtitle: 'Passport, national ID card, driver\'s license',
             isCompleted: idVerified,
             onUpload: () => _showVerificationModal(context, false),
           ),

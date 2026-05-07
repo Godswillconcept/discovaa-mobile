@@ -8,6 +8,7 @@ class UserModel {
   final String? phone;
   final String? address;
   final String? country;
+  final String? postalCode;
   final String? photoUrl;
   final String role;
   final bool isEmailVerified;
@@ -23,6 +24,7 @@ class UserModel {
     this.phone,
     this.address,
     this.country,
+    this.postalCode,
     this.photoUrl,
     required this.role,
     this.isEmailVerified = false,
@@ -41,6 +43,7 @@ class UserModel {
       phone: json['phone'] as String?,
       address: json['address'] as String?,
       country: json['country'] as String?,
+      postalCode: json['postalCode'] as String?,
       photoUrl: json['photoUrl'] as String?,
       role: json['role'] as String,
       isEmailVerified: json['isEmailVerified'] as bool? ?? false,
@@ -64,6 +67,7 @@ class UserModel {
       'phone': phone,
       'address': address,
       'country': country,
+      'postalCode': postalCode,
       'photoUrl': photoUrl,
       'role': role,
       'isEmailVerified': isEmailVerified,
@@ -83,6 +87,7 @@ class UserModel {
       phone: phone,
       address: address,
       country: country,
+      postalCode: postalCode,
       photoUrl: photoUrl,
       role: role,
       isEmailVerified: isEmailVerified,
@@ -102,6 +107,7 @@ class UserModel {
       phone: entity.phone,
       address: entity.address,
       country: entity.country,
+      postalCode: entity.postalCode,
       photoUrl: entity.photoUrl,
       role: entity.role,
       isEmailVerified: entity.isEmailVerified,
@@ -119,6 +125,7 @@ class UserModel {
     String? phone,
     String? address,
     String? country,
+    String? postalCode,
     String? photoUrl,
     String? role,
     bool? isEmailVerified,
@@ -134,6 +141,7 @@ class UserModel {
       phone: phone ?? this.phone,
       address: address ?? this.address,
       country: country ?? this.country,
+      postalCode: postalCode ?? this.postalCode,
       photoUrl: photoUrl ?? this.photoUrl,
       role: role ?? this.role,
       isEmailVerified: isEmailVerified ?? this.isEmailVerified,

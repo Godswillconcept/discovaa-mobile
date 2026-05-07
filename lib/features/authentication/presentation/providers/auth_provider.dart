@@ -298,14 +298,54 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   /// Logout current user
   Future<void> logout() async {
-    // Call the repository to logout from server
-    await _repository.logout();
+    try {
+      // Attempt to call the repository to logout from server
+      await _repository.logout();
+    } catch (e) {
+      // Log the error but don't block local cleanup
+      debugPrint('[AuthNotifier] Logout API call failed: $e');
+    } finally {
+      // Always clear all auth data regardless of API success/failure
+      await _tokenStorage.clearAllAuthData();
 
-    // Clear tokens
-    await _tokenStorage.clearTokens();
+      // Clear all cached user data from Hive
+      await _clearAllCachedData();
 
-    // Update state
-    state = const AsyncData(AuthState(status: AuthStatus.unauthenticated));
+      // Update state to unauthenticated
+      state = const AsyncData(AuthState(status: AuthStatus.unauthenticated));
+    }
+  }
+
+  /// Clear all cached user data from Hive storage
+  Future<void> _clearAllCachedData() async {
+    try {
+      final hiveService = HiveService.instance;
+
+      // Clear profile cache
+      await hiveService.remove('profile.cache.me');
+      await hiveService.remove('profile.cache.me.timestamp');
+
+      // Clear identity verification status
+      await hiveService.remove('identity_verification');
+
+      // Clear favorite artisans
+      await hiveService.remove('favorite_artisans');
+
+      // Clear artisan detail caches (if stored with pattern)
+      final keys = hiveService.getKeys().toList();
+      for (final key in keys) {
+        if (key is String &&
+            (key.startsWith('artisan_detail.') ||
+                key.startsWith('profile.cache.') ||
+                key.startsWith('favorite_'))) {
+          await hiveService.remove(key);
+        }
+      }
+
+      debugPrint('[AuthNotifier] All cached data cleared successfully');
+    } catch (e) {
+      debugPrint('[AuthNotifier] Error clearing cached data: $e');
+    }
   }
 
   /// Get current user
@@ -401,6 +441,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     required String phone,
     required String address,
     required String? countryIso2,
+    String? postalCode,
     String? businessName,
     String? businessDescription,
   }) async {
@@ -414,6 +455,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         phone: phone,
         address: address,
         countryIso2: countryIso2,
+        postalCode: postalCode,
         businessName: businessName,
         businessDescription: businessDescription,
       );
@@ -575,6 +617,42 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
         status: AuthStatus.authenticated,
         user: user.copyWith(isIdentityVerified: false),
       );
+    });
+  }
+
+  /// Skip profile completion and transition to next step
+  /// Called when user clicks 'Skip' on CompleteProfilePage
+  void skipProfile() {
+    state = state.whenData((authState) {
+      final user = authState.user;
+      if (user == null) {
+        debugPrint(
+          '[AuthNotifier] skipProfile() - no user found, returning current state',
+        );
+        return authState;
+      }
+      debugPrint(
+        '[AuthNotifier] skipProfile() called - transitioning from requiresProfile',
+      );
+      // If identity is already verified, go to authenticated
+      // Otherwise, go to requiresVerification
+      if (user.isIdentityVerified) {
+        debugPrint(
+          '[AuthNotifier] skipProfile() - identity verified, transitioning to authenticated',
+        );
+        return AuthState(
+          status: AuthStatus.authenticated,
+          user: user.copyWith(isProfileComplete: true),
+        );
+      } else {
+        debugPrint(
+          '[AuthNotifier] skipProfile() - identity not verified, transitioning to requiresVerification',
+        );
+        return AuthState(
+          status: AuthStatus.requiresVerification,
+          user: user.copyWith(isProfileComplete: true),
+        );
+      }
     });
   }
 
