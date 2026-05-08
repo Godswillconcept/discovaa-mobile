@@ -109,38 +109,26 @@ class AuthInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    // Skip auth header for authentication endpoints that don't require token
-    if (_isAuthEndpoint(options.path)) {
-      // Add device info only, no auth token
-      options.headers['X-App-Version'] = AppConstants.appVersion;
-      options.headers['X-Platform'] = AppConstants.platform;
-      super.onRequest(options, handler);
-      return;
-    }
+    // Check if this request should skip authentication
+    final skipAuth = options.extra['skip-auth'] == true;
 
-    // Respect opt-out: when 'X-Skip-Auth' is present, do not attach Authorization
-    final skipAuthHeader = options.headers['X-Skip-Auth'];
-    final skipAuth =
-        skipAuthHeader == true ||
-        skipAuthHeader == '1' ||
-        skipAuthHeader == 'true';
+    // Add auth token if available (XSessionTokenAuth uses X-Session-Token header)
     if (!skipAuth) {
-      // Add auth token if available (OpenAPI uses access_token)
-      var token = await _tokenStorage.getAccessToken();
-      var tokenType = 'access_token';
-      // Fallback to session_token if access_token is not available
+      var token = await _tokenStorage.getSessionToken();
+      var tokenType = 'session_token';
+      // Fallback to access_token if session_token is not available
       if (token == null || token.isEmpty) {
-        token = await _tokenStorage.getSessionToken();
-        tokenType = 'session_token';
+        token = await _tokenStorage.getAccessToken();
+        tokenType = 'access_token';
       }
       debugPrint(
         '[AuthInterceptor] Token ($tokenType) for ${options.path}: ${token != null ? 'present' : 'MISSING'}',
       );
       if (token != null && token.isNotEmpty) {
-        final authHeader = 'Bearer $token';
-        options.headers['Authorization'] = authHeader;
+        final authHeader = 'X-Session-Token $token';
+        options.headers['X-Session-Token'] = token;
         debugPrint(
-          '[AuthInterceptor] Authorization: ${authHeader.substring(0, authHeader.length > 30 ? 30 : authHeader.length)}...',
+          '[AuthInterceptor] X-Session-Token: ${authHeader.substring(0, authHeader.length > 30 ? 30 : authHeader.length)}...',
         );
       } else {
         debugPrint(
@@ -305,16 +293,21 @@ class AuthInterceptor extends Interceptor {
       );
 
       // Create a dedicated Dio instance with proper configuration
+      final headers = <String, dynamic>{
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-App-Version': AppConstants.appVersion,
+        'X-Platform': AppConstants.platform,
+      };
+
+      // Use X-Session-Token header for token refresh
+      headers['X-Session-Token'] = refreshToken;
+
       final dio = Dio(
         BaseOptions(
           connectTimeout: const Duration(seconds: 15),
           receiveTimeout: const Duration(seconds: 15),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-App-Version': AppConstants.appVersion,
-            'X-Platform': AppConstants.platform,
-          },
+          headers: headers,
         ),
       );
 
@@ -690,5 +683,3 @@ class RetryInterceptor extends Interceptor {
     return Duration(milliseconds: delayMs);
   }
 }
-
-

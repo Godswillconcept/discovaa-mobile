@@ -1,12 +1,17 @@
+import 'dart:async';
 import 'package:discovaa/app/dependency_injection/service_locator.dart';
 import 'package:discovaa/core/network/dio_client.dart';
 import 'package:discovaa/core/network/network_info.dart';
+import 'package:discovaa/core/network/websocket_client.dart';
+import 'package:discovaa/core/network/websocket_service.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/bookings/data/models/booking_api_models.dart';
 import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/data/repositories/bookings_repository_impl.dart';
 import 'package:discovaa/features/bookings/domain/repositories/bookings_repository.dart';
+import 'package:discovaa/features/notifications/presentation/providers/email_preferences_provider.dart';
+import 'package:discovaa/features/payments/domain/repositories/payment_repository.dart';
 import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
 import 'package:discovaa/features/services/presentation/providers/services_provider.dart';
 import 'package:flutter/foundation.dart';
@@ -26,6 +31,7 @@ class BookingsState {
   final int currentPage;
   final int pageSize;
   final bool hasMore;
+  final DateTime? lastPolledAt;
 
   const BookingsState({
     this.bookings = const [],
@@ -35,6 +41,7 @@ class BookingsState {
     this.currentPage = 1,
     this.pageSize = 20,
     this.hasMore = true,
+    this.lastPolledAt,
   });
 
   BookingsState copyWith({
@@ -45,6 +52,7 @@ class BookingsState {
     int? currentPage,
     int? pageSize,
     bool? hasMore,
+    DateTime? lastPolledAt,
   }) {
     return BookingsState(
       bookings: bookings ?? this.bookings,
@@ -54,6 +62,7 @@ class BookingsState {
       currentPage: currentPage ?? this.currentPage,
       pageSize: pageSize ?? this.pageSize,
       hasMore: hasMore ?? this.hasMore,
+      lastPolledAt: lastPolledAt ?? this.lastPolledAt,
     );
   }
 
@@ -80,15 +89,259 @@ class BookingsState {
 // ---------------------------------------------------------------------------
 
 class BookingsNotifier extends StateNotifier<BookingsState> {
-  BookingsNotifier(this._repository, this._ref) : super(const BookingsState());
+  BookingsNotifier(this._repository, this._ref, this._webSocketService)
+    : super(const BookingsState()) {
+    _initWebSocket();
+  }
 
   final BookingsRepository _repository;
   final Ref _ref;
+  final WebSocketService _webSocketService;
+
+  // WebSocket subscriptions
+  StreamSubscription? _bookingStatusSubscription;
+  StreamSubscription? _paymentStatusSubscription;
 
   // Track pending operations to prevent double charges
   final Set<String> _pendingChargeOperations = {};
   // Loading flag to prevent concurrent state mutations
   bool _isLoading = false;
+
+  // Polling mechanism for when WebSocket is disconnected
+  StreamSubscription? _connectionStateSubscription;
+  Timer? _pollingTimer;
+  DateTime? _lastPolledAt;
+
+  /// Initialize WebSocket listeners for booking updates
+  void _initWebSocket() {
+    // Listen to booking status changes
+    _bookingStatusSubscription = _webSocketService.bookingStatusStream.listen(
+      _handleBookingStatusUpdate,
+    );
+
+    // Listen to payment status changes
+    _paymentStatusSubscription = _webSocketService.paymentStatusStream.listen(
+      _handlePaymentStatusUpdate,
+    );
+
+    // Listen to WebSocket connection state for polling fallback
+    _connectionStateSubscription = _webSocketService.connectionStateStream
+        .listen(_handleConnectionStateChange);
+  }
+
+  /// Handle WebSocket connection state changes
+  void _handleConnectionStateChange(WebSocketConnectionState state) {
+    debugPrint('[Bookings] WebSocket connection state: $state');
+
+    if (state == WebSocketConnectionState.disconnected) {
+      _startPolling();
+    } else if (state == WebSocketConnectionState.connected) {
+      _stopPolling();
+      // Re-subscribe to WebSocket events is handled by WebSocketService
+    }
+  }
+
+  /// Start polling for booking updates (fallback when WebSocket is disconnected)
+  void _startPolling() {
+    // Don't start polling if already polling
+    if (_pollingTimer != null) return;
+
+    // Don't poll if all bookings are in terminal state
+    if (_allBookingsTerminal()) {
+      debugPrint('[Bookings] All bookings terminal, skipping polling');
+      return;
+    }
+
+    debugPrint('[Bookings] Starting polling fallback (30s interval)');
+    _pollingTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => _pollBookings(),
+    );
+
+    // Poll immediately
+    _pollBookings();
+  }
+
+  /// Stop polling for booking updates
+  void _stopPolling() {
+    if (_pollingTimer != null) {
+      debugPrint('[Bookings] Stopping polling fallback');
+      _pollingTimer?.cancel();
+      _pollingTimer = null;
+    }
+  }
+
+  /// Poll bookings from REST API
+  Future<void> _pollBookings() async {
+    try {
+      // Only poll for non-terminal statuses (REQUESTED, CONFIRMED)
+      final bookings = await _repository.getBookings(
+        status: 'REQUESTED,CONFIRMED',
+        page: 1,
+      );
+
+      _lastPolledAt = DateTime.now();
+
+      if (!mounted) return;
+
+      // Update state with polled data, preserving terminal bookings
+      final currentBookings = List<BookingModel>.from(state.bookings);
+      final terminalBookings = currentBookings
+          .where((b) => _isTerminalStatus(b.status))
+          .toList();
+
+      // Merge: keep terminal bookings from current state, add/update polled bookings
+      final updatedBookings = [...terminalBookings, ...bookings];
+
+      // Remove duplicates by keeping the latest version
+      final uniqueBookings = <String, BookingModel>{};
+      for (final booking in updatedBookings) {
+        uniqueBookings[booking.id] = booking;
+      }
+
+      state = state.copyWith(
+        bookings: uniqueBookings.values.toList(),
+        lastPolledAt: _lastPolledAt,
+      );
+
+      debugPrint(
+        '[Bookings] Polling update: ${bookings.length} active bookings',
+      );
+    } catch (e) {
+      debugPrint('[Bookings] Polling error: $e');
+    }
+  }
+
+  /// Check if all current bookings are in terminal state
+  bool _allBookingsTerminal() {
+    return state.bookings.every((b) => _isTerminalStatus(b.status));
+  }
+
+  /// Check if a booking status is terminal (no further updates expected)
+  bool _isTerminalStatus(BookingStatus status) {
+    return status == BookingStatus.cancelled ||
+        status == BookingStatus.completed;
+  }
+
+  /// Handle booking status updates from WebSocket
+  void _handleBookingStatusUpdate(Map<String, dynamic> event) {
+    final bookingId = event['booking_id'] as String?;
+    final newStatusStr = event['new_status'] as String?;
+
+    if (bookingId == null || newStatusStr == null) return;
+
+    debugPrint(
+      '[Bookings] WebSocket: Booking $bookingId status changed to $newStatusStr',
+    );
+
+    // Parse new status
+    final newStatus = BookingStatus.values.firstWhere(
+      (s) => s.name.toUpperCase() == newStatusStr.toUpperCase(),
+      orElse: () {
+        debugPrint('[Bookings] Invalid status from WebSocket: $newStatusStr');
+        return BookingStatus
+            .requested; // Fallback, will be caught by validation
+      },
+    );
+
+    // Find the booking in state
+    final currentBookings = List<BookingModel>.from(state.bookings);
+    final bookingIndex = currentBookings.indexWhere((b) => b.id == bookingId);
+
+    if (bookingIndex != -1) {
+      final booking = currentBookings[bookingIndex];
+
+      // VALIDATE TRANSITION
+      if (!booking.status.canTransitionTo(newStatus)) {
+        debugPrint(
+          '[Bookings] Invalid status transition rejected: '
+          '${booking.status.name} → ${newStatus.name} for booking $bookingId',
+        );
+        // Set error state to notify UI
+        state = state.copyWith(
+          errorMessage:
+              'Invalid status transition: '
+              '${booking.status.displayName} → ${newStatus.displayName}',
+        );
+        return; // Reject invalid transition
+      }
+
+      // Valid transition - update state
+      final updatedBooking = booking.copyWith(status: newStatus);
+      currentBookings[bookingIndex] = updatedBooking;
+      state = state.copyWith(
+        bookings: currentBookings,
+        errorMessage: null, // Clear any previous error
+      );
+
+      // Send transactional email based on status
+      _sendBookingStatusEmail(bookingId, newStatus.name);
+    }
+  }
+
+  /// Send transactional email for booking status changes
+  void _sendBookingStatusEmail(String bookingId, String newStatus) {
+    try {
+      final emailRepo = _ref.read(emailRepositoryProvider);
+      String emailType;
+      switch (newStatus) {
+        case 'CONFIRMED':
+        case 'COMPLETED':
+        case 'CANCELLED':
+          emailType = 'BOOKING_STATUS';
+          break;
+        default:
+          emailType = 'BOOKING_UPDATED';
+      }
+
+      emailRepo.sendTransactionalEmail(
+        type: emailType,
+        context: {'booking_id': bookingId, 'status': newStatus},
+      );
+    } catch (e) {
+      debugPrint('Failed to send booking status email: $e');
+    }
+  }
+
+  /// Handle payment status updates from WebSocket
+  void _handlePaymentStatusUpdate(Map<String, dynamic> event) {
+    final bookingId = event['booking_id'] as String?;
+    final paymentStatus = event['payment_status'] as String?;
+
+    if (bookingId == null || paymentStatus == null) return;
+
+    debugPrint(
+      '[Bookings] WebSocket: Booking $bookingId payment status changed to $paymentStatus',
+    );
+
+    // Find and update the booking in state
+    final currentBookings = List<BookingModel>.from(state.bookings);
+    final bookingIndex = currentBookings.indexWhere((b) => b.id == bookingId);
+
+    if (bookingIndex != -1) {
+      final booking = currentBookings[bookingIndex];
+      final updatedBooking = booking.copyWith(paymentStatus: paymentStatus);
+
+      currentBookings[bookingIndex] = updatedBooking;
+      state = state.copyWith(bookings: currentBookings);
+
+      // Send transactional email for payment status changes
+      _sendPaymentStatusEmail(bookingId, paymentStatus);
+    }
+  }
+
+  /// Send transactional email for payment status changes
+  void _sendPaymentStatusEmail(String bookingId, String paymentStatus) {
+    try {
+      final emailRepo = _ref.read(emailRepositoryProvider);
+      emailRepo.sendTransactionalEmail(
+        type: 'PAYMENT_STATUS',
+        context: {'booking_id': bookingId, 'payment_status': paymentStatus},
+      );
+    } catch (e) {
+      debugPrint('Failed to send payment status email: $e');
+    }
+  }
 
   String? _providerIdForBookings(String? userRole) {
     if (!isProviderRole(userRole)) return null;
@@ -105,7 +358,8 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
   }
 
   bool _shouldSkipProviderFetch(String? userRole, String? providerId) {
-    return isProviderRole(userRole) && (providerId == null || providerId.isEmpty);
+    return isProviderRole(userRole) &&
+        (providerId == null || providerId.isEmpty);
   }
 
   Future<void> loadBookings() async {
@@ -325,6 +579,18 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
         status: BookingsLoadStatus.success,
       );
     }
+
+    // Send BOOKING_CREATED email
+    try {
+      final emailRepo = _ref.read(emailRepositoryProvider);
+      await emailRepo.sendTransactionalEmail(
+        type: 'BOOKING_CREATED',
+        context: {'booking_id': booking.id, 'status': booking.status.name},
+      );
+    } catch (e) {
+      debugPrint('Failed to send booking created email: $e');
+    }
+
     return booking;
   }
 
@@ -333,6 +599,22 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     final matches = state.bookings.where((b) => b.id == id);
     final current = matches.isEmpty ? null : matches.first;
     if (current == null) return;
+
+    // Validate transition
+    if (!current.status.canTransitionTo(BookingStatus.cancelled)) {
+      debugPrint(
+        '[cancelBooking] Invalid transition: '
+        '${current.status.name} → cancelled for booking $id',
+      );
+      if (mounted) {
+        state = state.copyWith(
+          errorMessage:
+              'Cannot cancel booking from status: ${current.status.displayName}',
+        );
+      }
+      return;
+    }
+
     await _repository.cancelBooking(current);
     // Refresh from server to get server-truth status
     try {
@@ -349,6 +631,17 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
         );
         _replaceBooking(updated);
       }
+    }
+
+    // Send email notification for cancellation
+    try {
+      final emailRepo = _ref.read(emailRepositoryProvider);
+      await emailRepo.sendTransactionalEmail(
+        type: 'BOOKING_STATUS',
+        context: {'booking_id': id, 'status': 'CANCELLED'},
+      );
+    } catch (e) {
+      debugPrint('Failed to send cancellation email: $e');
     }
   }
 
@@ -431,6 +724,22 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     final matches = state.bookings.where((b) => b.id == id);
     final current = matches.isEmpty ? null : matches.first;
     if (current == null) return;
+
+    // Validate transition
+    if (!current.status.canTransitionTo(BookingStatus.completed)) {
+      debugPrint(
+        '[completeBooking] Invalid transition: '
+        '${current.status.name} → completed for booking $id',
+      );
+      if (mounted) {
+        state = state.copyWith(
+          errorMessage:
+              'Cannot complete booking from status: ${current.status.displayName}',
+        );
+      }
+      return;
+    }
+
     await _repository.completeBooking(current);
     // Refresh from server to get server-truth status
     try {
@@ -444,6 +753,29 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
       );
       _replaceBooking(updated);
     }
+
+    // NEW: Capture payment (release funds) when booking is completed
+    if (current.paymentId != null) {
+      try {
+        final paymentRepo = _ref.read(paymentRepositoryProvider);
+        await paymentRepo.capturePayment(current.paymentId!);
+        debugPrint('[completeBooking] Payment captured for booking: $id');
+      } catch (e) {
+        debugPrint('[completeBooking] Payment capture failed: $e');
+        // Don't fail booking completion if payment capture fails
+      }
+    }
+
+    // Send email notification for completion
+    try {
+      final emailRepo = _ref.read(emailRepositoryProvider);
+      await emailRepo.sendTransactionalEmail(
+        type: 'BOOKING_STATUS',
+        context: {'booking_id': id, 'status': 'COMPLETED'},
+      );
+    } catch (e) {
+      debugPrint('Failed to send completion email: $e');
+    }
   }
 
   /// Confirm a pending booking → upcoming.
@@ -454,6 +786,22 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
       debugPrint('[confirmBooking] Booking not found: $id');
       return;
     }
+
+    // Validate transition
+    if (!current.status.canTransitionTo(BookingStatus.confirmed)) {
+      debugPrint(
+        '[confirmBooking] Invalid transition: '
+        '${current.status.name} → confirmed for booking $id',
+      );
+      if (mounted) {
+        state = state.copyWith(
+          errorMessage:
+              'Cannot confirm booking from status: ${current.status.displayName}',
+        );
+      }
+      return;
+    }
+
     try {
       debugPrint('[confirmBooking] Calling repository for booking: $id');
       await _repository.confirmBooking(current);
@@ -473,6 +821,32 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
           updatedAt: DateTime.now(),
         );
         _replaceBooking(updated);
+      }
+
+      // NEW: Authorize payment (hold funds) when booking is confirmed
+      if (current.paymentId != null) {
+        try {
+          final paymentRepo = _ref.read(paymentRepositoryProvider);
+          await paymentRepo.authorizePayment(
+            current.id,
+            'default', // payment method - can be enhanced later
+          );
+          debugPrint('[confirmBooking] Payment authorized for booking: $id');
+        } catch (e) {
+          debugPrint('[confirmBooking] Payment authorization failed: $e');
+          // Don't fail booking confirmation if payment auth fails
+        }
+      }
+
+      // Send email notification for confirmation
+      try {
+        final emailRepo = _ref.read(emailRepositoryProvider);
+        await emailRepo.sendTransactionalEmail(
+          type: 'BOOKING_STATUS',
+          context: {'booking_id': id, 'status': 'CONFIRMED'},
+        );
+      } catch (e) {
+        debugPrint('Failed to send confirmation email: $e');
       }
     } catch (e, stackTrace) {
       debugPrint('[confirmBooking] Error confirming booking: $e');
@@ -562,6 +936,15 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
   void updateSearch(String query) {
     state = state.copyWith(searchQuery: query);
   }
+
+  @override
+  void dispose() {
+    _bookingStatusSubscription?.cancel();
+    _paymentStatusSubscription?.cancel();
+    _connectionStateSubscription?.cancel();
+    _stopPolling();
+    super.dispose();
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -579,8 +962,17 @@ final bookingsRepositoryProvider = Provider<BookingsRepository>((ref) {
 });
 
 final bookingsProvider = StateNotifierProvider<BookingsNotifier, BookingsState>(
-  (ref) => BookingsNotifier(ref.watch(bookingsRepositoryProvider), ref),
+  (ref) => BookingsNotifier(
+    ref.watch(bookingsRepositoryProvider),
+    ref,
+    sl<WebSocketService>(),
+  ),
 );
+
+/// Payment repository provider
+final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
+  return sl<PaymentRepository>();
+});
 
 /// Convenience: bookings for a specific status
 final bookingsByStatusProvider =

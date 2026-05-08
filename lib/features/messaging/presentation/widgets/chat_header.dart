@@ -7,8 +7,9 @@ import 'package:go_router/go_router.dart';
 
 class ChatHeader extends ConsumerWidget {
   final Conversation conversation;
+  final Widget? trailing;
 
-  const ChatHeader({super.key, required this.conversation});
+  const ChatHeader({super.key, required this.conversation, this.trailing});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,6 +65,8 @@ class ChatHeader extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (trailing != null)
+                Positioned(right: 0, top: 0, bottom: 0, child: trailing!),
             ],
           ),
           const SizedBox(height: 12),

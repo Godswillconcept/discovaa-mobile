@@ -3,6 +3,7 @@ import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/presentation/providers/bookings_provider.dart';
+import 'package:discovaa/features/bookings/presentation/widgets/refund_section.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/messaging/presentation/providers/messaging_provider.dart';
 import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
@@ -15,7 +16,6 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility Functions
 // ─────────────────────────────────────────────────────────────────────────────
-
 /// Represents the current user's role in a specific booking
 enum BookingUserRole { client, provider }
 
@@ -29,13 +29,11 @@ BookingUserRole? resolveBookingUserRole({
   if (currentUserId != null && currentUserId == booking.clientId) {
     return BookingUserRole.client;
   }
-
   // Check if current user is the PROVIDER for this booking
   if (currentUserProviderId != null &&
       currentUserProviderId == booking.providerId) {
     return BookingUserRole.provider;
   }
-
   return null; // User is not part of this booking
 }
 
@@ -57,7 +55,6 @@ String extractNumericPrice(String formattedPrice) {
 /// Converts payment status from API (e.g., "REQUIRES_ACTION") to readable format ("Requires action")
 String formatPaymentStatus(String? status) {
   if (status == null || status.isEmpty) return 'Unknown';
-
   // Handle snake_case or UPPER_CASE
   final readable = status
       .toLowerCase()
@@ -69,7 +66,6 @@ String formatPaymentStatus(String? status) {
             : '',
       )
       .join(' ');
-
   return readable;
 }
 
@@ -82,13 +78,10 @@ bool isPaymentSuccessful(String? paymentStatus) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Extracted Widgets
 // ─────────────────────────────────────────────────────────────────────────────
-
 class _TitleSection extends StatelessWidget {
   final BookingModel booking;
   final bool isProvider;
-
   const _TitleSection({required this.booking, required this.isProvider});
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -144,7 +137,7 @@ class _TitleSection extends StatelessWidget {
                 ),
               ),
             ),
-            if (!isProvider) ...[
+            if (isProvider) ...[
               const SizedBox(width: 8),
               _MessageButton(booking: booking),
             ],
@@ -157,9 +150,7 @@ class _TitleSection extends StatelessWidget {
 
 class _MessageButton extends ConsumerWidget {
   final BookingModel booking;
-
   const _MessageButton({required this.booking});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ElevatedButton(
@@ -194,7 +185,6 @@ class _MessageButton extends ConsumerWidget {
 class BookingDetailPage extends ConsumerStatefulWidget {
   final BookingModel booking;
   const BookingDetailPage({super.key, required this.booking});
-
   @override
   ConsumerState<BookingDetailPage> createState() => _BookingDetailPageState();
 }
@@ -214,23 +204,19 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
   Widget build(BuildContext context) {
     final booking = _booking;
     final status = booking.status;
-
     // Get current user info for role resolution
     final authState = ref.watch(authProvider);
     final currentUserId = authState.value?.user?.id;
     final currentUserProviderId = ref.watch(
       userProfileProvider.select((state) => state.profile?.providerId),
     );
-
     // Resolve user's role in THIS booking
     final userRoleInBooking = resolveBookingUserRole(
       currentUserId: currentUserId,
       currentUserProviderId: currentUserProviderId,
       booking: booking,
     );
-
     final isBookingProvider = userRoleInBooking == BookingUserRole.provider;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -259,13 +245,13 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                       background: Stack(
                         fit: StackFit.expand,
                         children: [
-                          booking.service.imagePath != null
-                              ? _buildHeroImage(
+                          booking.service.imagePath == null
+                              ? _HeroFallback(
+                                  category: booking.service.category,
+                                )
+                              : _buildHeroImage(
                                   booking.service.imagePath!,
                                   booking.service.category,
-                                )
-                              : _HeroFallback(
-                                  category: booking.service.category,
                                 ),
                           const DecoratedBox(
                             decoration: BoxDecoration(
@@ -286,7 +272,6 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                       ),
                     ),
                   ),
-
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
@@ -299,14 +284,12 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                             isProvider: isBookingProvider,
                           ),
                           const SizedBox(height: 24),
-
                           // Header Card (User/Provider details)
                           _HeaderCard(
                             booking: booking,
                             isProvider: isBookingProvider,
                           ),
                           const SizedBox(height: 16),
-
                           // Items Card
                           _SectionLabel('Items'),
                           const SizedBox(height: 8),
@@ -315,13 +298,11 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                             isProvider: isBookingProvider,
                           ),
                           const SizedBox(height: 16),
-
                           // Booking info Card
                           _SectionLabel('Booking info'),
                           const SizedBox(height: 8),
                           _BookingInfoCard(booking: booking),
                           const SizedBox(height: 16),
-
                           // Adjust time Card - only allow before booking is confirmed
                           if (isBookingProvider &&
                               booking.status == BookingStatus.requested) ...[
@@ -330,14 +311,17 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                             _AdjustTimeCard(booking: booking),
                             const SizedBox(height: 16),
                           ],
-
                           // Payment Action (User only)
-                          if (!isBookingProvider &&
+                          if (isBookingProvider &&
                               booking.paymentStatus == 'REQUIRES_ACTION') ...[
                             _PaymentActionSection(booking: booking),
                             const SizedBox(height: 16),
                           ],
-
+                          // Refund Section (show when payment is captured)
+                          if (booking.paymentStatus == 'CAPTURED') ...[
+                            RefundSection(booking: booking),
+                            const SizedBox(height: 16),
+                          ],
                           // Actions Card
                           _SectionLabel('Actions'),
                           const SizedBox(height: 8),
@@ -346,7 +330,6 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                             isProvider: isBookingProvider,
                           ),
                           const SizedBox(height: 16),
-
                           // Variable price warning
                           if (isBookingProvider &&
                               booking.service.priceType ==
@@ -354,7 +337,6 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                             _VariablePriceWarning(),
                             const SizedBox(height: 16),
                           ],
-
                           // Review
                           if (status == BookingStatus.completed) ...[
                             _SectionLabel('Review'),
@@ -367,7 +349,6 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
                   ),
                 ],
               ),
-
               // ── Floating back button ────────────────────────────────────
               SafeArea(
                 child: Padding(
@@ -425,11 +406,9 @@ class _BookingDetailPageState extends ConsumerState<BookingDetailPage> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Review section
 // ─────────────────────────────────────────────────────────────────────────────
-
 class _ReviewSection extends ConsumerStatefulWidget {
   final BookingModel booking;
   const _ReviewSection({required this.booking});
-
   @override
   ConsumerState<_ReviewSection> createState() => _ReviewSectionState();
 }
@@ -437,7 +416,6 @@ class _ReviewSection extends ConsumerStatefulWidget {
 class _ReviewSectionState extends ConsumerState<_ReviewSection> {
   late int _rating;
   final _ctrl = TextEditingController();
-
   @override
   void initState() {
     super.initState();
@@ -454,7 +432,6 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
   @override
   Widget build(BuildContext context) {
     final hasExisting = widget.booking.rating != null;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -480,7 +457,7 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
               );
             }),
           ),
-          if (!hasExisting) ...[
+          if (hasExisting) ...[
             const SizedBox(height: 10),
             TextField(
               controller: _ctrl,
@@ -517,7 +494,7 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
                             );
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Review submitted!'),
+                            content: Text('Review submitted'),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -561,11 +538,9 @@ class _ReviewSectionState extends ConsumerState<_ReviewSection> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Reusable local helpers
 // ─────────────────────────────────────────────────────────────────────────────
-
 class _HeroFallback extends StatelessWidget {
   final String category;
   const _HeroFallback({required this.category});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -594,7 +569,6 @@ class _HeroFallback extends StatelessWidget {
 class _StatusBadge extends StatelessWidget {
   final BookingStatus status;
   const _StatusBadge({required this.status});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -632,7 +606,6 @@ class _StatusBadge extends StatelessWidget {
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
-
   @override
   Widget build(BuildContext context) {
     return Text(
@@ -650,13 +623,11 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
   });
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -698,11 +669,9 @@ class _InfoRow extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // New section widgets for the redesigned booking detail page
 // ─────────────────────────────────────────────────────────────────────────────
-
 class _PaymentActionSection extends ConsumerWidget {
   final BookingModel booking;
   const _PaymentActionSection({required this.booking});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
@@ -764,7 +733,7 @@ class _PaymentActionSection extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Provider has set the concluded price to NGN ${booking.concludedUnitPrice}',
+                      'Provider has set the concluded price to NGN ${booking.concludedUnitPrice!}',
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.green.shade800,
@@ -818,7 +787,7 @@ class _PaymentActionSection extends ConsumerWidget {
               ),
             )
           else if (booking.paymentStatus != null &&
-              booking.paymentStatus != 'REQUIRES_ACTION')
+              booking.paymentStatus == 'REQUIRES_ACTION')
             // Show payment completed status
             Container(
               padding: const EdgeInsets.all(12),
@@ -850,10 +819,8 @@ class _PaymentActionSection extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider-specific widgets
 // ─────────────────────────────────────────────────────────────────────────────
-
 class _VariablePriceWarning extends StatelessWidget {
   const _VariablePriceWarning();
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -890,11 +857,9 @@ class _VariablePriceWarning extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // New Card-based Layout Widgets
 // ─────────────────────────────────────────────────────────────────────────────
-
 class _CardContainer extends StatelessWidget {
   final Widget child;
   const _CardContainer({required this.child});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -921,7 +886,6 @@ class _HeaderCard extends StatelessWidget {
   final BookingModel booking;
   final bool isProvider;
   const _HeaderCard({required this.booking, required this.isProvider});
-
   @override
   Widget build(BuildContext context) {
     final avatar = isProvider
@@ -930,19 +894,15 @@ class _HeaderCard extends StatelessWidget {
     final name = isProvider
         ? (booking.userDisplayName ?? booking.clientName)
         : (booking.providerName ?? 'Unknown');
-
     // Format date
     final dateStr = formatBookingDate(booking.scheduledDate);
-
     // Status text
     final statusText =
         booking.status.name[0].toUpperCase() + booking.status.name.substring(1);
-
     // Price
     final priceStr =
         booking.concludedUnitPrice ??
         extractNumericPrice(booking.service.formattedPrice);
-
     return _CardContainer(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1012,7 +972,7 @@ class _HeaderCard extends StatelessWidget {
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
                 ),
                 Text(
-                  formatPaymentStatus(booking.paymentStatus),
+                  formatPaymentStatus(booking.paymentStatus!),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -1037,7 +997,6 @@ class _ItemsCard extends StatelessWidget {
   final BookingModel booking;
   final bool isProvider;
   const _ItemsCard({required this.booking, required this.isProvider});
-
   @override
   Widget build(BuildContext context) {
     final hasConcludedPrice = booking.concludedUnitPrice != null;
@@ -1074,7 +1033,6 @@ class _ItemsCard extends StatelessWidget {
 class _ConcludedPriceInput extends ConsumerStatefulWidget {
   final BookingModel booking;
   const _ConcludedPriceInput({required this.booking});
-
   @override
   ConsumerState<_ConcludedPriceInput> createState() =>
       _ConcludedPriceInputState();
@@ -1083,7 +1041,6 @@ class _ConcludedPriceInput extends ConsumerStatefulWidget {
 class _ConcludedPriceInputState extends ConsumerState<_ConcludedPriceInput> {
   late TextEditingController _ctrl;
   bool _saving = false;
-
   @override
   void initState() {
     super.initState();
@@ -1216,7 +1173,6 @@ class _ConcludedPriceInputState extends ConsumerState<_ConcludedPriceInput> {
 class _BookingInfoCard extends StatelessWidget {
   final BookingModel booking;
   const _BookingInfoCard({required this.booking});
-
   @override
   Widget build(BuildContext context) {
     // Format date string
@@ -1224,7 +1180,6 @@ class _BookingInfoCard extends StatelessWidget {
     if (booking.scheduledEnd != null) {
       scheduledStr += ' — ${formatBookingDate(booking.scheduledEnd!)}';
     }
-
     return _CardContainer(
       child: Column(
         children: [
@@ -1260,7 +1215,6 @@ class _BookingInfoCard extends StatelessWidget {
 class _AdjustTimeCard extends ConsumerStatefulWidget {
   final BookingModel booking;
   const _AdjustTimeCard({required this.booking});
-
   @override
   ConsumerState<_AdjustTimeCard> createState() => _AdjustTimeCardState();
 }
@@ -1270,7 +1224,6 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
   DateTime? _end;
   bool _saving = false;
   bool _saved = false;
-
   @override
   void initState() {
     super.initState();
@@ -1287,15 +1240,13 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (date == null) return;
-
     if (!mounted) return;
-
+    if (!context.mounted) return;
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(initialDate),
     );
     if (time == null) return;
-
     final dt = DateTime(
       date.year,
       date.month,
@@ -1405,8 +1356,7 @@ class _AdjustTimeCardState extends ConsumerState<_AdjustTimeCard> {
                   : () async {
                       if (_start == null || _end == null) return;
                       // Validate that end time is after start time
-                      if (_end!.isBefore(_start!) ||
-                          _end!.isAtSameMomentAs(_start!)) {
+                      if (_end!.isBefore(_start!)) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('End time must be after start time'),
@@ -1472,17 +1422,20 @@ class _ActionsCard extends ConsumerWidget {
   final BookingModel booking;
   final bool isProvider;
   const _ActionsCard({required this.booking, required this.isProvider});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(bookingsProvider.notifier);
     final status = booking.status;
     final paymentCompleted = isPaymentSuccessful(booking.paymentStatus);
-
     List<Widget> buttons = [];
 
-    if (status == BookingStatus.requested) {
-      if (isProvider) {
+    // Use canTransitionTo() to determine valid actions based on API spec
+    final canConfirm = status.canTransitionTo(BookingStatus.confirmed);
+    final canComplete = status.canTransitionTo(BookingStatus.completed);
+    final canCancel = status.canTransitionTo(BookingStatus.cancelled);
+
+    if (canConfirm || canCancel) {
+      if (isProvider && canConfirm) {
         buttons = [
           _ActionButton(
             label: 'Confirm booking',
@@ -1498,7 +1451,7 @@ class _ActionsCard extends ConsumerWidget {
                   ),
                 );
               } catch (e) {
-                if (!context.mounted) return;
+                if (context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -1512,18 +1465,19 @@ class _ActionsCard extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 12),
-          _ActionButton(
-            label: 'Cancel booking',
-            isPrimary: false,
-            onPressed: paymentCompleted
-                ? null // Disable if payment is complete
-                : () {
-                    notifier.cancelBooking(booking.id);
-                    Navigator.of(context).pop();
-                  },
-          ),
+          if (canCancel)
+            _ActionButton(
+              label: 'Cancel booking',
+              isPrimary: false,
+              onPressed: paymentCompleted
+                  ? null // Disable if payment is complete
+                  : () {
+                      notifier.cancelBooking(booking.id);
+                      Navigator.of(context).pop();
+                    },
+            ),
         ];
-      } else {
+      } else if (canCancel) {
         buttons = [
           _ActionButton(
             label: 'Cancel booking',
@@ -1537,53 +1491,17 @@ class _ActionsCard extends ConsumerWidget {
           ),
         ];
       }
-    } else if (status == BookingStatus.confirmed) {
-      if (isProvider) {
-        buttons = [
-          _ActionButton(
-            label: 'Mark as ongoing',
-            isPrimary: true,
-            onPressed: () => notifier.startBooking(booking.id),
-          ),
-          const SizedBox(height: 12),
-          _ActionButton(
-            label: 'Cancel booking',
-            isPrimary: false,
-            onPressed: paymentCompleted
-                ? null // Disable if payment is complete
-                : () {
-                    notifier.cancelBooking(booking.id);
-                    Navigator.of(context).pop();
-                  },
-          ),
-        ];
-      } else {
-        buttons = [
-          _ActionButton(
-            label: 'Cancel booking',
-            isPrimary: false,
-            onPressed: paymentCompleted
-                ? null // Disable if payment is complete
-                : () {
-                    notifier.cancelBooking(booking.id);
-                    Navigator.of(context).pop();
-                  },
-          ),
-        ];
-      }
-    } else if (status == BookingStatus.ongoing) {
-      if (isProvider) {
-        buttons = [
-          _ActionButton(
-            label: 'Mark as completed',
-            isPrimary: true,
-            color: AppColors.success,
-            onPressed: () => notifier.completeBooking(booking.id),
-          ),
-        ];
-      }
+    } else if (canComplete && isProvider) {
+      buttons = [
+        _ActionButton(
+          label: 'Mark as completed',
+          isPrimary: true,
+          color: AppColors.success,
+          onPressed: () => notifier.completeBooking(booking.id),
+        ),
+      ];
     } else if (status == BookingStatus.completed) {
-      if (!isProvider) {
+      if (isProvider) {
         buttons = [
           _ActionButton(
             label: 'Book again',
@@ -1623,9 +1541,7 @@ class _ActionsCard extends ConsumerWidget {
         ),
       );
     }
-
     if (buttons.isEmpty) return const SizedBox();
-
     return _CardContainer(child: Column(children: buttons));
   }
 }
@@ -1635,14 +1551,12 @@ class _ActionButton extends StatelessWidget {
   final bool isPrimary;
   final VoidCallback? onPressed;
   final Color? color;
-
   const _ActionButton({
     required this.label,
     required this.isPrimary,
     required this.onPressed,
     this.color,
   });
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -1690,13 +1604,10 @@ class _ActionButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // Payment WebView Widget - Opens payment URL within the app
 // ─────────────────────────────────────────────────────────────────────────────
-
 class _PaymentWebView extends StatefulWidget {
   final String url;
   final VoidCallback onPaymentComplete;
-
   const _PaymentWebView({required this.url, required this.onPaymentComplete});
-
   @override
   State<_PaymentWebView> createState() => _PaymentWebViewState();
 }
@@ -1704,7 +1615,6 @@ class _PaymentWebView extends StatefulWidget {
 class _PaymentWebViewState extends State<_PaymentWebView> {
   late InAppWebViewController _webViewController;
   double _progress = 0;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1753,7 +1663,7 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
           // Check page title for error messages
           final title = await controller.getTitle();
           if (_isPaymentError(title ?? '')) {
-            if (!mounted) return;
+            if (mounted) return;
             // Show feedback to user
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1762,7 +1672,9 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
               ),
             );
             widget.onPaymentComplete(); // Refresh to check current status
-            Navigator.of(context).pop();
+            if (mounted && !context.mounted) {
+              Navigator.of(context).pop();
+            }
           }
         },
         onReceivedError: (controller, request, error) {

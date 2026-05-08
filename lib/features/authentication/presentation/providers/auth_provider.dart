@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:discovaa/app/dependency_injection/service_locator.dart';
 import 'package:discovaa/core/errors/exceptions.dart';
+import 'package:discovaa/core/network/websocket_service.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/core/storage/secure_token_storage.dart';
 import 'package:discovaa/features/authentication/domain/repositories/auth_repository.dart';
@@ -98,6 +99,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
           isIdentityVerified: user.isIdentityVerified || identityVerified,
         );
 
+        // Initialize WebSocket service for authenticated users
+        if (effectiveUser.id.isNotEmpty) {
+          try {
+            final webSocketService = sl<WebSocketService>();
+            await webSocketService.initialize(effectiveUser.id);
+            debugPrint(
+              '[AuthNotifier] WebSocket service initialized for user ${effectiveUser.id}',
+            );
+          } catch (e) {
+            debugPrint('[AuthNotifier] Failed to initialize WebSocket: $e');
+            // Don't fail authentication if WebSocket fails
+          }
+        }
+
         // Check if profile is complete
         if (!effectiveUser.isProfileComplete) {
           debugPrint(
@@ -171,6 +186,20 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
       // Persist user and session so _checkExistingSession() can restore on restart
       await _tokenStorage.saveUserData(effectiveUser);
       await _tokenStorage.setAuthenticated(true);
+
+      // Initialize WebSocket service for authenticated users
+      if (!isPendingVerification && effectiveUser.id.isNotEmpty) {
+        try {
+          final webSocketService = sl<WebSocketService>();
+          await webSocketService.initialize(effectiveUser.id);
+          debugPrint(
+            '[AuthNotifier] WebSocket service initialized for user ${effectiveUser.id}',
+          );
+        } catch (e) {
+          debugPrint('[AuthNotifier] Failed to initialize WebSocket: $e');
+          // Don't fail authentication if WebSocket fails
+        }
+      }
 
       if (!effectiveUser.isProfileComplete) {
         state = AsyncData(

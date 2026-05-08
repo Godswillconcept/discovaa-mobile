@@ -43,6 +43,47 @@ enum BookingStatus {
       this == BookingStatus.requested ||
       this == BookingStatus.confirmed ||
       this == BookingStatus.ongoing;
+
+  /// Returns true if this status can transition to the target status per API spec.
+  /// Valid transitions:
+  /// - REQUESTED → CONFIRMED (provider confirms)
+  /// - REQUESTED → CANCELLED (client or provider cancels)
+  /// - CONFIRMED → COMPLETED (provider completes)
+  /// - CONFIRMED → CANCELLED (cancellation before service)
+  /// - Terminal states (COMPLETED, CANCELLED) cannot transition further
+  bool canTransitionTo(BookingStatus target) {
+    switch (this) {
+      case BookingStatus.requested:
+        return target == BookingStatus.confirmed ||
+            target == BookingStatus.cancelled;
+      case BookingStatus.confirmed:
+        return target == BookingStatus.completed ||
+            target == BookingStatus.cancelled;
+      case BookingStatus.completed:
+      case BookingStatus.cancelled:
+        return false; // Terminal states
+      case BookingStatus.ongoing:
+        // Ongoing is internal UI state, treat as confirmed for transitions
+        return target == BookingStatus.completed ||
+            target == BookingStatus.cancelled;
+    }
+  }
+
+  /// Returns list of valid next statuses from current status per API spec.
+  List<BookingStatus> get validNextStatuses {
+    switch (this) {
+      case BookingStatus.requested:
+        return [BookingStatus.confirmed, BookingStatus.cancelled];
+      case BookingStatus.confirmed:
+        return [BookingStatus.completed, BookingStatus.cancelled];
+      case BookingStatus.ongoing:
+        // Ongoing is internal UI state, treat as confirmed for transitions
+        return [BookingStatus.completed, BookingStatus.cancelled];
+      case BookingStatus.completed:
+      case BookingStatus.cancelled:
+        return []; // Terminal states
+    }
+  }
 }
 
 /// Snapshot of the service details captured at booking time.
@@ -170,6 +211,7 @@ class BookingModel {
   final String? concludedUnitPrice;
 
   /// Payment information
+  final String? paymentId;
   final String? paymentStatus;
   final String? paymentAmount;
   final String? paymentAuthorizationUrl;
@@ -205,6 +247,7 @@ class BookingModel {
     this.rating,
     this.review,
     this.concludedUnitPrice,
+    this.paymentId,
     this.paymentStatus,
     this.paymentAmount,
     this.paymentAuthorizationUrl,
@@ -241,6 +284,7 @@ class BookingModel {
     int? rating,
     String? review,
     String? concludedUnitPrice,
+    String? paymentId,
     String? paymentStatus,
     String? paymentAmount,
     String? paymentAuthorizationUrl,
@@ -276,6 +320,7 @@ class BookingModel {
       rating: rating ?? this.rating,
       review: review ?? this.review,
       concludedUnitPrice: concludedUnitPrice ?? this.concludedUnitPrice,
+      paymentId: paymentId ?? this.paymentId,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       paymentAmount: paymentAmount ?? this.paymentAmount,
       paymentAuthorizationUrl:
@@ -342,6 +387,7 @@ class BookingModel {
     'rating': rating,
     'review': review,
     'concludedUnitPrice': concludedUnitPrice,
+    'paymentId': paymentId,
     'paymentStatus': paymentStatus,
     'paymentAmount': paymentAmount,
     'paymentAuthorizationUrl': paymentAuthorizationUrl,
@@ -404,6 +450,7 @@ class BookingModel {
         rating: json['rating'] as int?,
         review: json['review'] as String?,
         concludedUnitPrice: json['concludedUnitPrice'] as String?,
+        paymentId: json['paymentId'] as String?,
         paymentStatus: json['paymentStatus'] as String?,
         paymentAmount: json['paymentAmount'] as String?,
         paymentAuthorizationUrl: json['paymentAuthorizationUrl'] as String?,

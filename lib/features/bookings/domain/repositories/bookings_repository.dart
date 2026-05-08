@@ -10,6 +10,14 @@ abstract class BookingsRepository {
     int? pageSize,
   });
 
+  /// Get bookings with optional status filter for polling fallback.
+  /// Supports comma-separated status values (e.g., 'REQUESTED,CONFIRMED').
+  Future<List<BookingModel>> getBookings({
+    String? status,
+    int page = 1,
+    int? pageSize,
+  });
+
   /// Check if a provider is available for the given time slot.
   Future<({bool available, List<String> reasons})> checkAvailability({
     required String providerId,

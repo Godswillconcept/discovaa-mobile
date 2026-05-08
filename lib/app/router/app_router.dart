@@ -14,6 +14,7 @@ import 'package:discovaa/features/authentication/presentation/pages/reset_passwo
 import 'package:discovaa/features/authentication/presentation/pages/signup_selection_page.dart';
 import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
 import 'package:discovaa/features/bookings/presentation/pages/bookings_page.dart';
+import 'package:discovaa/features/payments/presentation/pages/refund_request_page.dart';
 import 'package:discovaa/features/contact_us/presentation/pages/contact_us_page.dart';
 import 'package:discovaa/features/home/presentation/pages/dashboard_page.dart';
 import 'package:discovaa/features/home/presentation/pages/home_page.dart';
@@ -308,6 +309,23 @@ List<StatefulShellBranch> _buildShellBranches() {
         GoRoute(
           path: RouteNames.bookings,
           builder: (context, state) => const BookingsPage(),
+          routes: [
+            GoRoute(
+              path: 'refund-request',
+              builder: (context, state) {
+                final extra = state.extra as Map<String, dynamic>?;
+                final paymentId = extra?['paymentId'] as String? ?? '';
+                final capturedAmount =
+                    extra?['capturedAmount'] as double? ?? 0.0;
+                final paymentStatus = extra?['paymentStatus'] as String?;
+                return RefundRequestPage(
+                  paymentId: paymentId,
+                  capturedAmount: capturedAmount,
+                  paymentStatus: paymentStatus,
+                );
+              },
+            ),
+          ],
         ),
       ],
     ),

@@ -841,6 +841,8 @@ String _formatAmount(String? amount, String? currency) {
 
 BookingStatus bookingStatusFromString(String raw) {
   switch (raw.toUpperCase()) {
+    case 'REQUESTED':
+      return BookingStatus.requested;
     case 'CONFIRMED':
       return BookingStatus.confirmed;
     case 'ONGOING':
@@ -850,7 +852,7 @@ BookingStatus bookingStatusFromString(String raw) {
     case 'CANCELLED':
       return BookingStatus.cancelled;
     default:
-      return BookingStatus.requested;
+      throw Exception('Unknown booking status: $raw');
   }
 }
 

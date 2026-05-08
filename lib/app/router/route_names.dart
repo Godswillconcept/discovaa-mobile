@@ -33,4 +33,5 @@ class RouteNames {
   static const String bookings = '/bookings';
   static const String services = '/services';
   static const String contactUs = '/contact-us';
+  static const String refundRequest = '/refund-request';
 }

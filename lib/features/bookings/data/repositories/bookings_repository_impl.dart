@@ -88,10 +88,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
       final serviceMap = {for (final service in services) service.id: service};
       final response = results[1] as dynamic;
 
-      final envelope = decodeListEnvelope(
-        response,
-        _parseBookingDto,
-      );
+      final envelope = decodeListEnvelope(response, _parseBookingDto);
 
       // Fetch reviews for completed bookings
       final bookingDTOs = envelope.data;
@@ -118,6 +115,51 @@ class BookingsRepositoryImpl implements BookingsRepository {
       if (cached.isNotEmpty) {
         return cached;
       }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<BookingModel>> getBookings({
+    String? status,
+    int page = 1,
+    int? pageSize,
+  }) async {
+    try {
+      // Build query parameters
+      final queryParameters = <String, dynamic>{
+        'expand': 'provider,items.service,payment,user',
+        'page': page,
+      };
+
+      if (pageSize != null) {
+        queryParameters['page_size'] = pageSize;
+      }
+
+      // Add status filter if provided (comma-separated for multiple statuses)
+      if (status != null && status.isNotEmpty) {
+        queryParameters['status'] = status;
+      }
+
+      // Fetch services and bookings in parallel
+      final results = await Future.wait([
+        _servicesRepository.listServices(),
+        _dioClient.get(ApiEndpoints.bookings, queryParameters: queryParameters),
+      ]);
+
+      final services = results[0] as List<ServiceModel>;
+      final serviceMap = {for (final service in services) service.id: service};
+      final response = results[1] as dynamic;
+
+      final envelope = decodeListEnvelope(response, _parseBookingDto);
+
+      final bookings = envelope.data
+          .map((dto) => mapBookingDto(dto, serviceMap))
+          .toList(growable: false);
+
+      return bookings;
+    } catch (e) {
+      debugPrint('[BookingsRepository] Error in getBookings: $e');
       rethrow;
     }
   }
@@ -158,10 +200,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
         'expand[items]': 'service',
       },
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     // Fetch review if booking is completed
     ReviewDto? review;
@@ -207,10 +246,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
         items: items,
       ).toJson(),
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     // Fetch the associated services to build the service snapshot
     final services = await _servicesRepository.listServices();
@@ -244,10 +280,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     final response = await _dioClient.post(
       ApiEndpoints.bookingCharge(booking.id),
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     // Fetch services to build service snapshot
     final services = await _servicesRepository.listServices();
@@ -264,10 +297,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
       ApiEndpoints.bookingReschedule(booking.id),
       data: {'status': 'ONGOING'},
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     // Fetch services to build service snapshot
     final services = await _servicesRepository.listServices();
@@ -350,10 +380,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
       ApiEndpoints.bookingReschedule(booking.id),
       data: data,
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     final services = await _servicesRepository.listServices();
     final serviceMap = {for (final s in services) s.id: s};
@@ -379,10 +406,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
         ],
       },
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     final services = await _servicesRepository.listServices();
     final serviceMap = {for (final s in services) s.id: s};

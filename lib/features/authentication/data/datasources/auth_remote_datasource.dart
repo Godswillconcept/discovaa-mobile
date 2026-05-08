@@ -138,7 +138,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     if (!hasRefresh) {
       debugPrint(
         '[AuthRemoteDataSource] WARNING: No refresh_token found in auth response. '
-        'This may indicate a backend contract mismatch or parser issue.',
+        'This may indicate a backend contract mismatch or parser issue. '
+        'Check API response format and ensure refresh_token is returned.',
       );
     }
   }

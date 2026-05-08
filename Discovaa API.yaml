@@ -11,7 +11,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -53,7 +53,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedUserMeUpdate'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -84,7 +84,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -105,7 +105,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedUserLastKnownLocation'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -146,7 +146,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedUserProfilePhotoUpdate'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -202,7 +202,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -263,7 +263,7 @@ paths:
               $ref: '#/components/schemas/BookingItemWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -302,7 +302,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -352,7 +352,7 @@ paths:
               $ref: '#/components/schemas/BookingItemWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -401,7 +401,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedBookingItemWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -439,7 +439,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -498,7 +498,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -559,7 +559,7 @@ paths:
               $ref: '#/components/schemas/BookingWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -598,7 +598,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -648,7 +648,7 @@ paths:
               $ref: '#/components/schemas/BookingWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -697,7 +697,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedBookingWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -735,7 +735,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -765,7 +765,7 @@ paths:
               $ref: '#/components/schemas/Booking'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -816,7 +816,7 @@ paths:
               $ref: '#/components/schemas/Booking'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -867,7 +867,7 @@ paths:
               $ref: '#/components/schemas/Booking'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -918,7 +918,7 @@ paths:
               $ref: '#/components/schemas/Booking'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -962,7 +962,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1023,7 +1023,7 @@ paths:
               $ref: '#/components/schemas/ProviderLocationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -1062,7 +1062,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1112,7 +1112,7 @@ paths:
               $ref: '#/components/schemas/ProviderLocationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1161,7 +1161,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderLocationWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1199,7 +1199,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -1234,7 +1234,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1295,7 +1295,7 @@ paths:
               $ref: '#/components/schemas/BusinessStaffMemberWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -1334,7 +1334,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1384,7 +1384,7 @@ paths:
               $ref: '#/components/schemas/BusinessStaffMemberWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1433,7 +1433,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedBusinessStaffMemberWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1471,7 +1471,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -1523,7 +1523,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1584,7 +1584,7 @@ paths:
               $ref: '#/components/schemas/DeviceToken'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -1623,7 +1623,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1673,7 +1673,7 @@ paths:
               $ref: '#/components/schemas/DeviceToken'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1722,7 +1722,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedDeviceToken'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1760,7 +1760,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -1790,7 +1790,7 @@ paths:
               $ref: '#/components/schemas/DeviceToken'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1821,7 +1821,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -1874,7 +1874,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -1943,7 +1943,7 @@ paths:
               $ref: '#/components/schemas/MessageThread'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -1990,7 +1990,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2048,7 +2048,7 @@ paths:
               $ref: '#/components/schemas/MessageThread'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2105,7 +2105,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedMessageThread'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2151,7 +2151,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -2189,7 +2189,7 @@ paths:
               $ref: '#/components/schemas/MessageThread'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2261,7 +2261,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2322,7 +2322,7 @@ paths:
               $ref: '#/components/schemas/Message'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -2361,7 +2361,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2411,7 +2411,7 @@ paths:
               $ref: '#/components/schemas/Message'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2460,7 +2460,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedMessage'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2498,7 +2498,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -2555,7 +2555,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2617,7 +2617,7 @@ paths:
               $ref: '#/components/schemas/MyAvailabilityRule'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -2657,7 +2657,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2708,7 +2708,7 @@ paths:
               $ref: '#/components/schemas/MyAvailabilityRule'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2758,7 +2758,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedMyAvailabilityRule'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2797,7 +2797,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -2853,7 +2853,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -2914,7 +2914,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -2953,7 +2953,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3003,7 +3003,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3052,7 +3052,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedNotification'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3090,7 +3090,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -3120,7 +3120,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3163,7 +3163,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3206,7 +3206,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3291,7 +3291,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3352,7 +3352,7 @@ paths:
               $ref: '#/components/schemas/PaymentAuthorize'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -3391,7 +3391,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3440,7 +3440,7 @@ paths:
             schema:
               $ref: '#/components/schemas/Payment'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3489,7 +3489,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedPayment'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3527,7 +3527,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -3556,7 +3556,7 @@ paths:
             schema:
               $ref: '#/components/schemas/Payment'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3598,7 +3598,7 @@ paths:
             schema:
               $ref: '#/components/schemas/Payment'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3629,7 +3629,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3661,7 +3661,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3694,7 +3694,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3726,7 +3726,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3768,7 +3768,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderPayoutAccountSetup'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3800,7 +3800,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3893,7 +3893,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -3942,7 +3942,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           description: No response body
@@ -3960,7 +3960,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4009,7 +4009,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderPayout'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4058,7 +4058,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderPayout'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4096,7 +4096,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -4125,7 +4125,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderPayout'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4175,7 +4175,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderPayout'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4206,7 +4206,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4237,7 +4237,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4268,7 +4268,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -4278,7 +4278,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -4337,7 +4337,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4398,7 +4398,7 @@ paths:
               $ref: '#/components/schemas/RefundRequestCreate'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -4437,7 +4437,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4486,7 +4486,7 @@ paths:
             schema:
               $ref: '#/components/schemas/RefundRequest'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4535,7 +4535,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedRefundRequest'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4573,7 +4573,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -4591,7 +4591,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -4609,7 +4609,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -4670,7 +4670,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -4732,7 +4732,7 @@ paths:
               $ref: '#/components/schemas/ProviderAvailabilityRuleWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -4771,7 +4771,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -4822,7 +4822,7 @@ paths:
               $ref: '#/components/schemas/ProviderAvailabilityRuleWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4871,7 +4871,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderAvailabilityRuleWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -4909,7 +4909,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -4944,7 +4944,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5004,7 +5004,7 @@ paths:
             schema:
               $ref: '#/components/schemas/BusinessProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -5043,7 +5043,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5092,7 +5092,7 @@ paths:
             schema:
               $ref: '#/components/schemas/BusinessProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5141,7 +5141,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedBusinessProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5179,7 +5179,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -5219,7 +5219,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -5281,7 +5281,7 @@ paths:
               $ref: '#/components/schemas/ProviderCertificationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -5320,7 +5320,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -5371,7 +5371,7 @@ paths:
               $ref: '#/components/schemas/ProviderCertificationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5420,7 +5420,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderCertificationWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5458,7 +5458,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -5493,7 +5493,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5553,7 +5553,7 @@ paths:
             schema:
               $ref: '#/components/schemas/IndividualProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -5592,7 +5592,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5641,7 +5641,7 @@ paths:
             schema:
               $ref: '#/components/schemas/IndividualProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5690,7 +5690,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedIndividualProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5728,7 +5728,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -5751,7 +5751,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5812,7 +5812,7 @@ paths:
               $ref: '#/components/schemas/ProviderLocationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -5851,7 +5851,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5901,7 +5901,7 @@ paths:
               $ref: '#/components/schemas/ProviderLocationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5950,7 +5950,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderLocationWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -5988,7 +5988,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -6028,7 +6028,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -6090,7 +6090,7 @@ paths:
               $ref: '#/components/schemas/ServiceMedia'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -6129,7 +6129,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -6180,7 +6180,7 @@ paths:
               $ref: '#/components/schemas/ServiceMedia'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -6229,7 +6229,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedServiceMedia'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -6267,7 +6267,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -6361,7 +6361,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -6423,7 +6423,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -6462,7 +6462,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -6513,7 +6513,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -6562,7 +6562,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProvider'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -6600,7 +6600,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -6647,7 +6647,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -6787,7 +6787,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -6929,7 +6929,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -6968,7 +6968,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7019,7 +7019,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7070,7 +7070,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7127,7 +7127,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7217,7 +7217,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7312,7 +7312,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7387,7 +7387,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderProfileCompletion'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7439,7 +7439,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7476,7 +7476,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7542,7 +7542,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderUnifiedProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7608,7 +7608,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderUnifiedProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7673,7 +7673,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedUserProfilePhoto'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7715,7 +7715,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderPhoto'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -7810,7 +7810,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -7872,7 +7872,7 @@ paths:
               $ref: '#/components/schemas/ReviewWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -7911,7 +7911,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -7962,7 +7962,7 @@ paths:
               $ref: '#/components/schemas/ReviewWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -8011,7 +8011,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedReviewWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -8049,7 +8049,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -8177,7 +8177,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -8247,7 +8247,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -8306,7 +8306,7 @@ paths:
               $ref: '#/components/schemas/ServiceCategory'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -8345,7 +8345,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -8393,7 +8393,7 @@ paths:
               $ref: '#/components/schemas/ServiceCategory'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -8439,7 +8439,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedServiceCategory'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -8477,7 +8477,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -8512,7 +8512,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -8573,7 +8573,7 @@ paths:
               $ref: '#/components/schemas/ServiceMediaWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -8612,7 +8612,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -8662,7 +8662,7 @@ paths:
               $ref: '#/components/schemas/ServiceMediaWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -8711,7 +8711,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedServiceMediaWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -8749,7 +8749,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -8757,6 +8757,18 @@ paths:
     get:
       operationId: api_service_texts_list
       parameters:
+      - in: query
+        name: category_id
+        schema:
+          type: string
+          format: uuid
+        description: Optional service category id to constrain aggregation.
+      - in: query
+        name: currency
+        schema:
+          type: string
+        description: Optional 3-letter currency code (e.g. NGN, USD) to constrain
+          aggregation.
       - name: ordering
         required: false
         in: query
@@ -8775,16 +8787,20 @@ paths:
         description: Number of results to return per page.
         schema:
           type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
+      - in: query
+        name: q
         schema:
           type: string
+        description: 'Search term for service titles (icontains). Alias: `search`.'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Alias of `q` (Search term for service titles).
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -8828,6 +8844,27 @@ paths:
                 - data
                 - meta
                 - error
+              examples:
+                ServiceTextSuggestions:
+                  value:
+                    success: true
+                    data:
+                      count: 123
+                      next: http://api.example.org/accounts/?page=4
+                      previous: http://api.example.org/accounts/?page=2
+                      results:
+                      - - id: 9b3d1d5d-3e8c-4a4c-9a5d-2c86b9e3a2b1
+                          title: Hair Braiding
+                          service_count: 12
+                          provider_count: 7
+                          min_price_amount: '5000.00'
+                          max_price_amount: '20000.00'
+                          currency: NGN
+                          created_at: '2026-05-01T12:00:00Z'
+                          updated_at: '2026-05-01T12:00:00Z'
+                    meta: null
+                    error: null
+                  summary: Service Text Suggestions
           description: ''
   /api/service-texts/{id}/:
     get:
@@ -8843,7 +8880,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -8936,7 +8973,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -8983,6 +9020,10 @@ paths:
           description: ''
     post:
       operationId: api_services_create
+      description: |-
+        Create a service.
+
+        For provider users (non-admin): you can either provide `service_text` (UUID of an existing shared service definition), or provide `title` and the API will create/reuse a shared service definition automatically.
       tags:
       - api
       requestBody:
@@ -8990,6 +9031,27 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
+            examples:
+              CreateWithTitle:
+                value:
+                  title: Hair Braiding
+                  description: Professional braiding services.
+                  price_type: FIXED
+                  price_amount: '8000.00'
+                  currency: NGN
+                  duration_minutes: 90
+                  is_active: true
+                summary: Create With Title
+              CreateWithServiceText:
+                value:
+                  service_text: 9b3d1d5d-3e8c-4a4c-9a5d-2c86b9e3a2b1
+                  description: Professional braiding services.
+                  price_type: FIXED
+                  price_amount: '8000.00'
+                  currency: NGN
+                  duration_minutes: 90
+                  is_active: true
+                summary: Create With Service Text
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
@@ -8997,7 +9059,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -9009,7 +9071,7 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/ServiceWrite'
+                    $ref: '#/components/schemas/Service'
                   meta:
                     type: object
                     nullable: true
@@ -9036,7 +9098,7 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -9064,6 +9126,10 @@ paths:
           description: ''
     put:
       operationId: api_services_update
+      description: |-
+        Update a service.
+
+        For provider users (non-admin): you may update `title` (which will create/reuse a shared service definition) or set `service_text` directly.
       parameters:
       - in: path
         name: id
@@ -9086,7 +9152,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9098,7 +9164,7 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/ServiceWrite'
+                    $ref: '#/components/schemas/Service'
                   meta:
                     type: object
                     nullable: true
@@ -9113,6 +9179,10 @@ paths:
           description: ''
     patch:
       operationId: api_services_partial_update
+      description: |-
+        Partially update a service.
+
+        For provider users (non-admin): you may update `title` (which will create/reuse a shared service definition) or set `service_text` directly.
       parameters:
       - in: path
         name: id
@@ -9135,7 +9205,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedServiceWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9147,7 +9217,7 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/ServiceWrite'
+                    $ref: '#/components/schemas/Service'
                   meta:
                     type: object
                     nullable: true
@@ -9173,17 +9243,19 @@ paths:
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
   /api/services/featured/:
     get:
       operationId: api_services_featured_retrieve
+      description: Returns the top service per category (based on booking count),
+        filtered to active services and active categories.
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -9215,14 +9287,42 @@ paths:
       description: Returns ManagementConfig entries with encrypt=false, cast to their
         declared types.
       summary: Get public (unencrypted) settings
+      parameters:
+      - in: query
+        name: keys
+        schema:
+          type: string
+        description: Optional comma-separated list of config keys to return.
       tags:
       - api
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    additionalProperties: {}
+                  meta:
+                    type: object
+                    nullable: true
+                  error:
+                    type: object
+                    nullable: true
+                required:
+                - success
+                - data
+                - meta
+                - error
+          description: ''
   /mgt/api/booking-items/:
     get:
       operationId: mgt_api_booking_items_list
@@ -9254,7 +9354,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9315,7 +9415,7 @@ paths:
               $ref: '#/components/schemas/BookingItemWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -9354,7 +9454,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9404,7 +9504,7 @@ paths:
               $ref: '#/components/schemas/BookingItemWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9453,7 +9553,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedBookingItemWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9491,7 +9591,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -9550,7 +9650,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9611,7 +9711,7 @@ paths:
               $ref: '#/components/schemas/BookingWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -9650,7 +9750,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9700,7 +9800,7 @@ paths:
               $ref: '#/components/schemas/BookingWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9749,7 +9849,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedBookingWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9787,7 +9887,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -9817,7 +9917,7 @@ paths:
               $ref: '#/components/schemas/Booking'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9868,7 +9968,7 @@ paths:
               $ref: '#/components/schemas/Booking'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9919,7 +10019,7 @@ paths:
               $ref: '#/components/schemas/Booking'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -9970,7 +10070,7 @@ paths:
               $ref: '#/components/schemas/Booking'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10014,7 +10114,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10075,7 +10175,7 @@ paths:
               $ref: '#/components/schemas/ProviderLocationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -10114,7 +10214,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10164,7 +10264,7 @@ paths:
               $ref: '#/components/schemas/ProviderLocationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10213,7 +10313,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderLocationWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10251,7 +10351,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -10286,7 +10386,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10347,7 +10447,7 @@ paths:
               $ref: '#/components/schemas/BusinessStaffMemberWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -10386,7 +10486,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10436,7 +10536,7 @@ paths:
               $ref: '#/components/schemas/BusinessStaffMemberWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10485,7 +10585,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedBusinessStaffMemberWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10523,7 +10623,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -10575,7 +10675,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10636,7 +10736,7 @@ paths:
               $ref: '#/components/schemas/DeviceToken'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -10675,7 +10775,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10725,7 +10825,7 @@ paths:
               $ref: '#/components/schemas/DeviceToken'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10774,7 +10874,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedDeviceToken'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10812,7 +10912,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -10842,7 +10942,7 @@ paths:
               $ref: '#/components/schemas/DeviceToken'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10873,7 +10973,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -10926,7 +11026,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -10995,7 +11095,7 @@ paths:
               $ref: '#/components/schemas/MessageThread'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -11042,7 +11142,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11100,7 +11200,7 @@ paths:
               $ref: '#/components/schemas/MessageThread'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11157,7 +11257,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedMessageThread'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11203,7 +11303,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -11241,7 +11341,7 @@ paths:
               $ref: '#/components/schemas/MessageThread'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11313,7 +11413,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11374,7 +11474,7 @@ paths:
               $ref: '#/components/schemas/Message'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -11413,7 +11513,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11463,7 +11563,7 @@ paths:
               $ref: '#/components/schemas/Message'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11512,7 +11612,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedMessage'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11550,7 +11650,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -11607,7 +11707,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11669,7 +11769,7 @@ paths:
               $ref: '#/components/schemas/MyAvailabilityRule'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -11709,7 +11809,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11760,7 +11860,7 @@ paths:
               $ref: '#/components/schemas/MyAvailabilityRule'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11810,7 +11910,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedMyAvailabilityRule'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11849,7 +11949,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -11905,7 +12005,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -11966,7 +12066,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -12005,7 +12105,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12055,7 +12155,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12104,7 +12204,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedNotification'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12142,7 +12242,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -12172,7 +12272,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12215,7 +12315,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12258,7 +12358,7 @@ paths:
               $ref: '#/components/schemas/Notification'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12343,7 +12443,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12404,7 +12504,7 @@ paths:
               $ref: '#/components/schemas/PaymentAuthorize'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -12443,7 +12543,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12492,7 +12592,7 @@ paths:
             schema:
               $ref: '#/components/schemas/Payment'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12541,7 +12641,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedPayment'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12579,7 +12679,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -12608,7 +12708,7 @@ paths:
             schema:
               $ref: '#/components/schemas/Payment'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12650,7 +12750,7 @@ paths:
             schema:
               $ref: '#/components/schemas/Payment'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12681,7 +12781,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12713,7 +12813,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12746,7 +12846,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12778,7 +12878,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12820,7 +12920,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderPayoutAccountSetup'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12852,7 +12952,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12945,7 +13045,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -12994,7 +13094,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           description: No response body
@@ -13012,7 +13112,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13061,7 +13161,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderPayout'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13110,7 +13210,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderPayout'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13148,7 +13248,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -13177,7 +13277,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderPayout'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13227,7 +13327,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderPayout'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13258,7 +13358,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13289,7 +13389,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13320,7 +13420,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -13330,7 +13430,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -13389,7 +13489,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13450,7 +13550,7 @@ paths:
               $ref: '#/components/schemas/RefundRequestCreate'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -13489,7 +13589,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13538,7 +13638,7 @@ paths:
             schema:
               $ref: '#/components/schemas/RefundRequest'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13587,7 +13687,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedRefundRequest'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13625,7 +13725,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -13643,7 +13743,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -13661,7 +13761,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           description: No response body
@@ -13722,7 +13822,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -13784,7 +13884,7 @@ paths:
               $ref: '#/components/schemas/ProviderAvailabilityRuleWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -13823,7 +13923,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -13874,7 +13974,7 @@ paths:
               $ref: '#/components/schemas/ProviderAvailabilityRuleWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13923,7 +14023,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderAvailabilityRuleWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -13961,7 +14061,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -13996,7 +14096,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14056,7 +14156,7 @@ paths:
             schema:
               $ref: '#/components/schemas/BusinessProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -14095,7 +14195,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14144,7 +14244,7 @@ paths:
             schema:
               $ref: '#/components/schemas/BusinessProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14193,7 +14293,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedBusinessProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14231,7 +14331,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -14271,7 +14371,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -14333,7 +14433,7 @@ paths:
               $ref: '#/components/schemas/ProviderCertificationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -14372,7 +14472,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -14423,7 +14523,7 @@ paths:
               $ref: '#/components/schemas/ProviderCertificationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14472,7 +14572,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderCertificationWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14510,7 +14610,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -14545,7 +14645,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14605,7 +14705,7 @@ paths:
             schema:
               $ref: '#/components/schemas/IndividualProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -14644,7 +14744,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14693,7 +14793,7 @@ paths:
             schema:
               $ref: '#/components/schemas/IndividualProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14742,7 +14842,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedIndividualProviderProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14780,7 +14880,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -14803,7 +14903,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14864,7 +14964,7 @@ paths:
               $ref: '#/components/schemas/ProviderLocationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -14903,7 +15003,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -14953,7 +15053,7 @@ paths:
               $ref: '#/components/schemas/ProviderLocationWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -15002,7 +15102,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderLocationWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -15040,7 +15140,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -15080,7 +15180,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -15142,7 +15242,7 @@ paths:
               $ref: '#/components/schemas/ServiceMedia'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -15181,7 +15281,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -15232,7 +15332,7 @@ paths:
               $ref: '#/components/schemas/ServiceMedia'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -15281,7 +15381,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedServiceMedia'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -15319,7 +15419,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -15413,7 +15513,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -15475,7 +15575,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -15514,7 +15614,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -15565,7 +15665,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -15614,7 +15714,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProvider'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -15652,7 +15752,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -15699,7 +15799,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -15839,7 +15939,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -15981,7 +16081,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16020,7 +16120,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16071,7 +16171,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16122,7 +16222,7 @@ paths:
               $ref: '#/components/schemas/Provider'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16179,7 +16279,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16269,7 +16369,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16364,7 +16464,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16439,7 +16539,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderProfileCompletion'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16491,7 +16591,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16528,7 +16628,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16594,7 +16694,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ProviderUnifiedProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16660,7 +16760,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderUnifiedProfileWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16725,7 +16825,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedUserProfilePhoto'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16767,7 +16867,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedProviderPhoto'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -16862,7 +16962,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -16924,7 +17024,7 @@ paths:
               $ref: '#/components/schemas/ReviewWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -16963,7 +17063,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -17014,7 +17114,7 @@ paths:
               $ref: '#/components/schemas/ReviewWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -17063,7 +17163,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedReviewWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -17101,7 +17201,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -17136,7 +17236,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -17195,7 +17295,7 @@ paths:
               $ref: '#/components/schemas/ServiceCategory'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -17234,7 +17334,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -17282,7 +17382,7 @@ paths:
               $ref: '#/components/schemas/ServiceCategory'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -17328,7 +17428,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedServiceCategory'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -17366,7 +17466,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -17401,7 +17501,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -17462,7 +17562,7 @@ paths:
               $ref: '#/components/schemas/ServiceMediaWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -17501,7 +17601,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -17551,7 +17651,7 @@ paths:
               $ref: '#/components/schemas/ServiceMediaWrite'
         required: true
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -17600,7 +17700,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedServiceMediaWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -17638,7 +17738,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
@@ -17646,6 +17746,18 @@ paths:
     get:
       operationId: mgt_api_service_texts_list
       parameters:
+      - in: query
+        name: category_id
+        schema:
+          type: string
+          format: uuid
+        description: Optional service category id to constrain aggregation.
+      - in: query
+        name: currency
+        schema:
+          type: string
+        description: Optional 3-letter currency code (e.g. NGN, USD) to constrain
+          aggregation.
       - name: ordering
         required: false
         in: query
@@ -17664,16 +17776,20 @@ paths:
         description: Number of results to return per page.
         schema:
           type: integer
-      - name: search
-        required: false
-        in: query
-        description: A search term.
+      - in: query
+        name: q
         schema:
           type: string
+        description: 'Search term for service titles (icontains). Alias: `search`.'
+      - in: query
+        name: search
+        schema:
+          type: string
+        description: Alias of `q` (Search term for service titles).
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -17717,6 +17833,27 @@ paths:
                 - data
                 - meta
                 - error
+              examples:
+                ServiceTextSuggestions:
+                  value:
+                    success: true
+                    data:
+                      count: 123
+                      next: http://api.example.org/accounts/?page=4
+                      previous: http://api.example.org/accounts/?page=2
+                      results:
+                      - - id: 9b3d1d5d-3e8c-4a4c-9a5d-2c86b9e3a2b1
+                          title: Hair Braiding
+                          service_count: 12
+                          provider_count: 7
+                          min_price_amount: '5000.00'
+                          max_price_amount: '20000.00'
+                          currency: NGN
+                          created_at: '2026-05-01T12:00:00Z'
+                          updated_at: '2026-05-01T12:00:00Z'
+                    meta: null
+                    error: null
+                  summary: Service Text Suggestions
           description: ''
   /mgt/api/service-texts/{id}/:
     get:
@@ -17732,7 +17869,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -17825,7 +17962,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -17872,6 +18009,10 @@ paths:
           description: ''
     post:
       operationId: mgt_api_services_create
+      description: |-
+        Create a service.
+
+        For provider users (non-admin): you can either provide `service_text` (UUID of an existing shared service definition), or provide `title` and the API will create/reuse a shared service definition automatically.
       tags:
       - mgt
       requestBody:
@@ -17879,6 +18020,27 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
+            examples:
+              CreateWithTitle:
+                value:
+                  title: Hair Braiding
+                  description: Professional braiding services.
+                  price_type: FIXED
+                  price_amount: '8000.00'
+                  currency: NGN
+                  duration_minutes: 90
+                  is_active: true
+                summary: Create With Title
+              CreateWithServiceText:
+                value:
+                  service_text: 9b3d1d5d-3e8c-4a4c-9a5d-2c86b9e3a2b1
+                  description: Professional braiding services.
+                  price_type: FIXED
+                  price_amount: '8000.00'
+                  currency: NGN
+                  duration_minutes: 90
+                  is_active: true
+                summary: Create With Service Text
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
@@ -17886,7 +18048,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '201':
           content:
@@ -17898,7 +18060,7 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/ServiceWrite'
+                    $ref: '#/components/schemas/Service'
                   meta:
                     type: object
                     nullable: true
@@ -17925,7 +18087,7 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -17953,6 +18115,10 @@ paths:
           description: ''
     put:
       operationId: mgt_api_services_update
+      description: |-
+        Update a service.
+
+        For provider users (non-admin): you may update `title` (which will create/reuse a shared service definition) or set `service_text` directly.
       parameters:
       - in: path
         name: id
@@ -17975,7 +18141,7 @@ paths:
             schema:
               $ref: '#/components/schemas/ServiceWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -17987,7 +18153,7 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/ServiceWrite'
+                    $ref: '#/components/schemas/Service'
                   meta:
                     type: object
                     nullable: true
@@ -18002,6 +18168,10 @@ paths:
           description: ''
     patch:
       operationId: mgt_api_services_partial_update
+      description: |-
+        Partially update a service.
+
+        For provider users (non-admin): you may update `title` (which will create/reuse a shared service definition) or set `service_text` directly.
       parameters:
       - in: path
         name: id
@@ -18024,7 +18194,7 @@ paths:
             schema:
               $ref: '#/components/schemas/PatchedServiceWrite'
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '200':
           content:
@@ -18036,7 +18206,7 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/ServiceWrite'
+                    $ref: '#/components/schemas/Service'
                   meta:
                     type: object
                     nullable: true
@@ -18062,17 +18232,19 @@ paths:
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       responses:
         '204':
           description: No response body
   /mgt/api/services/featured/:
     get:
       operationId: mgt_api_services_featured_retrieve
+      description: Returns the top service per category (based on booking count),
+        filtered to active services and active categories.
       tags:
       - mgt
       security:
-      - tokenAuth: []
+      - XSessionTokenAuth: []
       - {}
       responses:
         '200':
@@ -21805,6 +21977,7 @@ components:
           nullable: true
         currency:
           type: string
+          nullable: true
           readOnly: true
         created_at:
           type: string
@@ -22051,6 +22224,8 @@ components:
       - verification_status
       - verified_at
   securitySchemes:
-    tokenAuth:
-      type: http
-      scheme: bearer
+    XSessionTokenAuth:
+      type: apiKey
+      in: header
+      name: X-Session-Token
+      description: django-allauth headless session token authentication.
