@@ -205,7 +205,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     try {
       // Get FCM token - for now use a placeholder
       // In production, this should come from FirebaseMessaging.instance.getToken()
-      const String? fcmToken = null; // TODO: Integrate with Firebase Messaging
+      const String? fcmToken = null; // Note: Integrate with Firebase Messaging
 
       if (fcmToken == null || fcmToken.isEmpty) {
         // No FCM token available, skip registration

@@ -1,4 +1,7 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
+import 'package:discovaa/core/errors/exceptions.dart';
 import 'package:discovaa/core/network/api_helpers.dart';
 import 'package:discovaa/core/network/dio_client.dart';
 import 'package:discovaa/core/network/network_info.dart';
@@ -8,7 +11,6 @@ import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/domain/repositories/bookings_repository.dart';
 import 'package:discovaa/features/services/data/models/service_model.dart';
 import 'package:discovaa/features/services/domain/repositories/services_repository.dart';
-import 'package:flutter/foundation.dart';
 
 // Import the helper function from booking_api_models.dart
 // Note: _bookingStatus is a private function, so we need to handle this differently
@@ -48,7 +50,6 @@ class BookingsRepositoryImpl implements BookingsRepository {
   @override
   Future<List<BookingModel>> listBookings({
     String? userRole,
-    String? providerId,
     int? page,
     int? pageSize,
   }) async {
@@ -61,13 +62,12 @@ class BookingsRepositoryImpl implements BookingsRepository {
         }
       }
 
-      // Determine query parameters based on role
-      Map<String, dynamic>? queryParameters;
-      if (isProviderRole(userRole) && providerId != null) {
-        queryParameters = {'provider': providerId};
-      }
+      // We deliberately do not filter by provider ID here.
+      // This ensures that service providers can see both the bookings they
+      // receive (as a provider) and the bookings they request personally (as a consumer).
+      Map<String, dynamic> queryParameters = {};
+
       // Add expand parameter to fetch nested data
-      queryParameters ??= {};
       queryParameters['expand'] = 'provider,items.service,payment,user';
 
       // Add pagination parameters if provided
@@ -79,19 +79,26 @@ class BookingsRepositoryImpl implements BookingsRepository {
       }
 
       // Run API calls in parallel to reduce total loading time
+      // Use extended timeout for heavy bookings endpoint with expand
       final results = await Future.wait([
         _servicesRepository.listServices(),
-        _dioClient.get(ApiEndpoints.bookings, queryParameters: queryParameters),
+        _dioClient.get(
+          ApiEndpoints.bookings,
+          queryParameters: queryParameters,
+          options: Options(
+            receiveTimeout: Duration(
+              seconds: 90,
+            ), // Extended timeout for expand queries
+            sendTimeout: Duration(seconds: 30),
+          ),
+        ),
       ]);
 
       final services = results[0] as List<ServiceModel>;
       final serviceMap = {for (final service in services) service.id: service};
       final response = results[1] as dynamic;
 
-      final envelope = decodeListEnvelope(
-        response,
-        _parseBookingDto,
-      );
+      final envelope = decodeListEnvelope(response, _parseBookingDto);
 
       // Fetch reviews for completed bookings
       final bookingDTOs = envelope.data;
@@ -157,11 +164,14 @@ class BookingsRepositoryImpl implements BookingsRepository {
         'expand': 'provider,items.service,payment,user',
         'expand[items]': 'service',
       },
+      options: Options(
+        receiveTimeout: const Duration(
+          seconds: 90,
+        ), // Extended timeout for expand queries
+        sendTimeout: const Duration(seconds: 30),
+      ),
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     // Fetch review if booking is completed
     ReviewDto? review;
@@ -207,10 +217,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
         items: items,
       ).toJson(),
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     // Fetch the associated services to build the service snapshot
     final services = await _servicesRepository.listServices();
@@ -223,13 +230,89 @@ class BookingsRepositoryImpl implements BookingsRepository {
 
   @override
   Future<BookingModel> cancelBooking(BookingModel booking) async {
-    await _dioClient.post(ApiEndpoints.bookingCancel(booking.id));
+    // Comprehensive debugging at method entry
+    print('=== CANCELLATION ATTEMPT START ===');
+    print('DEBUG: Method entry reached');
+    print('DEBUG: Booking object received: ${booking.runtimeType}');
+    print('DEBUG: Booking ID: ${booking.id}');
+    print('DEBUG: Booking status: ${booking.status.name}');
+    print('DEBUG: Status enum: ${booking.status}');
+    print('DEBUG: Is requested: ${booking.status == BookingStatus.requested}');
+    print('DEBUG: Is confirmed: ${booking.status == BookingStatus.confirmed}');
+    print('DEBUG: Is cancelled: ${booking.status == BookingStatus.cancelled}');
+    print('DEBUG: Is completed: ${booking.status == BookingStatus.completed}');
+    print('DEBUG: Is ongoing: ${booking.status == BookingStatus.ongoing}');
+
+    // Force fresh booking data to ensure we have current status
+    print('DEBUG: Retrieving fresh booking data from server...');
+    try {
+      final freshBooking = await retrieveBooking(booking.id);
+      print('DEBUG: Fresh booking status: ${freshBooking.status.name}');
+      print('DEBUG: Fresh booking status enum: ${freshBooking.status}');
+
+      // Use the fresh booking for validation and cancellation
+      booking = freshBooking;
+    } catch (e) {
+      print('DEBUG: Failed to retrieve fresh booking: $e');
+      print('DEBUG: Proceeding with original booking data...');
+    }
+
+    print('DEBUG: Final booking status for validation: ${booking.status.name}');
+
+    // Validate booking status before attempting cancellation
+    if (booking.status != BookingStatus.requested &&
+        booking.status != BookingStatus.confirmed) {
+      print('DEBUG: Validation failed - status is not requested or confirmed');
+      throw ValidationException(
+        message: 'Booking cannot be cancelled in its current status',
+        code: 'INVALID_BOOKING_STATUS',
+        details: {
+          'current_status': booking.status.name,
+          'can_cancel': false,
+          'allowed_statuses': ['REQUESTED', 'CONFIRMED'],
+        },
+      );
+    }
+
+    print('DEBUG: Validation passed - proceeding with API call');
+
+    // Prepare request body according to API specification
+    final requestBody = {
+      'id': booking.id,
+      'status': 'CANCELLED',
+      'scheduled_start': _formatDateTimeForApi(
+        booking.scheduledDate,
+        booking.scheduledTime,
+      ),
+      'scheduled_end': booking.scheduledEnd?.toIso8601String(),
+      'address_text': booking.addressText,
+      'notes': booking.note,
+      'service_type': booking.serviceType?.toUpperCase(),
+    };
+
+    await _dioClient.post(
+      ApiEndpoints.bookingCancel(booking.id),
+      data: requestBody,
+    );
+
     final updated = booking.copyWith(
       status: BookingStatus.cancelled,
       updatedAt: DateTime.now(),
     );
     await _upsertCachedBooking(updated);
     return updated;
+  }
+
+  /// Helper method to format DateTime for API compatibility
+  String _formatDateTimeForApi(DateTime date, TimeOfDay time) {
+    final scheduledDateTime = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    return scheduledDateTime.toIso8601String();
   }
 
   @override
@@ -244,10 +327,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
     final response = await _dioClient.post(
       ApiEndpoints.bookingCharge(booking.id),
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     // Fetch services to build service snapshot
     final services = await _servicesRepository.listServices();
@@ -264,10 +344,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
       ApiEndpoints.bookingReschedule(booking.id),
       data: {'status': 'ONGOING'},
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     // Fetch services to build service snapshot
     final services = await _servicesRepository.listServices();
@@ -350,10 +427,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
       ApiEndpoints.bookingReschedule(booking.id),
       data: data,
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     final services = await _servicesRepository.listServices();
     final serviceMap = {for (final s in services) s.id: s};
@@ -379,10 +453,7 @@ class BookingsRepositoryImpl implements BookingsRepository {
         ],
       },
     );
-    final dto = decodeEnvelope(
-      response,
-      _parseBookingDto,
-    ).data;
+    final dto = decodeEnvelope(response, _parseBookingDto).data;
 
     final services = await _servicesRepository.listServices();
     final serviceMap = {for (final s in services) s.id: s};

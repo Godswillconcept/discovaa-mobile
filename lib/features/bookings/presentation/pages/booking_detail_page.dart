@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'dart:async';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Utility Functions
@@ -723,9 +724,11 @@ class _PaymentActionSection extends ConsumerWidget {
                 color: AppColors.warning,
               ),
               const SizedBox(width: 8),
-              Text(
-                'Action required to continue payment authorization.',
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              Expanded(
+                child: Text(
+                  'Action required to continue payment authorization.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                ),
               ),
             ],
           ),
@@ -789,6 +792,7 @@ class _PaymentActionSection extends ConsumerWidget {
                       MaterialPageRoute(
                         builder: (context) => _PaymentWebView(
                           url: booking.paymentAuthorizationUrl!,
+                          bookingId: booking.id,
                           onPaymentComplete: () {
                             // Refresh booking data after payment
                             ref
@@ -1691,19 +1695,94 @@ class _ActionButton extends StatelessWidget {
 // Payment WebView Widget - Opens payment URL within the app
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _PaymentWebView extends StatefulWidget {
+class _PaymentWebView extends ConsumerStatefulWidget {
   final String url;
   final VoidCallback onPaymentComplete;
+  final String bookingId;
 
-  const _PaymentWebView({required this.url, required this.onPaymentComplete});
+  const _PaymentWebView({
+    required this.url,
+    required this.onPaymentComplete,
+    required this.bookingId,
+  });
 
   @override
-  State<_PaymentWebView> createState() => _PaymentWebViewState();
+  ConsumerState<_PaymentWebView> createState() => _PaymentWebViewState();
 }
 
-class _PaymentWebViewState extends State<_PaymentWebView> {
+class _PaymentWebViewState extends ConsumerState<_PaymentWebView> {
   late InAppWebViewController _webViewController;
   double _progress = 0;
+  bool _isProcessingPayment = true;
+  Timer? _webhookCheckTimer;
+  static const Duration _webhookCheckInterval = Duration(seconds: 3);
+
+  @override
+  void initState() {
+    super.initState();
+    // Start periodic webhook check for payment completion
+    _startWebhookMonitoring();
+  }
+
+  @override
+  void dispose() {
+    _webhookCheckTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startWebhookMonitoring() {
+    _webhookCheckTimer = Timer.periodic(_webhookCheckInterval, (timer) {
+      if (mounted) {
+        _checkPaymentStatus();
+      }
+    });
+  }
+
+  Future<void> _checkPaymentStatus() async {
+    try {
+      // Periodically check booking payment status via API
+      final bookingProvider = ref.read(bookingsProvider.notifier);
+      await bookingProvider.retrieveBooking(widget.bookingId);
+
+      if (!mounted) return;
+
+      // Check if payment has been completed successfully
+      final bookingsState = ref.read(bookingsProvider);
+      final bookings = bookingsState.bookings;
+      final updatedBooking = bookings
+          .where((b) => b.id == widget.bookingId)
+          .firstOrNull;
+      if (updatedBooking != null &&
+          isPaymentSuccessful(updatedBooking.paymentStatus)) {
+        _handlePaymentSuccess();
+      }
+    } catch (e) {
+      debugPrint('Error checking payment status: $e');
+    }
+  }
+
+  void _handlePaymentSuccess() {
+    if (!_isProcessingPayment) return;
+
+    setState(() {
+      _isProcessingPayment = false;
+    });
+
+    _webhookCheckTimer?.cancel();
+
+    widget.onPaymentComplete();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment completed successfully!'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      Navigator.of(context).pop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1727,83 +1806,110 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
               )
             : null,
       ),
-      body: InAppWebView(
-        initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-        onWebViewCreated: (controller) {
-          _webViewController = controller;
-        },
-        onProgressChanged: (controller, progress) {
-          setState(() {
-            _progress = progress / 100;
-          });
-        },
-        onLoadStart: (controller, url) {
-          final urlString = url.toString();
-          if (_isPaymentComplete(urlString)) {
-            widget.onPaymentComplete();
-            Navigator.of(context).pop();
-          }
-        },
-        onLoadStop: (controller, url) async {
-          final urlString = url.toString();
-          if (_isPaymentComplete(urlString)) {
-            widget.onPaymentComplete();
-            Navigator.of(context).pop();
-          }
-          // Check page title for error messages
-          final title = await controller.getTitle();
-          if (_isPaymentError(title ?? '')) {
-            if (!mounted) return;
-            // Show feedback to user
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('This payment has already been processed.'),
-                duration: Duration(seconds: 3),
-              ),
-            );
-            widget.onPaymentComplete(); // Refresh to check current status
-            Navigator.of(context).pop();
-          }
-        },
-        onReceivedError: (controller, request, error) {
-          // Handle WebView errors
-          debugPrint('Payment WebView error: ${error.description}');
-        },
-        onReceivedHttpError: (controller, request, errorResponse) {
-          // Handle HTTP errors - may indicate already completed transaction
-          debugPrint('Payment WebView HTTP error: ${errorResponse.statusCode}');
-          // If we get a 4xx error from Paystack API, transaction may be done
-          final statusCode = errorResponse.statusCode;
-          if (statusCode != null &&
-              statusCode >= 400 &&
-              request.url.toString().contains('paystack.com')) {
-            // Show feedback to user before closing
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
+      body: Stack(
+        children: [
+          InAppWebView(
+            initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+            onWebViewCreated: (controller) {
+              _webViewController = controller;
+            },
+            onProgressChanged: (controller, progress) {
+              setState(() {
+                _progress = progress / 100;
+              });
+            },
+            // Log navigation start and check for payment completion
+            onLoadStart: (controller, url) {
+              debugPrint('[WebView] Load start: ${url.toString()}');
+              final urlString = url.toString();
+              if (_isPaymentComplete(urlString)) {
+                _handlePaymentSuccess();
+              }
+            },
+            onLoadStop: (controller, url) async {
+              final urlString = url.toString();
+              if (_isPaymentComplete(urlString)) {
+                _handlePaymentSuccess();
+              }
+              // Enhanced webhook callback detection
+              await _detectWebhookCallback(urlString);
+
+              // Check page title for error messages
+              final title = await controller.getTitle();
+              if (_isPaymentError(title ?? '')) {
+                _handlePaymentError('This payment has already been processed.');
+              }
+            },
+            onReceivedError: (controller, request, error) {
+              debugPrint('Payment WebView error: ${error.description}');
+            },
+            // Log HTTP errors with detailed information
+            onReceivedHttpError: (controller, request, errorResponse) {
+              debugPrint(
+                '[WebView] HTTP error ${errorResponse.statusCode} for ${request.url}',
+              );
+              debugPrint(
+                '[WebView] Response body: ${errorResponse.data ?? 'none'}',
+              );
+              debugPrint(
+                '[WebView] Headers: ${errorResponse.headers ?? 'none'}',
+              );
+              debugPrint(
+                '[WebView] Request headers: ${request.headers ?? 'none'}',
+              );
+              // request.body is not available in WebResourceRequest; omitted
+              // Enhanced error handling for webhook scenarios
+              if (_isPaystackRelatedError(
+                request.url.toString(),
+                errorResponse.statusCode,
+              )) {
+                _handlePaymentError(
                   'Payment already completed or link expired. Refreshing...',
+                );
+              }
+            },
+            shouldOverrideUrlLoading: (controller, navigationAction) async {
+              final url = navigationAction.request.url.toString();
+              if (_isPaymentComplete(url)) {
+                _handlePaymentSuccess();
+                return NavigationActionPolicy.CANCEL;
+              }
+              return NavigationActionPolicy.ALLOW;
+            },
+          ),
+
+          // Payment processing overlay
+          if (_isProcessingPayment)
+            Container(
+              color: Colors.black.withValues(alpha: 0.8),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Processing payment...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                duration: Duration(seconds: 3),
               ),
-            );
-            widget.onPaymentComplete(); // Refresh to check current status
-            Navigator.of(context).pop();
-          }
-        },
-        shouldOverrideUrlLoading: (controller, navigationAction) async {
-          final url = navigationAction.request.url.toString();
-          if (_isPaymentComplete(url)) {
-            widget.onPaymentComplete();
-            Navigator.of(context).pop();
-            return NavigationActionPolicy.CANCEL;
-          }
-          return NavigationActionPolicy.ALLOW;
-        },
+            ),
+        ],
       ),
     );
   }
 
   bool _isPaymentComplete(String url) {
+    // Enhanced Paystack webhook detection patterns
     final paymentSuccessPatterns = [
       '/payment/success',
       '/payment/callback',
@@ -1814,13 +1920,28 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
       'success=true',
       'payment/verify',
       'reference=', // Paystack reference parameter indicates callback
-      'trx'
-          'ref=', // Paystack transaction reference
+      'trxref=', // Paystack transaction reference
+      'ref=', // Paystack transaction reference
       '/payment/complete',
       '/payment/successful',
+      'event=charge.success', // Paystack webhook event
+      'transaction.success',
+      'charge.success',
     ];
+
+    final urlString = url.toLowerCase();
+
+    // Check for Paystack-specific patterns first
+    if (urlString.contains('paystack')) {
+      // Enhanced detection for Paystack callbacks
+      return urlString.contains('reference=') ||
+          urlString.contains('trxref=') ||
+          urlString.contains('event=charge.success');
+    }
+
+    // Check general success patterns
     return paymentSuccessPatterns.any(
-      (pattern) => url.toLowerCase().contains(pattern.toLowerCase()),
+      (pattern) => urlString.contains(pattern.toLowerCase()),
     );
   }
 
@@ -1836,5 +1957,68 @@ class _PaymentWebViewState extends State<_PaymentWebView> {
     return errorPatterns.any(
       (pattern) => title.toLowerCase().contains(pattern.toLowerCase()),
     );
+  }
+
+  // Enhanced webhook callback detection
+  Future<void> _detectWebhookCallback(String url) async {
+    try {
+      // Check for Paystack-specific webhook parameters
+      if (url.contains('paystack')) {
+        final uri = Uri.parse(url);
+        final params = uri.queryParameters;
+
+        // Check for webhook event parameters
+        if (params.containsKey('event') &&
+            (params['event'] == 'charge.success' ||
+                params['event'] == 'payment.success')) {
+          _handlePaymentSuccess();
+          return;
+        }
+
+        // Check for reference parameter (Paystack callback)
+        if (params.containsKey('reference') &&
+            params['reference']!.isNotEmpty) {
+          _handlePaymentSuccess();
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error detecting webhook callback: $e');
+    }
+  }
+
+  // Enhanced Paystack error detection
+  bool _isPaystackRelatedError(String url, int? statusCode) {
+    // Check if this is a Paystack-related error
+    final isPaystackUrl = url.contains('paystack.com');
+
+    // HTTP 4xx errors from Paystack usually mean transaction is complete
+    final isClientError =
+        statusCode != null && statusCode >= 400 && statusCode < 500;
+
+    return isPaystackUrl && isClientError;
+  }
+
+  // Centralized error handling
+  void _handlePaymentError(String message) {
+    if (!_isProcessingPayment) return;
+
+    setState(() {
+      _isProcessingPayment = false;
+    });
+
+    _webhookCheckTimer?.cancel();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      widget.onPaymentComplete(); // Refresh to check current status
+      Navigator.of(context).pop();
+    }
   }
 }

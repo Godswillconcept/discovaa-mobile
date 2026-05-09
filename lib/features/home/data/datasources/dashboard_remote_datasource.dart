@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:discovaa/core/constants/api_endpoints.dart';
 import 'package:discovaa/core/constants/app_constants.dart';
 import 'package:discovaa/core/network/api_helpers.dart';
@@ -145,6 +146,12 @@ class DashboardRemoteDataSourceImpl implements DashboardRemoteDataSource {
         'expand':
             'items.service,provider', // Expand service and provider details
       },
+      options: Options(
+        receiveTimeout: const Duration(
+          seconds: 90,
+        ), // Extended timeout for expand queries
+        sendTimeout: const Duration(seconds: 30),
+      ),
     );
 
     final envelope = decodeListEnvelope(response, (item) => item);

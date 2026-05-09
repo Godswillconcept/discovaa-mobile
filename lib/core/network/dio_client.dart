@@ -38,8 +38,8 @@ class DioClient {
 
   List<Interceptor> _createInterceptors() {
     return [
-      LoggingInterceptor(),
       AuthInterceptor(tokenStorage: _tokenStorage),
+      LoggingInterceptor(),
       ErrorInterceptor(),
       RetryInterceptor(dio: _dio),
     ];
@@ -232,6 +232,11 @@ class DioClient {
   }
 
   Exception _handleDioException(DioException e) {
+    // If ErrorInterceptor already transformed the error into one of our custom exceptions
+    if (e.error is Exception && e.error is! DioException) {
+      return e.error as Exception;
+    }
+
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
@@ -263,6 +268,7 @@ class DioClient {
         );
 
       case DioExceptionType.unknown:
+        if (e.error is Exception) return e.error as Exception;
         return UnknownException(
           message: e.message ?? 'Unknown error occurred',
           code: 'UNKNOWN',

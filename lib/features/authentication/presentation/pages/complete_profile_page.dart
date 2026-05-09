@@ -578,26 +578,32 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                         ),
                         const SizedBox(height: 12),
                         // Skip Button
-                        TextButton(
-                          onPressed: _isLoading
-                              ? null
-                              : () {
-                                  // Skip profile completion and transition auth state
-                                  ref.read(authProvider.notifier).skipProfile();
-                                  // Clear registration flow state if coming from registration
-                                  if (!widget.fromLogin) {
+                        Center(
+                          child: TextButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    // Skip profile completion and transition auth state
                                     ref
-                                        .read(registrationFlowProvider.notifier)
-                                        .clear();
-                                  }
-                                  // Navigate to identification page
-                                  context.go(RouteNames.identification);
-                                },
-                          child: const Text(
-                            'Skip',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                                        .read(authProvider.notifier)
+                                        .skipProfile();
+                                    // Clear registration flow state if coming from registration
+                                    if (!widget.fromLogin) {
+                                      ref
+                                          .read(
+                                            registrationFlowProvider.notifier,
+                                          )
+                                          .clear();
+                                    }
+                                    // Navigate to identification page
+                                    context.go(RouteNames.identification);
+                                  },
+                            child: const Text(
+                              'Skip',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),

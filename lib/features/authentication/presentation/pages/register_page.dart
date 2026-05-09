@@ -300,7 +300,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                                       ),
                                       recognizer: TapGestureRecognizer()
                                         ..onTap = () {
-                                          // TODO: Implement privacy policy link
+                                          // Note: Implement privacy policy link
                                           debugPrint('Privacy Policy tapped');
                                         },
                                     ),

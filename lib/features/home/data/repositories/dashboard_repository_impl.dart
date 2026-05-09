@@ -22,7 +22,10 @@ class DashboardRepositoryImpl implements DashboardRepository {
        _networkInfo = networkInfo;
 
   @override
-  DashboardEntity? getCachedDashboard(String role, {DashboardFilterEntity? filter}) {
+  DashboardEntity? getCachedDashboard(
+    String role, {
+    DashboardFilterEntity? filter,
+  }) {
     final filterDto = filter != null
         ? DashboardFilterDto(
             range: filter.range,

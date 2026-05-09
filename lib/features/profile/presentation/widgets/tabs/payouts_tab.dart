@@ -1188,7 +1188,9 @@ class _PaystackOnboardingCardState
   final _accountNumberController = TextEditingController();
   final _accountNameController = TextEditingController();
   final _bankSearchController = TextEditingController();
-  String? _selectedBankCode;
+  final ValueNotifier<String?> _selectedBankCodeNotifier = ValueNotifier(null);
+  String? get _selectedBankCode => _selectedBankCodeNotifier.value;
+  set _selectedBankCode(String? val) => _selectedBankCodeNotifier.value = val;
   String? _resolvedAccountName;
   List<dynamic> _banks = [];
   bool _isLoadingBanks = false;
@@ -1206,6 +1208,7 @@ class _PaystackOnboardingCardState
     _accountNumberController.dispose();
     _accountNameController.dispose();
     _bankSearchController.dispose();
+    _selectedBankCodeNotifier.dispose();
     super.dispose();
   }
 
@@ -1423,7 +1426,7 @@ class _PaystackOnboardingCardState
                   ),
                   hint: const Text('Search and select a bank'),
                   items: _banks.map((bank) {
-                    return DropdownMenuItem<String>(
+                    return DropdownItem<String>(
                       value: bank['code']?.toString(),
                       child: Text(
                         bank['name']?.toString() ?? '',
@@ -1432,7 +1435,7 @@ class _PaystackOnboardingCardState
                       ),
                     );
                   }).toList(),
-                  value: _selectedBankCode,
+                  valueListenable: _selectedBankCodeNotifier,
                   onChanged: (value) {
                     setState(() {
                       _selectedBankCode = value;
@@ -1441,7 +1444,7 @@ class _PaystackOnboardingCardState
                   },
                   dropdownSearchData: DropdownSearchData(
                     searchController: _bankSearchController,
-                    searchInnerWidget: Padding(
+                    searchBarWidget: Padding(
                       padding: const EdgeInsets.only(
                         top: 8,
                         bottom: 4,

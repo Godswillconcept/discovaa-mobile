@@ -224,9 +224,13 @@ class AuthMethod {
       int atTimestamp;
       if (atValue is int) {
         atTimestamp = atValue;
+      } else if (atValue is double) {
+        atTimestamp = atValue.toInt();
       } else if (atValue is String) {
         atTimestamp =
-            int.tryParse(atValue) ?? DateTime.now().millisecondsSinceEpoch;
+            int.tryParse(atValue) ??
+            double.tryParse(atValue)?.toInt() ??
+            DateTime.now().millisecondsSinceEpoch;
       } else {
         atTimestamp = DateTime.now().millisecondsSinceEpoch;
       }
@@ -307,7 +311,7 @@ class AuthMeta {
     return AuthMeta(
       isAuthenticated: metaJson['is_authenticated'] == true,
       sessionToken: metaJson['session_token']?.toString(),
-      accessToken: metaJson['access_token']?.toString(),
+      accessToken: metaJson['access_token']?.toString() ?? dataJson?['access_token']?.toString(),
       refreshToken: refreshFromMeta ?? refreshFromData,
     );
   }

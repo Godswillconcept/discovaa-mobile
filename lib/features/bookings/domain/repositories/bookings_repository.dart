@@ -5,7 +5,6 @@ abstract class BookingsRepository {
   List<BookingModel> getCachedBookings({String? userRole});
   Future<List<BookingModel>> listBookings({
     String? userRole,
-    String? providerId,
     int? page,
     int? pageSize,
   });

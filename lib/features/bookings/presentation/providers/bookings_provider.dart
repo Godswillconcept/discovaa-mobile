@@ -3,11 +3,11 @@ import 'package:discovaa/core/network/dio_client.dart';
 import 'package:discovaa/core/network/network_info.dart';
 import 'package:discovaa/core/storage/hive_service.dart';
 import 'package:discovaa/features/authentication/presentation/providers/auth_provider.dart';
-import 'package:discovaa/features/bookings/data/models/booking_api_models.dart';
+
 import 'package:discovaa/features/bookings/data/models/booking_model.dart';
 import 'package:discovaa/features/bookings/data/repositories/bookings_repository_impl.dart';
 import 'package:discovaa/features/bookings/domain/repositories/bookings_repository.dart';
-import 'package:discovaa/features/profile/presentation/providers/user_profile_provider.dart';
+
 import 'package:discovaa/features/services/presentation/providers/services_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -90,23 +90,7 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
   // Loading flag to prevent concurrent state mutations
   bool _isLoading = false;
 
-  String? _providerIdForBookings(String? userRole) {
-    if (!isProviderRole(userRole)) return null;
 
-    final providerId = _ref.read(userProfileProvider).profile?.providerId;
-    if (providerId == null || providerId.isEmpty) {
-      debugPrint(
-        '[Bookings] Provider role detected, but providerId is missing. '
-        'Skipping provider booking fetch.',
-      );
-      return null;
-    }
-    return providerId;
-  }
-
-  bool _shouldSkipProviderFetch(String? userRole, String? providerId) {
-    return isProviderRole(userRole) && (providerId == null || providerId.isEmpty);
-  }
 
   Future<void> loadBookings() async {
     // Prevent concurrent execution
@@ -134,22 +118,8 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
     }
 
     try {
-      final providerId = _providerIdForBookings(userRole);
-      if (_shouldSkipProviderFetch(userRole, providerId)) {
-        if (mounted) {
-          state = state.copyWith(
-            bookings: [],
-            status: BookingsLoadStatus.success,
-            currentPage: 1,
-            hasMore: false,
-          );
-        }
-        return;
-      }
-
       final data = await _repository.listBookings(
         userRole: userRole,
-        providerId: providerId,
       );
       if (mounted) {
         state = state.copyWith(
@@ -192,22 +162,8 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
       final authState = _ref.read(authProvider);
       final user = authState.value?.user;
       final userRole = user?.role;
-      final providerId = _providerIdForBookings(userRole);
-      if (_shouldSkipProviderFetch(userRole, providerId)) {
-        if (mounted) {
-          state = state.copyWith(
-            bookings: [],
-            status: BookingsLoadStatus.success,
-            currentPage: 1,
-            hasMore: false,
-          );
-        }
-        return;
-      }
-
       final data = await _repository.listBookings(
         userRole: userRole,
-        providerId: providerId,
         page: 1,
         pageSize: state.pageSize,
       );
@@ -248,21 +204,9 @@ class BookingsNotifier extends StateNotifier<BookingsState> {
       final authState = _ref.read(authProvider);
       final user = authState.value?.user;
       final userRole = user?.role;
-      final providerId = _providerIdForBookings(userRole);
-      if (_shouldSkipProviderFetch(userRole, providerId)) {
-        if (mounted) {
-          state = state.copyWith(
-            status: BookingsLoadStatus.success,
-            hasMore: false,
-          );
-        }
-        return;
-      }
-
       final nextPage = state.currentPage + 1;
       final data = await _repository.listBookings(
         userRole: userRole,
-        providerId: providerId,
         page: nextPage,
         pageSize: state.pageSize,
       );

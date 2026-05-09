@@ -59,20 +59,12 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (AppConstants.isDebugMode) {
-      // Don't show scary error block for an expected 401 on logout
-      final isExpectedLogout401 =
-          err.response?.statusCode == 401 &&
-          err.requestOptions.method == 'DELETE' &&
-          err.requestOptions.path.contains('/auth/session');
-
-      if (!isExpectedLogout401) {
-        debugPrint('=== API Error ===');
-        debugPrint('Group: ${_endpointGroup(err.requestOptions.path)}');
-        debugPrint('Type: ${err.type}');
-        debugPrint('Message: ${err.message}');
-        debugPrint('Response: ${err.response}');
-        debugPrint('================');
-      }
+      debugPrint('=== API Error ===');
+      debugPrint('Group: ${_endpointGroup(err.requestOptions.path)}');
+      debugPrint('Type: ${err.type}');
+      debugPrint('Message: ${err.message}');
+      debugPrint('Response: ${err.response}');
+      debugPrint('================');
     }
     super.onError(err, handler);
   }
@@ -178,18 +170,6 @@ class AuthInterceptor extends Interceptor {
           '[AuthInterceptor] 401 on refresh/already retried request. Clearing auth state.',
         );
         await _clearAuthState(reason: 'refresh_retry_limit');
-        super.onError(err, handler);
-        return;
-      }
-
-      // optimization: if we are trying to logout (DELETE session) and it fails with 401,
-      // it means the session is already gone. Just clear local state and don't refresh.
-      if (originalRequest.method == 'DELETE' &&
-          originalRequest.path == ApiEndpoints.authLogout) {
-        debugPrint(
-          '[AuthInterceptor] Server session already expired (401). Completing local logout...',
-        );
-        await _clearAuthState(reason: 'logout_session_gone');
         super.onError(err, handler);
         return;
       }
@@ -690,5 +670,3 @@ class RetryInterceptor extends Interceptor {
     return Duration(milliseconds: delayMs);
   }
 }
-
-

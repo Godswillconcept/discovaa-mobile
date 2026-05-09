@@ -95,6 +95,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<void> _storeTokens(
     AuthMeta meta, [
     Map<String, dynamic>? dataJson,
+    bool clearMissing = false,
   ]) async {
     // Try to get refresh_token from meta, fall back to data if needed
     String? refreshTokenValue = meta.refreshToken;
@@ -119,9 +120,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     // Use SecureTokenStorage for consistent token management
     await _tokenStorage.saveTokens(
-      accessToken: meta.accessToken,
+      accessToken: clearMissing ? (meta.accessToken ?? "") : meta.accessToken,
       sessionToken: meta.sessionToken,
-      refreshToken: refreshTokenValue,
+      refreshToken: clearMissing
+          ? (refreshTokenValue ?? "")
+          : refreshTokenValue,
     );
 
     // Observability: Log which tokens were found and saved (without logging values)
@@ -133,14 +136,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     debugPrint(
       '[AuthRemoteDataSource] Tokens saved: access=$hasAccess, session=$hasSession, refresh=$hasRefresh',
     );
-
-    // Warning if refresh token is missing after login/session
-    if (!hasRefresh) {
-      debugPrint(
-        '[AuthRemoteDataSource] WARNING: No refresh_token found in auth response. '
-        'This may indicate a backend contract mismatch or parser issue.',
-      );
-    }
   }
 
   /// Clear all authentication-related data on logout
@@ -257,7 +252,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             final dataJson = normalizedData['data'] as Map<String, dynamic>?;
 
             // Store all tokens using _storeTokens for consistency
-            await _storeTokens(meta, dataJson);
+            await _storeTokens(meta, dataJson, true);
 
             // Check for pending verification flow on 401
             final data = responseData['data'] as Map<String, dynamic>?;
@@ -296,7 +291,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
             // Normal 200 success path - store all tokens and return user
             if (response.statusCode == 200) {
-              await _storeTokens(meta, normalizedData);
+              await _storeTokens(meta, normalizedData, true);
               final authResponse = AuthenticatedResponse.fromJson(
                 normalizedData,
               );
@@ -318,6 +313,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 metaJson,
                 normalizedData,
               );
+
+              // Additional fallback: check if refresh token is in root of response
+              if ((meta.refreshToken == null || meta.refreshToken!.isEmpty) &&
+                  normalizedData['refresh_token'] != null) {
+                debugPrint(
+                  '[AuthRemoteDataSource] Using refresh_token from root response as fallback',
+                );
+                // Create updated meta with refresh token from root
+                final updatedMeta = AuthMeta(
+                  isAuthenticated: meta.isAuthenticated,
+                  sessionToken: meta.sessionToken,
+                  accessToken: meta.accessToken,
+                  refreshToken: normalizedData['refresh_token']?.toString(),
+                );
+                await _storeTokens(updatedMeta, normalizedData, false);
+              } else {
+                await _storeTokens(meta, normalizedData, true);
+              }
               await _storeTokens(meta, normalizedData);
             }
             return user;
@@ -420,7 +433,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 ? Map<String, dynamic>.from(responseData['data'] as Map)
                 : <String, dynamic>{};
             final meta = AuthMeta.fromJsonWithFallback(metaJson, dataJson);
-            await _storeTokens(meta, dataJson);
+            await _storeTokens(meta, dataJson, true);
             debugPrint(
               '[verifyEmail] Tokens stored after successful verification.',
             );
@@ -521,12 +534,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
                 ? Map<String, dynamic>.from(normalizedData['data'])
                 : normalizedData;
 
-            await _storeTokens(meta, dataJson);
-          }
+            await _storeTokens(meta, dataJson, true);
 
-          // Case 1: Success (200)
-          if (response.statusCode == 200) {
-            if (normalizedData.containsKey('data')) {
+            if (response.statusCode == 200) {
               final authResponse = AuthenticatedResponse.fromJson(
                 normalizedData,
               );
@@ -755,7 +765,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-Session-Token': ?sessionToken,
+            ...sessionToken != null ? {'X-Session-Token': sessionToken} : {},
           },
           validateStatus: (status) => status == 200 || status == 409,
         ),

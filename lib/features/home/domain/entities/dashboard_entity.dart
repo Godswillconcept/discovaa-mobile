@@ -5,10 +5,7 @@ class SpendingTrendDataPoint {
   final DateTime date;
   final double amount;
 
-  const SpendingTrendDataPoint({
-    required this.date,
-    required this.amount,
-  });
+  const SpendingTrendDataPoint({required this.date, required this.amount});
 }
 
 /// Spending trend entity
@@ -148,7 +145,20 @@ class RecentBookingEntity {
     if (diff.inDays < 7) return '${diff.inDays} days ago';
     if (diff.inDays < 30) return '${(diff.inDays / 7).floor()} weeks ago';
 
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
@@ -188,20 +198,40 @@ class AppointmentEntity {
   String get formattedDate {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final appointmentDate = DateTime(scheduledDate.year, scheduledDate.month, scheduledDate.day);
+    final appointmentDate = DateTime(
+      scheduledDate.year,
+      scheduledDate.month,
+      scheduledDate.day,
+    );
 
     if (appointmentDate == today) return 'Today';
-    if (appointmentDate == today.add(const Duration(days: 1))) return 'Tomorrow';
+    if (appointmentDate == today.add(const Duration(days: 1)))
+      return 'Tomorrow';
 
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
 
     return '${days[scheduledDate.weekday - 1]}, ${months[scheduledDate.month - 1]} ${scheduledDate.day}';
   }
 
   String get formattedTime {
     if (scheduledTime == null) return '';
-    final h = scheduledTime!.hourOfPeriod == 0 ? 12 : scheduledTime!.hourOfPeriod;
+    final h = scheduledTime!.hourOfPeriod == 0
+        ? 12
+        : scheduledTime!.hourOfPeriod;
     final m = scheduledTime!.minute.toString().padLeft(2, '0');
     final p = scheduledTime!.period == DayPeriod.am ? 'AM' : 'PM';
     return '$h:$m $p';
@@ -211,8 +241,8 @@ class AppointmentEntity {
     final now = DateTime.now();
     return scheduledDate.isAfter(now) ||
         (scheduledDate.year == now.year &&
-         scheduledDate.month == now.month &&
-         scheduledDate.day == now.day);
+            scheduledDate.month == now.month &&
+            scheduledDate.day == now.day);
   }
 }
 
@@ -240,11 +270,11 @@ class DashboardEntity {
 
   bool get hasData {
     return spendingTrend != null ||
-           bookingMix != null ||
-           kpis != null ||
-           insights.isNotEmpty ||
-           recentBookings.isNotEmpty ||
-           upcomingAppointments.isNotEmpty;
+        bookingMix != null ||
+        kpis != null ||
+        insights.isNotEmpty ||
+        recentBookings.isNotEmpty ||
+        upcomingAppointments.isNotEmpty;
   }
 
   bool get isEmpty => !hasData;
@@ -279,12 +309,7 @@ class DashboardFilterEntity {
   final DateTime? to;
   final String? role;
 
-  const DashboardFilterEntity({
-    this.range,
-    this.from,
-    this.to,
-    this.role,
-  });
+  const DashboardFilterEntity({this.range, this.from, this.to, this.role});
 
   DashboardFilterEntity copyWith({
     String? range,

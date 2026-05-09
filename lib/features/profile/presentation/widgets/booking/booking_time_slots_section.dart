@@ -153,6 +153,8 @@ class _TimeSlotsGridState extends State<_TimeSlotsGrid> {
 
   void _updateScrollIndicators() {
     if (!mounted) return;
+    if (!_scrollController.hasClients) return;
+
     setState(() {
       _showLeftIndicator = _scrollController.offset > 0;
       _showRightIndicator =

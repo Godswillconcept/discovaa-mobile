@@ -222,6 +222,7 @@ class BookingSuccessView extends ConsumerWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w500,
                       color: Colors.black.withValues(alpha: 0.8),
+                      fontSize: 14,
                     ),
                   ),
                 ],
